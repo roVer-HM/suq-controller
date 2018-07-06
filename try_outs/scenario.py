@@ -40,17 +40,17 @@ class ScenarioManager(object):
 
         # 1. the .scenario file
         assert os.path.isfile(scenario_fp), "Filepath to .scenario does not exist"
-        assert scenario_fp.split(".")[-1] == ".scenario", "File has to be a VADERE .scenario file"
+        assert scenario_fp.split(".")[-1] == "scenario", "File has to be a VADERE *.scenario file"
 
         filename = os.path.basename(scenario_fp)
         copyfile(scenario_fp, os.path.join(sc_folder, filename))
 
         # 2. the config file
-        with open(os.path.join(sc_folder, "sc_config"), "w") as f:
-            f.write(sc_config)
+        with open(os.path.join(sc_folder, "sc_config.json"), 'w') as outfile:
+            json.dump(sc_config, outfile, indent=4)
 
     def _create_sc_config(self, model):
-        default_cfg = DEFAULT_SUQ_CONFIG
+        default_cfg = DEFAULT_SC_CONFIG
         default_cfg["model"] = model
         return default_cfg
 
@@ -74,9 +74,12 @@ class ScenarioManager(object):
         sc_config = self._create_sc_config(model=model)
         self._fill_files_new_sc(scenario_fp, sc_folder, sc_config)
 
+    def get_scenario_file(self,sc_name):
+        pass  # TODO
+
 
 if __name__ == "__main__":
     sm = ScenarioManager()
 
-    scfp = "/home/daniel/REPOS/vadere/suq-controller/try_outs/basic_1_chicken_osm1.scenario"
+    scfp = os.path.join(SRC_PATH, "basic_1_chicken_osm1.scenario")
     sm.add_new_scenario(scfp, "chicken", "vadere", replace=True)
