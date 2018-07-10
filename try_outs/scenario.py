@@ -2,11 +2,12 @@
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
-import os
+
 
 from shutil import copyfile, rmtree
 
 from try_outs.configuration import *
+from try_outs.utils import user_query_yes_no, user_query_numbered_list
 
 # --------------------------------------------------
 # people who contributed code
@@ -55,17 +56,26 @@ class ScenarioManager(object):
         return default_cfg
 
     def _remove_scenario(self, folder_path):
-        # TODO: this should be checked with user prompt whether to remove the existing folder
-        rmtree(folder_path)
+        if user_query_yes_no(question=f"Are you sure you want to overwrite the scenario? \n {folder_path}"):
+            rmtree(folder_path)
+            return True
+        else:
+            return False
 
     def add_new_scenario(self, scenario_fp, name, model, replace=False):
 
-        # TODO: for now a new scenario gets always saved in the first entry of the list, this should be changed (e.g. console prompt)
-        target_sc_path = self._sc_paths[0]  # = parent folder of the scenario, where all scenarios are stored
+        # = parent folder of the scenario, where all scenarios are stored
+        if len(self._sc_paths) > 1:
+            target_sc_path = user_query_numbered_list(self._sc_paths)
+        else:
+            target_sc_path = self._sc_paths[0]
+
         sc_folder = os.path.join(target_sc_path, name)
 
         if replace and os.path.exists(sc_folder):
-            self._remove_scenario(sc_folder)
+            if not self._remove_scenario(sc_folder):
+                print("Aborting creating a new scenario.")
+                return
 
         assert name not in self._get_sc_names(target_sc_path), f"Scenario {name} exists already in: \n " \
                                                                f"{target_sc_path }"
