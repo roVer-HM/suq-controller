@@ -5,6 +5,8 @@
 import os
 import json
 
+from try_outs.utils import user_query_yes_no
+
 # --------------------------------------------------
 # people who contributed code
 __authors__ = "Daniel Lehmberg"
@@ -53,10 +55,21 @@ def get_model_location(name):
 
 def set_new_model(name, location):
     config = get_suq_config()
-    assert name not in config["models"]
+
+    if name in config["models"]:
+
+        if os.path.abspath(location) == os.path.abspath(config["models"][name]):
+            return  # is anyway the same path
+
+        if not user_query_yes_no(question=f"The name '{name}' already exists in the lookup table. Do you want to "
+                                          f"update the path? \n "
+                                          f"{config['models'][name]} --> {location}"):
+            return  # not updating the path
+
+    assert os.path.exists(location), f"The location {os.path.abspath(location)} is does not exist."
+
     config["models"][name] = location
     _store_json(config)
-
 
 def get_model_names():
     config = get_suq_config()
@@ -80,7 +93,7 @@ def list_scenario_paths():
 
 
 if __name__ == "__main__":
-    get_suq_config(reset_default=True)
-    set_new_model("vadere", "./models/vadere-console.jar")
+    get_suq_config(reset_default=False)
+    set_new_model("vadere", "./models/vadere-console1.jar")
     print(get_suq_config())
 
