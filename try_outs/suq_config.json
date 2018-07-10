@@ -1,7 +1,8 @@
 {
-"scenario_paths": ["/home/daniel/REPOS/vadere/suq-controller/try_outs/scenarios"],
-"location_models":
-{
-"vadere": "/home/daniel/REPOS/vadere/suq-controller/try_outs/models/vadere-console.jar"
-}
+    "scenario_paths": [
+        "./scenarios"
+    ],
+    "models": {
+        "vadere": "./models/vadere-console.jar"
+    }
 }
