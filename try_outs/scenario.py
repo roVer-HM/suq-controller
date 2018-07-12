@@ -2,8 +2,6 @@
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
-
-
 from shutil import copyfile, rmtree
 
 from try_outs.configuration import *
@@ -25,14 +23,31 @@ class ScenarioManager(object):
         else:
             self._sc_paths = scenario_path
 
+    @classmethod
+    def setscname(cls, scname):
+        sm = ScenarioManager()
+        paths = sm._get_all_paths_with_scname(scname)
+        if len(paths) > 1:
+            path = user_query_numbered_list(paths)
+        else:
+            path = paths[0]
+
+        return ScenarioManager(path)
+
+
+    @classmethod
+    def setscpath(cls, scpath):
+        return ScenarioManager(scenario_path=scpath)
+
     def _get_sc_names(self, p):
         return os.listdir(p)  # the folder names are the scenario names
 
-    def _get_all_sc_names(self):
-        names = list()
+    def _get_all_paths_with_scname(self, scname):
+        paths = list()
         for p in self._sc_paths:
-            names.append(self._get_sc_names(p))
-        return names
+            if scname in self._get_sc_names(p):
+                paths.append(p)
+        return paths
 
     def _check_double_sc_names(self):
         pass
@@ -84,8 +99,10 @@ class ScenarioManager(object):
         sc_config = self._create_sc_config(model=model)
         self._fill_files_new_sc(scenario_fp, sc_folder, sc_config)
 
-    def get_scenario_file(self,sc_name):
-        pass  # TODO
+    def get_scenario_file(self, sc_name):  # TODO: think about to set sc_name in __init__?
+        with open("/home/daniel/REPOS/vadere_projects/suq-controller/try_outs/scenarios/chicken/basic_1_chicken_osm1.scenario", "r") as f:
+            content = json.load(f)
+        return content
 
 
 if __name__ == "__main__":
