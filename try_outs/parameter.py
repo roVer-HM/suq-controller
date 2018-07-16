@@ -45,7 +45,6 @@ class ParameterVariation(object):
         return self.add_sklearn_grid(ParameterGrid(param_grid=d))
 
     def _check_key(self, scjson, key):
-        # 1. Check for precise description (no multiple keys available...)
         d = deepcopy(scjson)  # better to deepcopy the scjson, because dicts are mutable
 
         # the chain describes the keys (looked up deep in dict) in given order
@@ -54,16 +53,11 @@ class ParameterVariation(object):
 
         d, _ = deep_subdict(d, key_path)
 
-        try:
-            deep_dict_lookup(d, last_key, check_integrity=True)
+        try:  # check that the value is 'final' (i.e. not another sub-directory) and that the key is unique.
+            deep_dict_lookup(d, last_key, check_final_leaf=True, check_unique_key=True)
         except ValueError as e:
             raise e  # re-raise Exception
 
-        # 2. Check: Value is not another sub-dict
-        val = deep_dict_lookup(d, last_key)
-        if isinstance(val, dict):
-            raise ValueError(f"Invalid key identifier: '{last_key}' in description {key} is not a final value, but "
-                             f"another sub-dict.")
         return True
 
     def _check_all_keys(self, scjson, keys):
@@ -121,12 +115,12 @@ class VariationCreator(object):
 
 
 if __name__ == "__main__":
-    d = {"bounds|x": [9999, 1.2, 1.3],
-         "speedDistributionStandardDeviation": [5555, 0.1, 0.2]}
-    grid = ParameterGrid(param_grid=d)
+    di = {"bounds|x": [9999, 1.2, 1.3],
+          "speedDistributionStandardDeviation": [5555, 0.1, 0.2]}
+    grid = ParameterGrid(param_grid=di)
 
     pv = ParameterVariation(sc_name="chicken")
-    pv.add_dict_grid(d)
+    pv.add_dict_grid(di)
 
     vc = VariationCreator("chicken", pv)
     vc.generate_scenarios()

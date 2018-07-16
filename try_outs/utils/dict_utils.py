@@ -2,6 +2,8 @@
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
+import numbers  # required to check for numeric types
+
 from copy import deepcopy
 from functools import reduce
 
@@ -13,36 +15,49 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
-def deep_dict_lookup(d: dict, key: str, check_integrity=False):
-    """Return a value corresponding to the specified key in the (possibly
-    nested) dictionary d. If there is no item with that key raise ValueError.
+def deep_dict_lookup(d: dict, key: str, check_final_leaf=True, check_unique_key=False):
+    """Return a value corresponding to the specified key in the (possibly nested) dictionary d. If there is no item
+    with that key raise ValueError.
+
+    :param d: dictionary to look up the key
+    :param key: key to look up deep in `d`
+    :param check_final_leaf: checks if the returned value is a final value and not another sub-directory
+    :param check_unique_key: checks if there are multiple keys with name `key`; if yes throw ValueError
     """
     # "Stack of Iterators" pattern: http://garethrees.org/2016/09/28/pattern/
     # https://stackoverflow.com/questions/14962485/finding-a-key-recursively-in-a-dictionary
     value = None
 
-    current_path = []
-    path_to_value = None
+    current_path = []         # store the absolute path to the variable as a list of keys
+    path_to_value = None      # path to the final key
 
     stack = [iter(d.items())]
     while stack:
-        for k, v in stack[-1]:
+        for k, v in stack[-1]:               # go through (sub-) directories
             current_path.append(k)
-            if k == key:
-                if check_integrity:  # keep looking at all keys, if there is a conflict, return error
-                    if value is not None: # here was already another value -> not unique
-                        raise ValueError(f"There is a conflict (two or more) of key {key} in the dictionary. \n {d}")
-                    path_to_value = deepcopy(current_path)  # deepcopy becuase is mutable
-                    value = v
+            if k == key:                     # if this is the key we are looking for...
+                if check_unique_key:         # keep looking at all keys in 'd', to check if there is a conflict
+                    if value is not None:    # here was already another value -> not unique
+                        raise ValueError(f"There is a conflict (two or more) of key {key} in the dictionary. \n {d}",
+                                         f"1. path: {path_to_value} \n"
+                                         f"2. path: {current_path}")
+                    path_to_value = deepcopy(current_path)  # deepcopy because lists are mutable
+                    value = v                # set to final value
                 else:
-                    return v, path_to_value
+                    # if the integrity is not checked, return immediately the key and path
+                    if check_final_leaf and isinstance(v, dict):
+                        raise ValueError(f"Value to return for key {key} is not a leaf (i.e. value) but a "
+                                         f"sub-dictionary.")
+                    return v, deepcopy(current_path)
 
-            elif isinstance(v, dict):
+            if isinstance(v, dict):          # fill stack with more subdicts
                 stack.append(iter(v.items()))
                 break
-            else:
-                current_path.remove(k)
+            else:                            # remove last key again from list
+                current_path = current_path[:-1]
         else:
+            # if/else statement: if loop ended normally then run this: remove last key from path and remove this
+            # entry from the stack
             current_path = current_path[:-1]
             stack.pop()
 
@@ -76,7 +91,7 @@ def deep_subdict(d: dict, keys: list):
         return d, path
 
     for k in keys:
-        d, p = deep_dict_lookup(d, k, True)
+        d, p = deep_dict_lookup(d, k, check_final_leaf=False, check_unique_key=True)
         path += p
         assert isinstance(d, dict)
     return d, path
@@ -93,8 +108,8 @@ def abs_path_key(d: dict, key: str):
     if desc_keys:
         d, path = deep_subdict(d, desc_keys)
     else:
-        _, path = deep_dict_lookup(d, key, check_integrity=True)
-        path.remove(last_key)
+        _, path = deep_dict_lookup(d, key, check_unique_key=True)
+        path = path[:-1]  # remove last key
 
     if all_nested_keys(d).count(last_key) != 1:
         raise ValueError("Wrong description of key.")
@@ -102,22 +117,47 @@ def abs_path_key(d: dict, key: str):
     return path, last_key
 
 
-def change_value(d: dict, path: str, last_key: str, value):
+def get_dict_value_keylist(d: dict, path: list, last_key: str):
+    return reduce(dict.__getitem__, path, d)[last_key]
+
+
+def set_dict_value_keylist(d: dict, path: list, last_key: str, value):
+    reduce(dict.__getitem__, path, d)[last_key] = value
+    return d
+
+
+def change_value(d: dict, path: list, last_key: str, value):
     try:
-        exist_val = reduce(dict.__getitem__, path, d)[last_key]
-    except KeyError as e:
+        exist_val = get_dict_value_keylist(d, path, last_key)
+    except KeyError:
         raise KeyError(f"Cannot change value because path {path+last_key} does not exist.")
 
     if isinstance(exist_val, dict):
         raise ValueError("Cannot values to sub-directories!")
 
-    #if type(exist_val) != type(value):
-        # TODO this can be relaxed a bit in the future, e.g. allow ints when doubles are required (-> cast if possible)
-    #    raise ValueError(f"Inferring valid types from existing: \n Types of existing value {type(exist_val)} and "
-    #                     f"new value {type(value)} do not match!")
+    # Security: if there is a completely new type (which cannot be casted) then throw error
+    if type(exist_val) != type(value):
 
-    reduce(dict.__getitem__, path, d)[last_key] = value
-    return d
+        # check for numbers...
+        if isinstance(exist_val, numbers.Number) and isinstance(value, numbers.Number):
+
+            # ignore cases, in case there are warppers around the float (such as from float <->_np.float64)
+            if isinstance(exist_val, float) and isinstance(value, float) or \
+                    isinstance(exist_val, int) and isinstance(value, int):
+                pass
+            else:  # print warning in cases where e.g. the existing value is an int and the new value is a double
+                print(f"WARNING: key {last_key} at path {path} has type {type(exist_val)} but the new value has type "
+                      f"{type(value)}. The value is not casted.")
+        else:
+            print(f"WARNING: There is a type casting from type {type(value)} (set value) to type {exist_val} "
+                  f"(existing value)")
+            try:
+                value = type(exist_val)(value)  # try to cast, if it failes raise error
+            except ValueError as e:
+                print(f"Type-cast failed for key {last_key} at path {path}.")
+                raise e
+
+    return set_dict_value_keylist(d, path, last_key, value)
 
 
 def change_existing_dict(d: dict, changes: dict):
@@ -126,11 +166,12 @@ def change_existing_dict(d: dict, changes: dict):
         d = change_value(d, path, last_key, v)
     return d
 
+
 if __name__ == "__main__":
-    d = {"a": {"b": 1, "c": {"x": 3}, "d": {"f": 3}}}
+    d1 = {"a": {"b": 1, "c": {"x": 3}, "d": {"f": 3}}}
     # print(deep_dict_lookup(d, "x", True))
 
-    print(change_existing_dict(d, {"a|b": 3}))
+    print(change_existing_dict(d1, {"a|b": 3}))
 
     #print(deep_subdict(d, ["c"]))
     #print(abs_path_key(d, "a|c|x"))
