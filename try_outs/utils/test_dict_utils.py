@@ -103,6 +103,40 @@ class DictUtilTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             deep_dict_lookup(d1, key="c")
 
+        d2 = {"a": {"b": {"c": 1}}, "b": {"c": {"d": 1}}, "c": {"a": 1}, "e": {"a": {"b": {"g": 3}}}}
+
+        self.assertEqual(deep_dict_lookup(d2, "c|a"), (1, ["c", "a"]))
+        self.assertEqual(deep_dict_lookup(d2, "|a", check_final_leaf=False), ({'b': {'c': 1}}, ["a"]))
+
+        self.assertEqual(deep_dict_lookup(d2, "b", check_unique_key=False, check_final_leaf=False), ({"c": 1}, ["a", "b"]))
+        self.assertEqual(deep_dict_lookup(d2, "|b", check_unique_key=False, check_final_leaf=False), ({"c": {"d": 1}}, ["b"]))
+
+        self.assertEqual(deep_dict_lookup(d2, "d"), (1, ["b", "c", "d"]))
+        self.assertEqual(deep_dict_lookup(d2, "b|c", check_final_leaf=False), ({"d": 1}, ["b", "c"]))
+        self.assertEqual(deep_dict_lookup(d2, "|b|c", check_final_leaf=False), ({"d": 1}, ["b", "c"]))
+        self.assertEqual(deep_dict_lookup(d2, "a|b|c"), (1, ["a", "b", "c"]))
+        self.assertEqual(deep_dict_lookup(d2, "b|c|d"), (1, ["b", "c", "d"]))
+        self.assertEqual(deep_dict_lookup(d2, "|b|c|d"), (1, ["b", "c", "d"]))
+
+        self.assertEqual(deep_dict_lookup(d2, "g"), (3, ["e", "a", "b", "g"]))
+        self.assertEqual(deep_dict_lookup(d2, "|g"), (3, ["e", "a", "b", "g"]))
+
+        with self.assertRaises(ValueError):
+            deep_dict_lookup(d2, "b")
+
+        with self.assertRaises(ValueError):
+            deep_dict_lookup(d2, "c")
+
+        d3 = {"a": {"b": {"c": {"d": 1}}}, "b": {"d": 2}}
+
+        with self.assertRaises(ValueError):
+            deep_dict_lookup(d3, "d")
+
+        self.assertEqual(deep_dict_lookup(d3, "c|d"), (1, ["a", "b", "c", "d"]))
+        self.assertEqual(deep_dict_lookup(d3, "b|d"), (2, ["b", "d"]))
+        self.assertEqual(deep_dict_lookup(d3, "a|b|d"), (1, ["a", "b", "c", "d"]))
+        self.assertEqual(deep_dict_lookup(d3, "a|b|c|d"), (1, ["a", "b", "c", "d"]))
+
 
 if __name__ == '__main__':
     DictUtilTests().test_trivial()
