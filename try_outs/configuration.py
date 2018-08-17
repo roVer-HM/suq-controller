@@ -14,6 +14,7 @@ __authors__ = "Daniel Lehmberg"
 __credits__ = ["n/a"]
 # --------------------------------------------------
 
+# TODO: make a central file of all the (config-) filenames, set by suq-controller!
 
 # relative path of this file:
 SRC_PATH = os.path.relpath(os.path.join(__file__, os.pardir))
@@ -90,7 +91,6 @@ def remove_scenario_path(p):
 
 def list_scenario_paths():
     print(get_suq_config()["scenario_paths"])
-
 
 if __name__ == "__main__":
     get_suq_config(reset_default=False)

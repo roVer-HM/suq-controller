@@ -46,16 +46,9 @@ class ParameterVariation(object):
         return self.add_sklearn_grid(ParameterGrid(param_grid=d))
 
     def _check_key(self, scjson, key):
-        d = deepcopy(scjson)  # better to deepcopy the scjson, because dicts are mutable
-
-        # the chain describes the keys (looked up deep in dict) in given order
-        # last_key describes the key the user wants to change
-        key_path, last_key = key_split(key)
-
-        d, _ = deep_subdict(d, key_path)
 
         try:  # check that the value is 'final' (i.e. not another sub-directory) and that the key is unique.
-            deep_dict_lookup(d, last_key, check_final_leaf=True, check_unique_key=True)
+            deep_dict_lookup(scjson, key, check_final_leaf=True, check_unique_key=True)
         except ValueError as e:
             raise e  # re-raise Exception
 

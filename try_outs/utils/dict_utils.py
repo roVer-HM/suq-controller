@@ -15,7 +15,74 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
-def deep_dict_lookup(d: dict, key: str, check_final_leaf=True, check_unique_key=False):
+SYMBOL_KEY_CHAINING = "|"
+
+
+def _deep_dict_breadth_first(d: dict, key: str):
+
+    cur_level = 0
+    level_found = 100**100
+    stack = [(cur_level, [], d)]
+
+    final_path = None
+    val = None
+
+    while stack:
+
+        cur_level, cur_path, iter_stack = stack[0]
+
+        for k, v in iter_stack.items():
+            if k == key and cur_level <= level_found:
+
+                if val is not None:
+                    raise ValueError
+
+                val = v
+                cur_path.append(k)
+                level_found = cur_level
+                final_path = deepcopy(cur_path)
+            elif isinstance(v, dict):
+                path = deepcopy(cur_path)
+                path.append(k)
+                stack.append((cur_level+1, path, v))
+        else:
+            stack = stack[1:]
+
+    return val, final_path
+
+
+def key_split(key: str):
+    path = key.split("|")
+    return path[:-1], path[-1]
+
+
+def _handle_chained_keys(d, key, check_final_leaf, check_unique_key):
+    key_chain = key.split(SYMBOL_KEY_CHAINING)      # get the user specified key chain
+    cur_d = deepcopy(d)                             # start with the root dict
+    cur_p = list()
+
+    if len(key_chain) == 2 and key_chain[0] == "":  # special case if value follows root
+        val, path = _deep_dict_breadth_first(d, key_chain[1])  # look directly breath first for the target value
+        return val, path
+    else:
+
+        if key_chain[0] == "":                              # remove unnecessary root and remove empty
+            key_chain = key_chain[1:]
+
+        for k in key_chain[:-1]:                            # do breath first for all path-descriptive keys
+            d_, p_ = _deep_dict_breadth_first(cur_d, k)
+            cur_d = deepcopy(d_)
+            cur_p += p_
+
+        val, p_ = deep_dict_lookup(cur_d, key_chain[-1],    # carry out depth first for last sub-dictionary
+                                   check_final_leaf=check_final_leaf,
+                                   check_unique_key=check_unique_key)
+
+    cur_p += p_
+    return val, cur_p
+
+
+def deep_dict_lookup(d: dict, key: str, check_final_leaf=True, check_unique_key=True):
     """Return a value corresponding to the specified key in the (possibly nested) dictionary d. If there is no item
     with that key raise ValueError.
 
@@ -26,6 +93,10 @@ def deep_dict_lookup(d: dict, key: str, check_final_leaf=True, check_unique_key=
     """
     # "Stack of Iterators" pattern: http://garethrees.org/2016/09/28/pattern/
     # https://stackoverflow.com/questions/14962485/finding-a-key-recursively-in-a-dictionary
+
+    if SYMBOL_KEY_CHAINING in key:
+        return _handle_chained_keys(d, key, check_final_leaf=check_final_leaf, check_unique_key=check_unique_key)
+
     value = None
 
     current_path = []         # store the absolute path to the variable as a list of keys
@@ -83,40 +154,6 @@ def all_nested_keys(d: dict):
         return all_keys
 
 
-def deep_subdict(d: dict, keys: list):
-    """Returns a subdict, where the path is described by 'keys'. At each level the keys are looked up deep."""
-    path = []
-
-    if not keys:  # -> keys is empty
-        return d, path
-
-    for k in keys:
-        d, p = deep_dict_lookup(d, k, check_final_leaf=False, check_unique_key=True)
-        path += p
-        assert isinstance(d, dict)
-    return d, path
-
-
-def key_split(key: str):
-    path = key.split("|")
-    return path[:-1], path[-1]
-
-
-def abs_path_key(d: dict, key: str):
-    desc_keys, last_key = key_split(key)
-
-    if desc_keys:
-        d, path = deep_subdict(d, desc_keys)
-    else:
-        _, path = deep_dict_lookup(d, key, check_unique_key=True)
-        path = path[:-1]  # remove last key
-
-    if all_nested_keys(d).count(last_key) != 1:
-        raise ValueError("Wrong description of key.")
-
-    return path, last_key
-
-
 def get_dict_value_keylist(d: dict, path: list, last_key: str):
     return reduce(dict.__getitem__, path, d)[last_key]
 
@@ -162,7 +199,8 @@ def change_value(d: dict, path: list, last_key: str, value):
 
 def change_existing_dict(d: dict, changes: dict):
     for k, v in changes.items():
-        path, last_key = abs_path_key(d, k)
+        _, p = deep_dict_lookup(d, k)
+        path, last_key = p[:-1], p[-1]
         d = change_value(d, path, last_key, v)
     return d
 

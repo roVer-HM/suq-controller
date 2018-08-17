@@ -2,6 +2,8 @@
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
+import glob
+
 from shutil import copyfile, rmtree
 
 from try_outs.configuration import *
@@ -19,9 +21,14 @@ class ScenarioManager(object):
 
     def __init__(self, scenario_path=None):
         if scenario_path is None:
-            self._scpaths = get_suq_config()["scenario_paths"]
+            list_paths = get_suq_config()["scenario_paths"]
+
+            if len(list_paths) > 1:
+                self._scpath = user_query_numbered_list(list_paths)
+            else:
+                self._scpath = list_paths[0]
         else:
-            self._scpaths = scenario_path
+            self._scpath = scenario_path
 
     @classmethod
     def setscname(cls, scname):
@@ -42,12 +49,20 @@ class ScenarioManager(object):
     def _get_sc_names(self, p):
         return os.listdir(p)  # the folder names are the scenario names
 
+    def _get_all_sc_names(self):
+        names = list()
+        for p in self._scpath:
+            names.append(self._get_sc_names(p))
+        return names
+
     def _get_all_paths_with_scname(self, scname):
-        paths = list()
-        for p in self._scpaths:
-            if scname in self._get_sc_names(p):
-                paths.append(p)
-        return paths
+        sc_paths = get_suq_config()["scenario_paths"]
+        paths_with_scenario = list()
+
+        for p in sc_paths:
+            if scname in self._get_sc_names(os.path.abspath(p)):
+                paths_with_scenario.append(p)
+        return paths_with_scenario
 
     def _check_double_sc_names(self):
         pass
@@ -56,7 +71,7 @@ class ScenarioManager(object):
 
         # 1. the .scenario file
         assert os.path.isfile(scenario_fp), "Filepath to .scenario does not exist"
-        assert scenario_fp.split(".")[-1] == "scenario", "File has to be a VADERE *.scenario file"
+        assert scenario_fp.split(".")[-1] == "scenario", "File has to be a VADERE '*.scenario' file"
 
         filename = os.path.basename(scenario_fp)
         copyfile(scenario_fp, os.path.join(sc_folder, filename))
@@ -78,7 +93,7 @@ class ScenarioManager(object):
             return False
 
     def get_scfolder_path(self, scname):
-        return os.path.join(self._scpaths, scname)  # TODO: fix, after merged code from uni
+        return os.path.join(self._scpath, scname)  # TODO: fix, after merged code from uni
 
     def get_scvadere_folder(self, scname): # TODO: define 'vadere_scenarios' somehwere in a variable
         rel_path = os.path.join(self.get_scfolder_path(scname), "vadere_scenarios")
@@ -87,35 +102,37 @@ class ScenarioManager(object):
     def add_new_scenario(self, scenario_fp, scname, model, replace=False):
 
         # = parent folder of the scenario, where all scenarios are stored
-        if len(self._scpaths) > 1:
-            target_scpath = user_query_numbered_list(self._scpaths)
-        else:
-            target_scpath = self._scpaths[0]
+        # target_sc_path = self._sc_path[0]
 
-        scfolder = self.get_scfolder_path(scname)
+        scfolder = os.path.join(self._scpath, scname)
 
         if replace and os.path.exists(scfolder):
             if not self._remove_scenario(scfolder):
-                print("Aborting creating a new scenario.")
+                print("Aborting to create a new scenario.")
                 return
 
-        assert scname not in self._get_sc_names(target_scpath), f"Scenario {scname} exists already in: \n " \
-                                                                f"{target_scpath }"
+        assert scname not in self._get_all_sc_names(), f"Scenario {scname} exists already in: \n " \
+                                                              f"{self._scpath}"
         os.mkdir(scfolder)
-        os.mkdir(self.get_scvadere_folder(scname))
 
         sc_config = self._create_sc_config(model=model)
         self._fill_files_new_sc(scenario_fp, scfolder, sc_config)
 
-    # TODO: fix at merge with uni changes:
     def get_vadere_scbasis_file(self, sc_name):
-        with open("/home/daniel/REPOS/vadere_projects/suq-controller/try_outs/scenarios/chicken/basic_1_chicken_osm1.scenario", "r") as f:
-            content = json.load(f)
-        return content
+        sc_files = glob.glob(os.path.join(self._scpath, sc_name, "*.scenario"))
+        assert len(sc_files) == 1, "Multiple .scenario files found..."
+
+        with open(sc_files[0], "r") as f:
+            scenario_content = json.load(f)
+
+        return scenario_content
 
 
 if __name__ == "__main__":
     sm = ScenarioManager()
 
-    scfp = os.path.join(SRC_PATH, "basic_1_chicken_osm1.scenario")
-    sm.add_new_scenario(scfp, "chicken", "vadere", replace=True)
+    #scfp = os.path.join(SRC_PATH, "basic_1_chicken_osm1.scenario")
+    #sm.add_new_scenario(scfp, "chicken", "vadere", replace=True)
+
+    print(sm.get_scenario_file("chicken")["processWriters"])
+
