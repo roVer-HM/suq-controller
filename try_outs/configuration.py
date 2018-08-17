@@ -5,7 +5,7 @@
 import os
 import json
 
-from try_outs.utils import user_query_yes_no
+from try_outs.utils.general import user_query_yes_no
 
 # --------------------------------------------------
 # people who contributed code
