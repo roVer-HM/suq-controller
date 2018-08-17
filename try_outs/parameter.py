@@ -25,6 +25,7 @@ __credits__ = ["n/a"]
 # TODO: generate all scenarios files according to ParameterVariation (maybe better in an outer method, not in ParameterVariation itsel
 # TODO: put all the dictionay method in a helper module/class, as these will be needed again...
 
+
 class ParameterVariation(object):
 
     def __init__(self, sc_name):
@@ -83,7 +84,7 @@ class ParameterVariation(object):
             yield (i, dict(row))
 
 
-class VariationCreator(object):
+class ScenarioVariationCreator(object):
 
     def __init__(self, scname: str, var: ParameterVariation):
         self._scname = scname
@@ -100,6 +101,11 @@ class VariationCreator(object):
         with open(fp, "w") as outfile:
             json.dump(s, outfile, indent=4)
 
+    def _save_overview(self):
+        filename = "points_overview.csv"
+        fp = os.path.join(self._scman.get_scvadere_folder(self._scname), filename)
+        self._var.points.to_csv(fp)
+
     def generate_scenarios(self):
         target_path = self._scman.get_scvadere_folder(self._scname)
 
@@ -112,6 +118,7 @@ class VariationCreator(object):
         for par_id, par_changes in self._var.iter():
             new_scenario = self._create_new_vad_scenario(par_changes)
             self._save_scenario(par_id, new_scenario)
+        self._save_overview()
 
 
 if __name__ == "__main__":
@@ -122,7 +129,7 @@ if __name__ == "__main__":
     pv = ParameterVariation(sc_name="chicken")
     pv.add_dict_grid(di)
 
-    vc = VariationCreator("chicken", pv)
+    vc = ScenarioVariationCreator("chicken", pv)
     vc.generate_scenarios()
 
 
