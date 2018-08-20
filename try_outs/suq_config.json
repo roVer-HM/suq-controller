@@ -1,6 +1,6 @@
 {
-    "scenario_paths": [
-        "./scenarios"
+    "env_paths": [
+        "./envs"
     ],
     "models": {
         "vadere": "./models/vadere-console.jar"

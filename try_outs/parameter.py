@@ -11,7 +11,7 @@ from copy import deepcopy   # often better to deepcopy dicts
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid, ParameterSampler
-from try_outs.scenario import ScenarioManager
+from try_outs.environment import EnvironmentManager
 from try_outs.utils.dict_utils import *
 
 # --------------------------------------------------
@@ -22,15 +22,11 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
-# TODO: generate all scenarios files according to ParameterVariation (maybe better in an outer method, not in ParameterVariation itsel
-# TODO: put all the dictionay method in a helper module/class, as these will be needed again...
-
-
 class ParameterVariation(object):
 
-    def __init__(self, sc_name):
-        self._scname = sc_name
-        self._scman = ScenarioManager.setscname(sc_name)
+    def __init__(self, env_name):
+        self._envname = env_name
+        self._env_man = EnvironmentManager.set_by_env_name(env_name)
         self._points = pd.DataFrame()
 
     def _add_points_df(self, points):
@@ -63,7 +59,7 @@ class ParameterVariation(object):
         return grid.param_grid[0].keys()
 
     def add_sklearn_grid(self, grid: ParameterGrid):
-        scjson = self._scman.get_vadere_scbasis_file(sc_name=self._scname)  # corresponding scenario file
+        scjson = self._env_man.get_vadere_scenario_basis_file(sc_name=self._envname)  # corresponding scenario file
         self._check_all_keys(scjson, self._keys_of_paramgrid(grid))   # validate, that keys are valid
         self._points = self._add_points_df(points=list(grid))         # list creates all points described by the 'grid'
         return self.points
@@ -81,8 +77,8 @@ class ScenarioVariationCreator(object):
 
     def __init__(self, scname: str, var: ParameterVariation):
         self._scname = scname
-        self._scman = ScenarioManager.setscname(self._scname)
-        self._basis_scenario = self._scman.get_vadere_scbasis_file(self._scname)
+        self._scman = EnvironmentManager.set_by_env_name(self._scname)
+        self._basis_scenario = self._scman.get_vadere_scenario_basis_file(self._scname)
         self._var = var
 
     def _create_new_vad_scenario(self, par: dict):
@@ -90,17 +86,17 @@ class ScenarioVariationCreator(object):
 
     def _save_scenario(self, par_id, s):
         filename = "".join([str(par_id).zfill(10), ".scenario"])
-        fp = os.path.join(self._scman.get_scvadere_folder(self._scname), filename)
+        fp = os.path.join(self._scman.get_vadere_scenarios_folder(), filename)
         with open(fp, "w") as outfile:
             json.dump(s, outfile, indent=4)
 
     def _save_overview(self):
         filename = "points_overview.csv"
-        fp = os.path.join(self._scman.get_scvadere_folder(self._scname), filename)
+        fp = os.path.join(self._scman.get_vadere_scenarios_folder(), filename)
         self._var.points.to_csv(fp)
 
     def generate_scenarios(self):
-        target_path = self._scman.get_scvadere_folder(self._scname)
+        target_path = self._scman.get_vadere_scenarios_folder()
 
         # TODO: for now everytime it is removed an inserted again, but later it may be better to add and keep stuff...
         import os
@@ -119,7 +115,7 @@ if __name__ == "__main__":
           "speedDistributionStandardDeviation": [5555, 0.1, 0.2]}
     grid = ParameterGrid(param_grid=di)
 
-    pv = ParameterVariation(sc_name="chicken")
+    pv = ParameterVariation(env_name="chicken")
     pv.add_dict_grid(di)
 
     vc = ScenarioVariationCreator("chicken", pv)

@@ -10,7 +10,7 @@ import os
 # --------------------------------------------------
 # Change default values
 __authors__ = "Marion Gödel"
-__credits__ = ["N/A"] # insert names of people who reported bugs, made suggestions but didn't write code
+__credits__ = ["N/A"]  # insert names of people who reported bugs, made suggestions but didn't write code
 #
 
 PEDESTRIAN_POSITION_PROCESSOR = "org.vadere.simulator.projects.dataprocessing.processor.PedestrianPositionProcessor"

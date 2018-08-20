@@ -15,16 +15,15 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 # TODO: make a central file of all the (config-) filenames, set by suq-controller!
-
 # relative path of this file:
 SRC_PATH = os.path.relpath(os.path.join(__file__, os.pardir))
 SUQ_CONFIG_PATH = os.path.join(SRC_PATH, "suq_config.json")
 
 # configuration of the suq-controller
-DEFAULT_SUQ_CONFIG = {"scenario_paths": [os.path.join(SRC_PATH, "scenarios")],
+DEFAULT_SUQ_CONFIG = {"env_paths": [os.path.join(SRC_PATH, "envs")],
                       "models": dict()}
 
-# configuration saved with each scenario
+# configuration saved with each environment
 DEFAULT_SC_CONFIG = {"model": None}
 
 
@@ -77,20 +76,21 @@ def get_model_names():
     return config["models"].keys()
 
 
-def set_new_scenario_path(p):
+def set_new_env_path(p):
     config = get_suq_config()
-    assert p not in config["scenario_paths"]
-    config["scenario_paths"].append(p)
+    assert p not in config["env_paths"]
+    config["env_paths"].append(p)
     _store_json(config)
 
 
-def remove_scenario_path(p):
+def remove_env_path(p):
     config = get_suq_config()
-    config["scenario_paths"].remove(p)
+    config["env_paths"].remove(p)
 
 
-def list_scenario_paths():
-    print(get_suq_config()["scenario_paths"])
+def list_env_paths():
+    print(get_suq_config()["env_paths"])
+
 
 if __name__ == "__main__":
     get_suq_config(reset_default=False)
