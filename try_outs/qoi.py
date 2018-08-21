@@ -32,7 +32,8 @@ class EvacuationTime(QuantityOfInterest):
     def __init__(self, apply="mean", output_file=None):
         if output_file is None:
             output_file = "evacuationTimes.txt"
-        super(EvacuationTime, self).__init__(output_file, "evacTime")
+        name = "_".join(["evacTime", apply])
+        super(EvacuationTime, self).__init__(output_file, name)
 
         assert apply in ["mean", "max"]
         self._apply = apply
