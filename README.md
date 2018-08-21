@@ -8,8 +8,4 @@ This git repository uses git large file storage (git-lfs). Primarily this is to 
 
 To install git-lfs follow the instructions here: https://github.com/git-lfs/git-lfs/wiki/Installation
 
-After running `git lfs install` make sure to track the `jar` files by running the command:
-
-```
-git lfs track ".*jar"
-```
+In the repo the file `.gitattributes` shows the settings for git-lfs. 
