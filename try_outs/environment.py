@@ -7,6 +7,8 @@ import copy
 import os
 import json
 
+import pandas as pd
+
 from shutil import copyfile, rmtree
 
 import try_outs.configuration as suqcfg
@@ -108,9 +110,15 @@ class EnvironmentManager(object):
         model_path = suqcfg.get_model_location(model_name)
         return os.path.abspath(model_path)
 
-    def get_vadere_scenarios_folder(self):  # TODO: define 'vadere_scenarios' somewhere in a variable
+    def path_scenario_variation_folder(self):  # TODO: define 'vadere_scenarios' somewhere in a variable
         rel_path = os.path.join(self.env_path, "vadere_scenarios")
         return os.path.abspath(rel_path)
+
+    def path_parid_table_file(self):
+        return os.path.join(self.env_path, "parid_lookup.csv")
+
+    def parid_table(self):
+        return pd.read_csv(self.path_parid_table_file())
 
     def get_vadere_scenario_basis_file(self, sc_name):
         sc_files = glob.glob(os.path.join(self.env_path, "*.scenario"))
@@ -121,7 +129,7 @@ class EnvironmentManager(object):
         return basis_file
 
     def get_vadere_scenario_variations(self):
-        sc_folder = self.get_vadere_scenarios_folder()
+        sc_folder = self.path_scenario_variation_folder()
         sc_files = glob.glob(os.path.join(sc_folder, "*.scenario"))
         sc_files.sort()
         return sc_files
