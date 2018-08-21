@@ -4,10 +4,12 @@
 
 import glob
 import copy
+import os
+import json
 
 from shutil import copyfile, rmtree
 
-from try_outs.configuration import *
+import try_outs.configuration as suqcfg
 from try_outs.utils.general import user_query_yes_no, user_query_numbered_list
 
 # --------------------------------------------------
@@ -47,7 +49,7 @@ def create_environment(env_folder, sc_basis_file, model, replace=False):
     copyfile(sc_basis_file, os.path.join(env_folder, filename))
 
     # Create and store the configuration file to the new folder
-    cfg = copy.deepcopy(DEFAULT_SC_CONFIG)
+    cfg = copy.deepcopy(suqcfg.DEFAULT_SC_CONFIG)
     cfg["model"] = model
 
     with open(os.path.join(env_folder, "sc_config.json"), 'w') as outfile:
@@ -58,7 +60,7 @@ def create_environment(env_folder, sc_basis_file, model, replace=False):
 
 
 def get_all_paths_with_envname(env_name):
-    env_paths = get_suq_config()["env_paths"]
+    env_paths = suqcfg.get_suq_config()["env_paths"]
     paths_with_scenario = list()
 
     for p in env_paths:
@@ -76,7 +78,7 @@ def get_all_paths_with_envname(env_name):
 class EnvironmentManager(object):
 
     def __init__(self, env_path):
-        self._env_path = env_path
+        self.env_path = env_path
 
     @classmethod
     def set_by_env_name(cls, env_name):
@@ -93,19 +95,38 @@ class EnvironmentManager(object):
     def set_by_env_path(cls, env_path):
         return EnvironmentManager(env_path=env_path)
 
+    def get_cfg_value(self, key):
+        fp = os.path.join(self.env_path, "sc_config.json")
+        with open(os.path.abspath(fp), "r") as file:
+            js = json.load(file)
+        return js[key]
+
+    def get_model_path(self):
+        # look up set model in environment
+        model_name = self.get_cfg_value(key="model")
+        # return the value from the suq-configuration
+        model_path = suqcfg.get_model_location(model_name)
+        return os.path.abspath(model_path)
+
     def get_vadere_scenarios_folder(self):  # TODO: define 'vadere_scenarios' somewhere in a variable
-        rel_path = os.path.join(self._env_path, "vadere_scenarios")
+        rel_path = os.path.join(self.env_path, "vadere_scenarios")
         return os.path.abspath(rel_path)
 
     def get_vadere_scenario_basis_file(self, sc_name):
-        sc_files = glob.glob(os.path.join(self._env_path, "*.scenario"))
+        sc_files = glob.glob(os.path.join(self.env_path, "*.scenario"))
         assert len(sc_files) == 1, "None or too many .scenario files found..."
 
         with open(sc_files[0], "r") as f:
             basis_file = json.load(f)
         return basis_file
 
+    def get_vadere_scenario_variations(self):
+        sc_folder = self.get_vadere_scenarios_folder()
+        sc_files = glob.glob(os.path.join(sc_folder, "*.scenario"))
+        sc_files.sort()
+        return sc_files
+
 
 if __name__ == "__main__":
-    create_environment(env_folder="envs/chicken", sc_basis_file="basic_1_chicken_osm1.scenario", model="vadere",
+    create_environment(env_folder="envs/corner", sc_basis_file="rimea_06_corner.scenario", model="vadere",
                        replace=True)
