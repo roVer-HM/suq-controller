@@ -12,7 +12,7 @@ import pandas as pd
 from shutil import copyfile, rmtree
 
 import try_outs.configuration as suqcfg
-from try_outs.utils.general import user_query_yes_no, user_query_numbered_list
+from try_outs.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash
 
 # --------------------------------------------------
 # people who contributed code
@@ -53,6 +53,7 @@ def create_environment(env_folder, sc_basis_file, model, replace=False):
     # Create and store the configuration file to the new folder
     cfg = copy.deepcopy(suqcfg.DEFAULT_SC_CONFIG)
     cfg["model"] = model
+    cfg["git_hash_at_creation"] = get_git_hash()[0]
 
     with open(os.path.join(env_folder, "sc_config.json"), 'w') as outfile:
         json.dump(cfg, outfile, indent=4)

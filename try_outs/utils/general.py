@@ -17,6 +17,7 @@ __credits__ = ["n/a"]
 
 def get_git_hash():
     GIT_COMMIT_HASH = subprocess.check_output(["git", "rev-parse", "HEAD"])
+    GIT_COMMIT_HASH = GIT_COMMIT_HASH.decode().strip()
 
     uncommited_changes = subprocess.check_output(["git", "status", "--porcelain"])
     uncommited_changes = uncommited_changes.decode()  # is returned as a byte sequence -> decode to string

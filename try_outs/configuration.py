@@ -24,7 +24,7 @@ DEFAULT_SUQ_CONFIG = {"env_paths": [os.path.join(SRC_PATH, "envs")],
                       "models": dict()}
 
 # configuration saved with each environment
-DEFAULT_SC_CONFIG = {"model": None}
+DEFAULT_SC_CONFIG = {"git_hash_at_creation": "not_set", "model": None}
 
 
 def _convert_to_json(s):
