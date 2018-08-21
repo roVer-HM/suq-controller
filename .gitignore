@@ -2,5 +2,6 @@
 __pycache__
 
 # for VADERE console
-#*.jar
 *.pyc
+
+log.out
