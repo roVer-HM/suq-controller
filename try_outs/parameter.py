@@ -7,12 +7,11 @@ import os
 
 import pandas as pd
 
-from copy import deepcopy   # often better to deepcopy dicts
-
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid, ParameterSampler
 from try_outs.environment import EnvironmentManager
 from try_outs.utils.dict_utils import *
+from try_outs.utils.general import create_folder, remove_folder
 
 # --------------------------------------------------
 # people who contributed code
@@ -99,10 +98,8 @@ class ScenarioVariationCreator(object):
         target_path = self._scman.get_vadere_scenarios_folder()
 
         # TODO: for now everytime it is removed an inserted again, but later it may be better to add and keep stuff...
-        import os
-        files = os.listdir(target_path)
-        for f in files:
-            os.remove(os.path.join(target_path, f))
+        remove_folder(target_path)
+        create_folder(target_path)
 
         for par_id, par_changes in self._var.iter():
             new_scenario = self._create_new_vad_scenario(par_changes)
@@ -111,14 +108,11 @@ class ScenarioVariationCreator(object):
 
 
 if __name__ == "__main__":
-    di = {"bounds|x": [9999, 1.2, 1.3],
-          "speedDistributionStandardDeviation": [5555, 0.1, 0.2]}
+    di = {"speedDistributionStandardDeviation": [0.0, 0.1, 0.2]}
     grid = ParameterGrid(param_grid=di)
 
-    pv = ParameterVariation(env_name="chicken")
+    pv = ParameterVariation(env_name="corner")
     pv.add_dict_grid(di)
 
-    vc = ScenarioVariationCreator("chicken", pv)
+    vc = ScenarioVariationCreator("corner", pv)
     vc.generate_scenarios()
-
-

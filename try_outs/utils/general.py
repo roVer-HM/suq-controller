@@ -5,6 +5,7 @@
 # include imports after here:
 import subprocess
 import os
+import shutil
 
 # --------------------------------------------------
 # people who contributed code
@@ -27,6 +28,17 @@ def get_git_hash():
         print(uncommited_changes)
 
     return GIT_COMMIT_HASH, uncommited_changes
+
+
+def create_folder(path, delete_if_exists=True):
+    if delete_if_exists and os.path.exists(path):
+        remove_folder(path)
+    os.mkdir(path)
+
+
+def remove_folder(path):
+    if os.path.exists(path):
+        shutil.rmtree(path)
 
 
 def user_query_yes_no(question: str, default=None) -> bool:
