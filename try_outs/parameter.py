@@ -76,8 +76,8 @@ class ScenarioVariationCreator(object):
 
     def __init__(self, scname: str, var: ParameterVariation):
         self._scname = scname
-        self._scman = EnvironmentManager.set_by_env_name(self._scname)
-        self._basis_scenario = self._scman.get_vadere_scenario_basis_file(self._scname)
+        self._env_man = EnvironmentManager.set_by_env_name(self._scname)
+        self._basis_scenario = self._env_man.get_vadere_scenario_basis_file(self._scname)
         self._var = var
 
     def _create_new_vad_scenario(self, par: dict):
@@ -85,17 +85,16 @@ class ScenarioVariationCreator(object):
 
     def _save_scenario(self, par_id, s):
         filename = "".join([str(par_id).zfill(10), ".scenario"])
-        fp = os.path.join(self._scman.get_vadere_scenarios_folder(), filename)
+        fp = os.path.join(self._env_man.path_scenario_variation_folder(), filename)
         with open(fp, "w") as outfile:
             json.dump(s, outfile, indent=4)
 
     def _save_overview(self):
-        filename = "points_overview.csv"
-        fp = os.path.join(self._scman.get_vadere_scenarios_folder(), filename)
+        fp = self._env_man.path_parid_table_file()
         self._var.points.to_csv(fp)
 
     def generate_scenarios(self):
-        target_path = self._scman.get_vadere_scenarios_folder()
+        target_path = self._env_man.path_scenario_variation_folder()
 
         # TODO: for now everytime it is removed an inserted again, but later it may be better to add and keep stuff...
         remove_folder(target_path)
