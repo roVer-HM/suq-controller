@@ -120,7 +120,7 @@ class EnvironmentManager(object):
     def parid_table(self):
         return pd.read_csv(self.path_parid_table_file())
 
-    def get_vadere_scenario_basis_file(self, sc_name):
+    def get_vadere_scenario_basis_file(self):
         sc_files = glob.glob(os.path.join(self.env_path, "*.scenario"))
         assert len(sc_files) == 1, "None or too many .scenario files found..."
 

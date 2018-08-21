@@ -12,6 +12,7 @@ import numpy as np
 from try_outs.utils.general import create_folder
 from try_outs.qoi import QuantityOfInterest, EvacuationTime
 from try_outs.environment import EnvironmentManager
+from try_outs.parameter import ParameterVariation
 
 # --------------------------------------------------
 # people who contributed code
@@ -58,9 +59,14 @@ class Query(object):
         res = list()
 
         # TODO: the par_id probably matches the real case, but the file lookup table should be used!
-        for qu in enumerate(var_scenarios):  # enumerate returns turple(par_id, scenario filepath)
+        for qu in enumerate(var_scenarios):  # enumerate returns tuple(par_id, scenario filepath)
             res.append(self._single_query(qu))
         return self._create_and_fill_df(res)
+
+    def query_simulate_all_new(self, par_var: ParameterVariation, njobs=-1):
+        # simulate all means all is simulated (no check in storage), 'new' means all previous outputs are removed
+        par_var.generate_store_scenario_variation_files()
+        return self.query(njobs)
 
     def query(self, njobs=-1):
         # TODO: at the moment everything is simulated that is also previously generated via ParameterVariation
@@ -77,5 +83,7 @@ class Query(object):
 
 if __name__ == "__main__":
     em = EnvironmentManager.set_by_env_name("corner")
-    r =  Query(em, EvacuationTime()).query()
+    pv = ParameterVariation(em)
+    pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
+    r = Query(em, EvacuationTime()).query_simulate_all_new(pv)
     print(r)
