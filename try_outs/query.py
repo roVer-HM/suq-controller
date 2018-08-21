@@ -68,7 +68,11 @@ class Query(object):
         if njobs == -1:
            njobs = min(multiprocessing.cpu_count(), len(var_scenarios))
 
-        return self._mp_query(njobs, var_scenarios)
+        if njobs == 1:
+            df_query = self._sp_query(var_scenarios)
+        else:
+            df_query = self._mp_query(njobs, var_scenarios)
+        return df_query
 
 
 if __name__ == "__main__":
