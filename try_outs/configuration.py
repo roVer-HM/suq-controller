@@ -31,7 +31,7 @@ SRC_PATH = os.path.relpath(os.path.join(__file__, os.pardir))
 SUQ_CONFIG_PATH = os.path.join(SRC_PATH, "suq_config.json")
 
 # configuration of the suq-controller
-DEFAULT_SUQ_CONFIG = {"env_paths": [os.path.join(SRC_PATH, "envs")],
+DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(SRC_PATH, "envs")],
                       "models": dict()}
 
 # configuration saved with each environment
@@ -48,7 +48,7 @@ def store_config(d):        # TODO: put in utils
 
 
 def select_env_path():
-    paths = get_env_paths()
+    paths = get_con_paths()
     if len(paths) == 1:
         return paths[0]
     else:
@@ -103,22 +103,22 @@ def get_models():
     return config["models"]
 
 
-def add_env_path(p):
+def new_con_path(p):
     config = get_suq_config()
-    assert p not in config["env_paths"]
+    assert p not in config["container_paths"]
     assert os.path.exists(p) and isinstance(p, str)
-    config["env_paths"].append(p)
+    config["container_paths"].append(p)
     store_config(config)
 
 
-def remove_env_path(p):
+def remove_con_path(p):
     config = get_suq_config()
-    config["env_paths"].remove(p)
+    config["container_paths"].remove(p)
     store_config(config)
 
 
-def get_env_paths():
-    return get_suq_config()["env_paths"]
+def get_con_paths():
+    return get_suq_config()["container_paths"]
 
 
 def remove_environment(env_folder):
@@ -169,11 +169,12 @@ def create_environment(name, sc_basis_file, model, env_path, replace=False):
 def get_all_envs(env_path):
     return os.listdir(env_path)
 
+
 def get_all_paths_with_envname(env_name):
-    env_paths = get_suq_config()["env_paths"]
+    container_paths = get_suq_config()["container_paths"]
     paths_with_scenario = list()
 
-    for p in env_paths:
+    for p in container_paths:
         if env_name in os.listdir(os.path.abspath(p)):
             paths_with_scenario.append(p)
     return paths_with_scenario
@@ -243,28 +244,56 @@ class EnvironmentManager(object):
         return sc_files
 
 
+# TODO: Write tests for the CLI!
 class CLI(object):
 
     def __init__(self):
-        self.parser = parser = argparse.ArgumentParser(
+        self.parser = argparse.ArgumentParser(
             description="With this CLI you can configure the suq-controller. This includes things that mostly only "
                         "have to set up once, i.e. actions that are not necessarily required to call each evaluation "
-                        "run of either the Surrogate Model or Uncertainty Quantification. ")
+                        "run of either the Surrogate Model or Uncertainty Quantification. \n"
+                        "'container'\n"
+                        "An container is the parent folder of environments.\n"
+                        "'environment'\n"
+                        "An environment consists of all relevant content to run parameter variations on VADERE "
+                        "scenarios.")
 
-        self.parser.add_argument("--new-env-path", nargs=1, default=None)
-        self.parser.add_argument("--rem-env-path", nargs=1, default=None)
-        self.parser.add_argument("--show-env-paths", default=False, action="store_true")
+        self.parser.add_argument("--new-con-path", nargs=1, default=None,
+                                 metavar="CONTAINER_PATH",
+                                 help="Set a new path to a container where the 'environments' are located.")
 
-        self.parser.add_argument("--env-path", default="select")
-        self.parser.add_argument("--show-envs", default=False, action="store_true")
+        self.parser.add_argument("--rem-con-path", nargs=1, default=None,
+                                 metavar="CONTAINER_PATH",
+                                 # TODO: solve issue with relative/absolute paths
+                                 help="Remove a path to a container where 'environments' are located. The path has "
+                                      "to be the same as displayed when running --show-env-paths.")
 
-        self.parser.add_argument("--new-env", nargs=3, default=None)
-        self.parser.add_argument("--rem-env", nargs=1, default=None)
+        self.parser.add_argument("--show-con-paths", default=False, action="store_true",
+                                 help="Show all container paths where 'environments' are located")
 
-        self.parser.add_argument("--show-models", default=False, action="store_true")
+        self.parser.add_argument("--con-path", default="select",
+                                 help="Set the container path. Together with the environment name, this uniquely "
+                                      "identifies the path to the environment (con-path + name). If not given, the path"
+                                      "can be selected with the command line.")
 
-        self.parser.add_argument("--new-model", nargs=2)
-        self.parser.add_argument("--rem-model", nargs=1)
+        self.parser.add_argument("--show-envs", default=False, action="store_true",
+                                 help="Flag to show all environments located in an container path.")
+
+        self.parser.add_argument("--new-env", nargs=3, default=None,
+                                 metavar=("ENV_NAME", "PATH_BASIS_FILE", "MODEL_NAME"),
+                                 help="Create a new environment. The basis file path has to be a '.scneario' file.")
+
+        self.parser.add_argument("--rem-env", nargs=1, default=None,
+                                 metavar="NAME",
+                                 help="Remove environment. The container can be selected with --env-path or can be "
+                                      "selected with the command line.")
+
+        self.parser.add_argument("--show-models", default=False, action="store_true", help="Flag to display all models")
+
+        self.parser.add_argument("--new-model", nargs=2,
+                                 metavar=("NAME", "PATH_MODEL"),
+                                 help="Set new model. Currently only *.jar models are supported")
+        self.parser.add_argument("--rem-model", nargs=1, metavar=("NAME"), help="Remove model by name.")
 
         self.opts = self.parser.parse_args()
 
@@ -274,25 +303,25 @@ class CLI(object):
         else:
             path = self.opts.env_path[0]
             # TODO: there is a problem with relative / absolute paths, maybe this should be handled in a separate function
-            assert path in get_env_paths()
+            assert path in get_con_paths()
 
         assert os.path.exists(path)
         return path
 
     def run_user_options(self):
 
-        # --new-env-path [PATH]
-        if self.opts.new_env_path is not None:
+        # --new-con-env
+        if self.opts.new_con_path is not None:
             path = self.opts.new_env_path[0]
-            add_env_path(path)
+            new_con_path(path)
 
-        # --rem-env-path [PATH]
-        if self.opts.rem_env_path is not None:
-            remove_env_path(self.opts.rem_env_path[0])
+        # --rem-con-path [PATH]
+        if self.opts.rem_con_path is not None:
+            remove_con_path(self.opts.rem_env_path[0])
 
-        # --show-env-paths
-        if self.opts.show_env_paths:
-            print(get_env_paths())
+        # --show-con-paths
+        if self.opts.show_con_paths:
+            print(get_con_paths())
 
         # --show-envs
         if self.opts.show_envs:
