@@ -1,5 +1,5 @@
 {
-    "env_paths": [
+    "container_paths": [
         "./envs"
     ],
     "models": {

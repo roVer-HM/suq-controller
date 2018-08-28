@@ -7,6 +7,9 @@ import subprocess
 import os
 import shutil
 
+import pandas as pd
+from typing import Union
+
 # --------------------------------------------------
 # people who contributed code
 __authors__ = "Daniel Lehmberg"
@@ -29,6 +32,16 @@ def get_git_hash():
         print(uncommited_changes)
 
     return GIT_COMMIT_HASH, uncommited_changes
+
+
+def cast_series_if_possible(df: Union[pd.DataFrame, pd.Series]):
+    if isinstance(df, pd.Series):
+        return df  # already Series, nothing to do
+
+    if isinstance(df, pd.DataFrame) and df.shape[1] == 1:
+        return df.iloc[:, 0]
+    else:
+        return df  # not a Series, remains a DataFrame
 
 
 def create_folder(path, delete_if_exists=True):

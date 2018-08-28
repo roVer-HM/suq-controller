@@ -9,12 +9,11 @@ import copy
 import argparse
 import sys
 
-sys.path.append(os.path.abspath("./.."))  # TODO: keep as long there is the folder "try_outs"
-
 import pandas as pd
 
-from shutil import copyfile, rmtree
+sys.path.append(os.path.abspath("./.."))  # TODO: keep as long there is the folder "try_outs"
 
+from shutil import copyfile, rmtree
 from try_outs.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash
 
 # --------------------------------------------------
@@ -298,7 +297,7 @@ class CLI(object):
         self.opts = self.parser.parse_args()
 
     def _select_env_path(self):
-        if self.opts.env_path == "select":
+        if self.opts.con_path == "select":
             path = select_env_path()
         else:
             path = self.opts.env_path[0]
@@ -357,6 +356,4 @@ class CLI(object):
 
 
 CLI().run_user_options()
-
-#python3 configuration.py env
 
