@@ -20,6 +20,10 @@
       "type" : "org.vadere.simulator.projects.dataprocessing.outputfile.TimestepPedestrianIdOutputFile",
       "filename" : "postvis.trajectories",
       "processors" : [ 3 ]
+    }, {
+      "type" : "org.vadere.simulator.projects.dataprocessing.outputfile.TimestepOutputFile",
+      "filename" : "voronoi_density.txt",
+      "processors" : [ 6 ]
     } ],
     "processors" : [ {
       "type" : "org.vadere.simulator.projects.dataprocessing.processor.PedestrianWaitingTimeProcessor",
@@ -57,6 +61,26 @@
     }, {
       "type" : "org.vadere.simulator.projects.dataprocessing.processor.PedestrianStartTimeProcessor",
       "id" : 5
+    }, {
+      "type" : "org.vadere.simulator.projects.dataprocessing.processor.AreaDensityVoronoiProcessor",
+      "id" : 6,
+      "attributesType" : "org.vadere.state.attributes.processor.AttributesAreaDensityVoronoiProcessor",
+      "attributes" : {
+        "measurementArea" : {
+          "x" : 11.1,
+          "y" : 3.0,
+          "width" : 1.7,
+          "height" : 10.0,
+          "type" : "RECTANGLE"
+        },
+        "voronoiArea" : {
+          "x" : 11.1,
+          "y" : 3.0,
+          "width" : 1.7,
+          "height" : 10.0,
+          "type" : "RECTANGLE"
+        }
+      }
     } ],
     "isTimestamped" : true
   },

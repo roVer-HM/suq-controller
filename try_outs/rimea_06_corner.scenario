@@ -67,17 +67,17 @@
       "attributesType" : "org.vadere.state.attributes.processor.AttributesAreaDensityVoronoiProcessor",
       "attributes" : {
         "measurementArea" : {
-          "x" : 11.0,
-          "y" : 2.9,
-          "width" : 2.0,
-          "height" : 9.9,
+          "x" : 11.1,
+          "y" : 3.0,
+          "width" : 1.7,
+          "height" : 10.0,
           "type" : "RECTANGLE"
         },
         "voronoiArea" : {
-          "x" : 11.0,
-          "y" : 2.9,
-          "width" : 2.0,
-          "height" : 9.9,
+          "x" : 11.1,
+          "y" : 3.0,
+          "width" : 1.7,
+          "height" : 10.0,
           "type" : "RECTANGLE"
         }
       }
