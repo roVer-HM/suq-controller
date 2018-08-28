@@ -9,7 +9,7 @@ import pandas as pd
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid, ParameterSampler
-from try_outs.environment import EnvironmentManager
+from try_outs.configuration import EnvironmentManager
 from try_outs.utils.dict_utils import *
 from try_outs.utils.general import create_folder, remove_folder
 
