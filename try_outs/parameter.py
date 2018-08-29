@@ -6,6 +6,7 @@ import json
 import os
 
 import pandas as pd
+import numpy as np
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid, ParameterSampler
@@ -33,7 +34,9 @@ class ParameterVariation(object):
 
         df = pd.concat([self._points, pd.DataFrame(points)], ignore_index=True, axis=0)
         df.index.name = "par_id"
-        df.columns.name = "parameters"  # TODO: add scenario file location
+
+        df.columns = pd.MultiIndex.from_product([["parameters"], df.columns])
+        df["location"] = np.nan
         return df
 
     def add_dict_grid(self, d: dict):
@@ -65,6 +68,8 @@ class ParameterVariation(object):
         with open(fp, "w") as outfile:
             json.dump(s, outfile, indent=4)
 
+        self._points.loc[par_id, "location"] = fp
+
     def _save_overview(self):
         fp = self._env_man.path_parid_table_file()
         self._points.to_csv(fp)
@@ -76,7 +81,7 @@ class ParameterVariation(object):
         remove_folder(target_path)
         create_folder(target_path)
 
-        for par_id, par_changes in self.iter():
+        for par_id, par_changes in self.par_iter():
             new_scenario = self._create_new_vadere_scenario(par_changes)
             self._save_scenario(par_id, new_scenario)
         self._save_overview()
@@ -87,8 +92,8 @@ class ParameterVariation(object):
         self._points = self._add_points_df(points=list(grid))         # list creates all points described by the 'grid'
         return self._points
 
-    def iter(self):
-        for i, row in self._points.iterrows():
+    def par_iter(self):
+        for i, row in self._points["parameters"].iterrows():
             yield (i, dict(row))
 
 

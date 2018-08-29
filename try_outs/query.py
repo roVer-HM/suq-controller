@@ -88,7 +88,6 @@ class Query(object):
         else:
             raise RuntimeError("Type not supported!")
 
-
         return results
 
     def _mp_query(self, njobs, var_scenarios, **kwargs):
