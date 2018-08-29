@@ -5,6 +5,7 @@
 import os
 import subprocess
 import multiprocessing
+import copy
 
 import pandas as pd
 import numpy as np
@@ -35,9 +36,7 @@ class Query(object):
     def _args_query_request(self, var_scenarios, **kwargs):
         ret_list = list()
 
-        def_dict = {"par_id": None, "scenario_path": None, "kwargs": None}
-
-        import copy
+        def_dict = {"par_id": None, "scenario_path": None, "kwargs_qoi": None}
 
         for pid, path in enumerate(var_scenarios):
             d = copy.deepcopy(def_dict)
@@ -49,12 +48,12 @@ class Query(object):
 
     def _single_query(self, kwargs):
         pid = kwargs["par_id"]
-        scfp = kwargs["scenario_path"]
+        scfp = kwargs["scenario_path"]  # TODO: not entire path is needed, together with env.manager only scneario name needed
         kwargs_qoi = kwargs["kwargs_qoi"]  # all arguments handled to the QoI processor
 
-        sc_name = os.path.basename(scfp).split(".scenario")[0]
-        output_path = os.path.join(self._env_man.path_scenario_variation_folder(), "".join([sc_name, "_output"]))
-        create_folder(output_path)
+        sc_name = os.path.basename(scfp).split(".scenario")[0]  # TODO: do this better, possibly via env.manager
+        output_path = self._env_man.create_output_path(sc_name)
+
         self._simulate(scfp, output_path)
         return pid, self._qoi.read_and_extract_qoi(output_path, **kwargs_qoi)
 
@@ -125,6 +124,6 @@ if __name__ == "__main__":
     em = EnvironmentManager.set_by_env_name("corner")
     pv = ParameterVariation(em)
     pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
-    r = Query(em, PedestrianEvacuationTimeProcessor()).query_simulate_all_new(pv, njobs=1)
-    #r = Query(em, AreaDensityVoronoiProcessor()).query_simulate_all_new(pv, njobs=-1)
+    #r = Query(em, PedestrianEvacuationTimeProcessor(em)).query_simulate_all_new(pv, njobs=1)
+    r = Query(em, AreaDensityVoronoiProcessor(em)).query_simulate_all_new(pv, njobs=-1)
     print(r)

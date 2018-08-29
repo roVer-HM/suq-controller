@@ -14,7 +14,8 @@ import pandas as pd
 sys.path.append(os.path.abspath("./.."))  # TODO: keep as long there is the folder "try_outs"
 
 from shutil import copyfile, rmtree
-from try_outs.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash
+from try_outs.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash, create_folder
+from try_outs.utils.dict_utils import deep_dict_lookup
 
 # --------------------------------------------------
 # people who contributed code
@@ -218,7 +219,8 @@ class EnvironmentManager(object):
         model_path = get_model_location(model_name)
         return os.path.abspath(model_path)
 
-    def path_scenario_variation_folder(self):  # TODO: define 'vadere_scenarios' somewhere in a variable
+    # TODO: make all paths that are provided as properties, not as functions...
+    def path_scenario_variation_folder(self):
         rel_path = os.path.join(self.env_path, "vadere_scenarios")
         return os.path.abspath(rel_path)
 
@@ -235,6 +237,15 @@ class EnvironmentManager(object):
         with open(sc_files[0], "r") as f:
             basis_file = json.load(f)
         return basis_file
+
+    def get_value_basis_file(self, key):
+        j = self.get_vadere_scenario_basis_file()
+        return deep_dict_lookup(j, key, check_final_leaf=False, check_unique_key=True)
+
+    def create_output_path(self, sc_name):
+        output_path = os.path.join(self.path_scenario_variation_folder(), "".join([sc_name, "_output"]))
+        create_folder(output_path)
+        return output_path
 
     def get_vadere_scenario_variations(self):
         sc_folder = self.path_scenario_variation_folder()
