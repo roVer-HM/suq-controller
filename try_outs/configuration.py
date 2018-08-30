@@ -206,12 +206,6 @@ class EnvironmentManager(object):
     def set_by_env_path(cls, env_path):
         return EnvironmentManager(env_path=env_path)
 
-    def get_cfg_value(self, key):
-        fp = os.path.join(self.env_path, "sc_config.json")
-        with open(os.path.abspath(fp), "r") as file:
-            js = json.load(file)
-        return js[key]
-
     def get_model_path(self):
         # look up set model in environment
         model_name = self.get_cfg_value(key="model")
@@ -219,10 +213,32 @@ class EnvironmentManager(object):
         model_path = get_model_location(model_name)
         return os.path.abspath(model_path)
 
-    # TODO: make all paths that are provided as properties, not as functions...
-    def path_scenario_variation_folder(self):
+    def get_scenario_variation_path(self):
         rel_path = os.path.join(self.env_path, "vadere_scenarios")
         return os.path.abspath(rel_path)
+
+    def get_output_path(self, sc_name, create):
+        output_path = os.path.join(self.get_scenario_variation_path(), "".join([sc_name, "_output"]))
+        if create:
+            create_folder(output_path)
+        return output_path
+
+    def get_path_scenario_variation(self, par_id):
+        return os.path.join(self.get_scenario_variation_path(), self.get_scenario_variation_filename(par_id))
+
+    def save_scenario_variation(self, par_id, content):
+        fp = self.get_path_scenario_variation(par_id)
+        assert not os.path.exists(fp), f"File {fp} already exists!"
+
+        with open(fp, "w") as outfile:
+            json.dump(content, outfile, indent=4)
+        return fp
+
+    def get_cfg_value(self, key):
+        fp = os.path.join(self.env_path, "sc_config.json")
+        with open(os.path.abspath(fp), "r") as file:
+            js = json.load(file)
+        return js[key]
 
     def path_parid_table_file(self):
         return os.path.join(self.env_path, "parid_lookup.csv")
@@ -232,7 +248,7 @@ class EnvironmentManager(object):
 
     def get_vadere_scenario_basis_file(self):
         sc_files = glob.glob(os.path.join(self.env_path, "*.scenario"))
-        assert len(sc_files) == 1, "None or too many .scenario files found..."
+        assert len(sc_files) == 1, "None or too many .scenario files found in environment."
 
         with open(sc_files[0], "r") as f:
             basis_file = json.load(f)
@@ -242,16 +258,21 @@ class EnvironmentManager(object):
         j = self.get_vadere_scenario_basis_file()
         return deep_dict_lookup(j, key, check_final_leaf=False, check_unique_key=True)
 
-    def create_output_path(self, sc_name):
-        output_path = os.path.join(self.path_scenario_variation_folder(), "".join([sc_name, "_output"]))
-        create_folder(output_path)
-        return output_path
+    def get_scenario_variation_filename(self, par_id):
+        return "".join([str(par_id).zfill(10), ".scenario"])
+
+    def parid_from_scenario_path(self, path):
+        sc_name = os.path.basename(path).split(".scenario")[0]
+        return int(sc_name)
 
     def get_vadere_scenario_variations(self):
-        sc_folder = self.path_scenario_variation_folder()
+        sc_folder = self.get_scenario_variation_path()
         sc_files = glob.glob(os.path.join(sc_folder, "*.scenario"))
-        sc_files.sort()
-        return sc_files
+        return [[self.parid_from_scenario_path(i), i] for i in sc_files]
+
+    def get_nr_variations(self):
+        return len(self.get_vadere_scenario_variations())
+
 
 
 # TODO: Write tests for the CLI!

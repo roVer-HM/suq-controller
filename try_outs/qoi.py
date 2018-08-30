@@ -19,9 +19,7 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
-class QuantityOfInterest(metaclass=abc.ABCMeta):
-
-    # TODO: maybe it is good to have here the Environment manager, this gives access to all the fixed settings
+class QoIProcessor(metaclass=abc.ABCMeta):
 
     def __init__(self, em: EnvironmentManager, proc_name: str, qoi_name: str):
         self.name = qoi_name
@@ -32,9 +30,12 @@ class QuantityOfInterest(metaclass=abc.ABCMeta):
         self._proc_id = self._proc_config["id"]
         self._outputfile_name = self._get_outout_filename()
 
-    @abc.abstractmethod
+    # TODO: use the kwargs!
+    # 1) for time selection
+    # 2) for for averaging results
     def read_and_extract_qoi(self, output_path, **kwargs) -> typing.Union[float, pd.Series]:
-        raise NotImplementedError("ABC method")
+        data = self._read_csv(output_path)
+        return data
 
     def _get_all_proc_writers(self):
         return self._em.get_value_basis_file(key="processWriters")[0]
@@ -49,10 +50,9 @@ class QuantityOfInterest(metaclass=abc.ABCMeta):
                 if return_cfg is None:
                     return_cfg = d
                 else:
-                    raise RuntimeError("The processor has to be unique to avoid confusion which processor to use for "
-                                       "the QoI.")
+                    raise RuntimeError(
+                        "The processor has to be unique to avoid confusion which processor to use for the QoI.")
         return return_cfg
-
 
     def _get_outout_filename(self):
         procwriter_json = self._get_all_proc_writers()
@@ -63,7 +63,11 @@ class QuantityOfInterest(metaclass=abc.ABCMeta):
             procs_list = file["processors"]
             if self._proc_id in procs_list:
                 if file_cfg is None:
-                    assert len(procs_list) == 1, "For now only single procs are allowed, this may be relaxed in future"
+                    # Multiple processors for the output file are not allowed, as this mixes up data.
+                    if len(procs_list) != 1:
+                        raise RuntimeError(f"The processor (id = {self._proc_id})\n {self._proc_name} \n"
+                                           f"has multiple processor ids set in the output file. Currently, the only"
+                                           f"content in the output file has to be from the processor.")
                     file_cfg = file
                 else:
                     raise RuntimeError("The processor has to be unique to avoid confusion which processor to use for "
@@ -79,7 +83,7 @@ class QuantityOfInterest(metaclass=abc.ABCMeta):
         return cast_series_if_possible(df)
 
 
-class PedestrianEvacuationTimeProcessor(QuantityOfInterest):
+class PedestrianEvacuationTimeProcessor(QoIProcessor):
 
     def __init__(self, em: EnvironmentManager, apply="mean"):
 
@@ -102,17 +106,14 @@ class PedestrianEvacuationTimeProcessor(QuantityOfInterest):
         return self._apply_homogenization(df)
 
 
-class AreaDensityVoronoiProcessor(QuantityOfInterest):
+class AreaDensityVoronoiProcessor(QoIProcessor):
 
     def __init__(self, em: EnvironmentManager):
         proc_name = "org.vadere.simulator.projects.dataprocessing.processor.AreaDensityVoronoiProcessor"
-
         super(AreaDensityVoronoiProcessor, self).__init__(em, proc_name, "voronoi_density")
 
-    def read_and_extract_qoi(self, output_path, **kwargs):
-        data = self._read_csv(output_path)
-        return data
 
+class CustomProcessor(QoIProcessor):
 
-
-
+    def __init__(self, em: EnvironmentManager, proc_name: str, qoi_name: str):
+        super(CustomProcessor, self).__init__(em, proc_name, qoi_name)

@@ -2,9 +2,6 @@
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
-import json
-import os
-
 import pandas as pd
 import numpy as np
 
@@ -43,7 +40,6 @@ class ParameterVariation(object):
         return self.add_sklearn_grid(ParameterGrid(param_grid=d))
 
     def _check_key(self, scjson, key):
-
         try:  # check that the value is 'final' (i.e. not another sub-directory) and that the key is unique.
             deep_dict_lookup(scjson, key, check_final_leaf=True, check_unique_key=True)
         except ValueError as e:
@@ -63,11 +59,7 @@ class ParameterVariation(object):
         return change_existing_dict(basis_scenario, changes=par)
 
     def _save_scenario(self, par_id, s):
-        filename = "".join([str(par_id).zfill(10), ".scenario"])
-        fp = os.path.join(self._env_man.path_scenario_variation_folder(), filename)
-        with open(fp, "w") as outfile:
-            json.dump(s, outfile, indent=4)
-
+        fp = self._env_man.save_scenario_variation(par_id, s)
         self._points.loc[par_id, "location"] = fp
 
     def _save_overview(self):
@@ -75,7 +67,7 @@ class ParameterVariation(object):
         self._points.to_csv(fp)
 
     def generate_store_scenario_variation_files(self):
-        target_path = self._env_man.path_scenario_variation_folder()
+        target_path = self._env_man.get_scenario_variation_path()
 
         # TODO: for now everytime it is removed an inserted again, but later it may be better to add and keep stuff...
         remove_folder(target_path)
