@@ -7,6 +7,7 @@ import json
 import glob
 import copy
 import argparse
+import pathlib
 
 import pandas as pd
 
@@ -25,7 +26,18 @@ __credits__ = ["n/a"]
 # TODO: make a central file of all the (config-) filenames, set by suq-controller!
 # relative path of this file:
 SRC_PATH = os.path.relpath(os.path.join(__file__, os.pardir))
-SUQ_CONFIG_PATH = os.path.join(SRC_PATH, "suq_config.json")
+
+
+
+
+if os.path.exists("PACKAGE.txt"):
+    PACKAGE = True   # run from package
+    HOME_PATH = pathlib.Path.home()
+    CFG_FOLDER = os.path.join(HOME_PATH, ".suqc")  # TODO: redundancy between setup.py and this here...
+    SUQ_CONFIG_PATH = os.path.join(CFG_FOLDER, "suq_config.json")  # TODO: Define suq_config.json somewhere...
+else:
+    PACKAGE = False  # local run
+    SUQ_CONFIG_PATH = os.path.join(SRC_PATH, "suq_config.json")
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(SRC_PATH, "envs")],

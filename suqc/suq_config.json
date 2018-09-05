@@ -3,6 +3,6 @@
         "./envs"
     ],
     "models": {
-        "vadere": "./models/vadere-console.jar"
+        "vadere": "vadere-console.jar"
     }
 }
