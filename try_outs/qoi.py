@@ -8,8 +8,8 @@ import typing
 
 import pandas as pd
 
-from try_outs.utils.general import cast_series_if_possible
-from try_outs.configuration import EnvironmentManager
+from utils.general import cast_series_if_possible
+from configuration import EnvironmentManager
 
 # --------------------------------------------------
 # people who contributed code

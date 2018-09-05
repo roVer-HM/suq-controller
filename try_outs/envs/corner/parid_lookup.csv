@@ -1,7 +1,7 @@
 ,parameters,location
 ,speedDistributionStandardDeviation,
 par_id,,
-0,0.0,/home/daniel/REPOS/vadere_projects/suq-controller/try_outs/envs/corner/vadere_scenarios/0000000000.scenario
-1,0.1,/home/daniel/REPOS/vadere_projects/suq-controller/try_outs/envs/corner/vadere_scenarios/0000000001.scenario
-2,0.2,/home/daniel/REPOS/vadere_projects/suq-controller/try_outs/envs/corner/vadere_scenarios/0000000002.scenario
-3,0.3,/home/daniel/REPOS/vadere_projects/suq-controller/try_outs/envs/corner/vadere_scenarios/0000000003.scenario
+0,0.0,/home/daniel/REPOS/vadere/suq-controller/try_outs/envs/corner/vadere_scenarios/0000000000.scenario
+1,0.1,/home/daniel/REPOS/vadere/suq-controller/try_outs/envs/corner/vadere_scenarios/0000000001.scenario
+2,0.2,/home/daniel/REPOS/vadere/suq-controller/try_outs/envs/corner/vadere_scenarios/0000000002.scenario
+3,0.3,/home/daniel/REPOS/vadere/suq-controller/try_outs/envs/corner/vadere_scenarios/0000000003.scenario

@@ -10,9 +10,9 @@ import copy
 import pandas as pd
 import numpy as np
 
-from try_outs.qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor
-from try_outs.configuration import EnvironmentManager
-from try_outs.parameter import ParameterVariation
+from qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor
+from configuration import EnvironmentManager
+from parameter import ParameterVariation
 
 # --------------------------------------------------
 # people who contributed code

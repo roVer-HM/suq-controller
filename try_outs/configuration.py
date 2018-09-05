@@ -7,15 +7,12 @@ import json
 import glob
 import copy
 import argparse
-import sys
 
 import pandas as pd
 
-sys.path.append(os.path.abspath("./.."))  # TODO: keep as long there is the folder "try_outs"
-
 from shutil import copyfile, rmtree
-from try_outs.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash, create_folder
-from try_outs.utils.dict_utils import deep_dict_lookup
+from utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash, create_folder
+from utils.dict_utils import deep_dict_lookup
 
 # --------------------------------------------------
 # people who contributed code
@@ -386,6 +383,6 @@ class CLI(object):
         if self.opts.rem_model:
             remove_model(self.opts.rem_model[0])
 
-
-CLI().run_user_options()
+if __name__ == "__main__":
+    CLI().run_user_options()
 

@@ -7,9 +7,9 @@ import numpy as np
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid, ParameterSampler
-from try_outs.configuration import EnvironmentManager
-from try_outs.utils.dict_utils import *
-from try_outs.utils.general import create_folder, remove_folder
+from configuration import EnvironmentManager
+from utils.dict_utils import *
+from utils.general import create_folder, remove_folder
 
 # --------------------------------------------------
 # people who contributed code
