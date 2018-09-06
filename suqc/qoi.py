@@ -8,8 +8,8 @@ import typing
 
 import pandas as pd
 
-from utils.general import cast_series_if_possible
-from configuration import EnvironmentManager
+from suqc.utils.general import cast_series_if_possible
+from suqc.configuration import EnvironmentManager
 
 # --------------------------------------------------
 # people who contributed code

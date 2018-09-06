@@ -10,9 +10,9 @@ import copy
 import pandas as pd
 import numpy as np
 
-from qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor
-from configuration import EnvironmentManager
-from parameter import ParameterVariation
+from suqc.qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor
+from suqc.configuration import EnvironmentManager
+from suqc.parameter import ParameterVariation
 
 # --------------------------------------------------
 # people who contributed code

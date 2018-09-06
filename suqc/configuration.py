@@ -12,8 +12,8 @@ import pathlib
 import pandas as pd
 
 from shutil import copyfile, rmtree
-from utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash, create_folder
-from utils.dict_utils import deep_dict_lookup
+from suqc.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash, create_folder
+from suqc.utils.dict_utils import deep_dict_lookup
 
 # --------------------------------------------------
 # people who contributed code
@@ -27,17 +27,14 @@ __credits__ = ["n/a"]
 # relative path of this file:
 SRC_PATH = os.path.relpath(os.path.join(__file__, os.pardir))
 
-
-
-
-if os.path.exists("PACKAGE.txt"):
-    PACKAGE = True   # run from package
+if os.path.exists(os.path.join(SRC_PATH, "PACKAGE.txt")):  # Package run
     HOME_PATH = pathlib.Path.home()
     CFG_FOLDER = os.path.join(HOME_PATH, ".suqc")  # TODO: redundancy between setup.py and this here...
     SUQ_CONFIG_PATH = os.path.join(CFG_FOLDER, "suq_config.json")  # TODO: Define suq_config.json somewhere...
-else:
-    PACKAGE = False  # local run
+    MODEL_PATH = os.path.join(CFG_FOLDER, "models")
+else:  # Local run
     SUQ_CONFIG_PATH = os.path.join(SRC_PATH, "suq_config.json")
+    MODEL_PATH = os.path.join(SRC_PATH, "models")
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(SRC_PATH, "envs")],
@@ -47,87 +44,42 @@ DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(SRC_PATH, "envs")],
 DEFAULT_SC_CONFIG = {"git_hash_at_creation": "not_set", "model": None}
 
 
-def _convert_to_json(s):  # TODO: put in utils
-    return json.loads(s)
+def add_new_model(name, filename):  # TODO: actually it should be copied to the models file
+    config = _get_suq_config()
 
+    print(f"INFO: The model file with {filename} has to be already located in {MODEL_PATH}")
 
-def store_config(d):        # TODO: put in utils
-    with open(SUQ_CONFIG_PATH, "w") as outfile:
-        json.dump(d, outfile, indent=4)
+    assert os.path.exists(os.path.join(MODEL_PATH, filename))
+    assert name not in config["models"].keys()
 
-
-def select_env_path():
-    paths = get_con_paths()
-    if len(paths) == 1:
-        return paths[0]
-    else:
-        return user_query_numbered_list(paths)
-
-
-def get_suq_config(reset_default=False):
-    if reset_default or not os.path.exists(SUQ_CONFIG_PATH):
-        with open(SUQ_CONFIG_PATH, "w") as f:
-            json.dump(DEFAULT_SUQ_CONFIG, f, indent=4)
-        print(f"INFO: Writing default configuration to \n {SUQ_CONFIG_PATH} \n")
-        return DEFAULT_SUQ_CONFIG
-    else:
-        with open(SUQ_CONFIG_PATH, "r") as f:
-            config_file = f.read()
-        return _convert_to_json(config_file)
-
-
-def get_model_location(name):
-    config = get_suq_config()
-    return config["models"][name]
-
-
-def add_new_model(name, location):
-    config = get_suq_config()
-
-    if name in config["models"]:
-
-        if os.path.abspath(location) == os.path.abspath(config["models"][name]):
-            return  # is anyway the same path
-
-        if not user_query_yes_no(question=f"The name '{name}' already exists in the lookup table. Do you want to "
-                                          f"update the path? \n "
-                                          f"{config['models'][name]} --> {location}"):
-            return  # not updating the path
-
-    assert os.path.exists(location), f"The location {os.path.abspath(location)} is does not exist."
-
-    config["models"][name] = location
-    store_config(config)
+    config["models"][name] = filename
+    _store_config(config)
 
 
 def remove_model(name):
     assert name is not None
-    config = get_suq_config()
+    config = _get_suq_config()
     del config["models"][name]
-    store_config(config)
+    _store_config(config)
 
 
-def get_models():
-    config = get_suq_config()
+def print_models():
+    config = _get_suq_config()
     return config["models"]
 
 
 def new_con_path(p):
-    config = get_suq_config()
+    config = _get_suq_config()
     assert p not in config["container_paths"]
     assert os.path.exists(p) and isinstance(p, str)
     config["container_paths"].append(p)
-    store_config(config)
+    _store_config(config)
 
 
 def remove_con_path(p):
-    config = get_suq_config()
+    config = _get_suq_config()
     config["container_paths"].remove(p)
-    store_config(config)
-
-
-def get_con_paths():
-    return get_suq_config()["container_paths"]
+    _store_config(config)
 
 
 def remove_environment(env_folder):
@@ -163,7 +115,7 @@ def create_environment(name, sc_basis_file, model, env_path, replace=False):
     # Create and store the configuration file to the new folder
     cfg = copy.deepcopy(DEFAULT_SC_CONFIG)
 
-    assert model in get_models(), f"Set model {model} is not listed in configured models {get_models()}"
+    assert model in print_models(), f"Set model {model} is not listed in configured models {print_models()}"
 
     cfg["model"] = model
     cfg["git_hash_at_creation"] = get_git_hash()[0]
@@ -175,12 +127,50 @@ def create_environment(name, sc_basis_file, model, env_path, replace=False):
     os.mkdir(os.path.join(target_path, "vadere_scenarios"))
 
 
-def get_all_envs(env_path):
+def _get_con_paths():
+    return _get_suq_config()["container_paths"]
+
+
+def _convert_to_json(s):  # TODO: put in utils
+    return json.loads(s)
+
+
+def _store_config(d):        # TODO: put in utils
+    with open(SUQ_CONFIG_PATH, "w") as outfile:
+        json.dump(d, outfile, indent=4)
+
+
+def _select_env_path():
+    paths = _get_con_paths()
+    if len(paths) == 1:
+        return paths[0]
+    else:
+        return user_query_numbered_list(paths)
+
+
+def _get_suq_config(reset_default=False):
+    if reset_default or not os.path.exists(SUQ_CONFIG_PATH):
+        with open(SUQ_CONFIG_PATH, "w") as f:
+            json.dump(DEFAULT_SUQ_CONFIG, f, indent=4)
+        print(f"INFO: Writing default configuration to \n {SUQ_CONFIG_PATH} \n")
+        return DEFAULT_SUQ_CONFIG
+    else:
+        with open(SUQ_CONFIG_PATH, "r") as f:
+            config_file = f.read()
+        return _convert_to_json(config_file)
+
+
+def _get_model_location(name):
+    config = _get_suq_config()
+    return config["models"][name]
+
+
+def _get_all_envs(env_path):
     return os.listdir(env_path)
 
 
-def get_all_paths_with_envname(env_name):
-    container_paths = get_suq_config()["container_paths"]
+def _get_all_paths_with_envname(env_name):
+    container_paths = _get_suq_config()["container_paths"]
     paths_with_scenario = list()
 
     for p in container_paths:
@@ -202,7 +192,7 @@ class EnvironmentManager(object):
 
     @classmethod
     def set_by_env_name(cls, env_name):
-        paths = get_all_paths_with_envname(env_name)
+        paths = _get_all_paths_with_envname(env_name)
         if len(paths) > 1:
             path = user_query_numbered_list(paths)
         else:
@@ -219,7 +209,7 @@ class EnvironmentManager(object):
         # look up set model in environment
         model_name = self.get_cfg_value(key="model")
         # return the value from the suq-configuration
-        model_path = get_model_location(model_name)
+        model_path = _get_model_location(model_name)
         return os.path.abspath(model_path)
 
     def get_scenario_variation_path(self):
@@ -339,11 +329,11 @@ class CLI(object):
 
     def _select_env_path(self):
         if self.opts.con_path == "select":
-            path = select_env_path()
+            path = _select_env_path()
         else:
             path = self.opts.env_path[0]
             # TODO: there is a problem with relative / absolute paths, maybe this should be handled in a separate function
-            assert path in get_con_paths()
+            assert path in _get_con_paths()
 
         assert os.path.exists(path)
         return path
@@ -361,12 +351,12 @@ class CLI(object):
 
         # --show-con-paths
         if self.opts.show_con_paths:
-            print(get_con_paths())
+            print(_get_con_paths())
 
         # --show-envs
         if self.opts.show_envs:
             path = self._select_env_path()
-            print(get_all_envs(path))
+            print(_get_all_envs(path))
 
         # --new-env [NAME_NEW_ENV, PATH_TO_SCENARIO FILE, MODEL]
         if self.opts.new_env is not None:
@@ -385,7 +375,7 @@ class CLI(object):
 
         # --show-models
         if self.opts.show_models:
-            print(get_models())
+            print(print_models())
 
         # --new-model [NAME, PATH]
         if self.opts.new_model:
