@@ -5,3 +5,8 @@ __pycache__
 *.pyc
 
 log.out
+
+# folders / files when packaging
+build
+dist
+suqc.egg-info

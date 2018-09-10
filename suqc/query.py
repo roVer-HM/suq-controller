@@ -121,7 +121,7 @@ class Query(object):
 
 
 if __name__ == "__main__":
-    em = EnvironmentManager.set_by_env_name("corner")
+    em = EnvironmentManager("corner")
     pv = ParameterVariation(em)
     pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
     r = Query(em, PedestrianEvacuationTimeProcessor(em)).query_simulate_all_new(pv, njobs=1)

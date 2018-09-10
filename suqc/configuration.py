@@ -7,9 +7,10 @@ import json
 import glob
 import copy
 import argparse
-import pathlib
 
 import pandas as pd
+
+from paths_and_filenames import *
 
 from shutil import copyfile, rmtree
 from suqc.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash, create_folder
@@ -21,20 +22,6 @@ __authors__ = "Daniel Lehmberg"
 # people who made suggestions or reported bugs but didn't contribute code
 __credits__ = ["n/a"]
 # --------------------------------------------------
-
-
-# TODO: make a central file of all the (config-) filenames, set by suq-controller!
-# relative path of this file:
-SRC_PATH = os.path.relpath(os.path.join(__file__, os.pardir))
-
-if os.path.exists(os.path.join(SRC_PATH, "PACKAGE.txt")):  # Package run
-    HOME_PATH = pathlib.Path.home()
-    CFG_FOLDER = os.path.join(HOME_PATH, ".suqc")  # TODO: redundancy between setup.py and this here...
-    SUQ_CONFIG_PATH = os.path.join(CFG_FOLDER, "suq_config.json")  # TODO: Define suq_config.json somewhere...
-    MODEL_PATH = os.path.join(CFG_FOLDER, "models")
-else:  # Local run
-    SUQ_CONFIG_PATH = os.path.join(SRC_PATH, "suq_config.json")
-    MODEL_PATH = os.path.join(SRC_PATH, "models")
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(SRC_PATH, "envs")],
@@ -162,7 +149,12 @@ def _get_suq_config(reset_default=False):
 
 def _get_model_location(name):
     config = _get_suq_config()
-    return config["models"][name]
+    path = os.path.join(MODEL_PATH, config["models"][name])
+
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Model {path} not found.")
+
+    return path
 
 
 def _get_all_envs(env_path):
@@ -187,23 +179,13 @@ def _get_all_paths_with_envname(env_name):
 
 class EnvironmentManager(object):
 
-    def __init__(self, env_path):
-        self.env_path = env_path
+    def __init__(self, name):
+        con_path = _get_con_paths()
+        assert len(con_path) == 1, "Currently only a single con_path is supported" # TODO
 
-    @classmethod
-    def set_by_env_name(cls, env_name):
-        paths = _get_all_paths_with_envname(env_name)
-        if len(paths) > 1:
-            path = user_query_numbered_list(paths)
-        else:
-            path = paths[0]
-        path = os.path.abspath(os.path.join(path, env_name))
-        assert os.path.exists(path)
-        return EnvironmentManager(env_path=path)
-
-    @classmethod
-    def set_by_env_path(cls, env_path):
-        return EnvironmentManager(env_path=env_path)
+        self.env_path = os.path.join(con_path[0], name)
+        if not os.path.exists(self.env_path):
+            raise FileNotFoundError(f"Environment {self.env_path} does not exist")
 
     def get_model_path(self):
         # look up set model in environment
