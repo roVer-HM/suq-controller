@@ -25,3 +25,4 @@ setup(  # TODO include the Package file into the installation!
 )
 
 
+os.remove(PACKAGE_FILE_PATH)

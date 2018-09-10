@@ -2,7 +2,6 @@
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
-import os
 import json
 import glob
 import copy
@@ -10,7 +9,7 @@ import argparse
 
 import pandas as pd
 
-from paths_and_filenames import *
+from suqc.paths import *
 
 from shutil import copyfile, rmtree
 from suqc.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash, create_folder
@@ -24,7 +23,7 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 # configuration of the suq-controller
-DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(SRC_PATH, "envs")],
+DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(PATH_SRC, "envs")],
                       "models": dict()}
 
 # configuration saved with each environment
@@ -34,9 +33,9 @@ DEFAULT_SC_CONFIG = {"git_hash_at_creation": "not_set", "model": None}
 def add_new_model(name, filename):  # TODO: actually it should be copied to the models file
     config = _get_suq_config()
 
-    print(f"INFO: The model file with {filename} has to be already located in {MODEL_PATH}")
+    print(f"INFO: The model file with {filename} has to be already located in {PATH_MODELS}")
 
-    assert os.path.exists(os.path.join(MODEL_PATH, filename))
+    assert os.path.exists(os.path.join(PATH_MODELS, filename))
     assert name not in config["models"].keys()
 
     config["models"][name] = filename
@@ -114,8 +113,10 @@ def create_environment(name, sc_basis_file, model, env_path, replace=False):
     os.mkdir(os.path.join(target_path, "vadere_scenarios"))
 
 
-def _get_con_paths():
-    return _get_suq_config()["container_paths"]
+def _get_con_path():
+    path = _get_suq_config()["container_paths"]
+    assert len(path) == 1, "Currently only a single container path is supported"
+    return path[0]
 
 
 def _convert_to_json(s):  # TODO: put in utils
@@ -123,12 +124,13 @@ def _convert_to_json(s):  # TODO: put in utils
 
 
 def _store_config(d):        # TODO: put in utils
-    with open(SUQ_CONFIG_PATH, "w") as outfile:
+    with open(PATH_CFG_FOLDER, "w") as outfile:
         json.dump(d, outfile, indent=4)
 
 
+@DeprecationWarning
 def _select_env_path():
-    paths = _get_con_paths()
+    paths = _get_con_path()
     if len(paths) == 1:
         return paths[0]
     else:
@@ -136,20 +138,20 @@ def _select_env_path():
 
 
 def _get_suq_config(reset_default=False):
-    if reset_default or not os.path.exists(SUQ_CONFIG_PATH):
-        with open(SUQ_CONFIG_PATH, "w") as f:
+    if reset_default or not os.path.exists(PATH_SUQ_CONFIG):
+        with open(PATH_SUQ_CONFIG, "w") as f:
             json.dump(DEFAULT_SUQ_CONFIG, f, indent=4)
-        print(f"INFO: Writing default configuration to \n {SUQ_CONFIG_PATH} \n")
+        print(f"INFO: Writing default configuration to \n {PATH_SUQ_CONFIG} \n")
         return DEFAULT_SUQ_CONFIG
     else:
-        with open(SUQ_CONFIG_PATH, "r") as f:
+        with open(PATH_SUQ_CONFIG, "r") as f:
             config_file = f.read()
         return _convert_to_json(config_file)
 
 
 def _get_model_location(name):
     config = _get_suq_config()
-    path = os.path.join(MODEL_PATH, config["models"][name])
+    path = os.path.join(PATH_MODELS, config["models"][name])
 
     if not os.path.exists(path):
         raise FileNotFoundError(f"Model {path} not found.")
@@ -161,29 +163,12 @@ def _get_all_envs(env_path):
     return os.listdir(env_path)
 
 
-def _get_all_paths_with_envname(env_name):
-    container_paths = _get_suq_config()["container_paths"]
-    paths_with_scenario = list()
-
-    for p in container_paths:
-        if env_name in os.listdir(os.path.abspath(p)):
-            paths_with_scenario.append(p)
-    return paths_with_scenario
-
-#def get_all_env_names():
-#    names = list()
-#    for p in self._env_path:
-#        names.append(self._get_sc_names(p))
-#    return names
-
-
 class EnvironmentManager(object):
 
     def __init__(self, name):
-        con_path = _get_con_paths()
-        assert len(con_path) == 1, "Currently only a single con_path is supported" # TODO
+        con_path = _get_con_path()
 
-        self.env_path = os.path.join(con_path[0], name)
+        self.env_path = os.path.join(con_path, name)
         if not os.path.exists(self.env_path):
             raise FileNotFoundError(f"Environment {self.env_path} does not exist")
 
@@ -253,120 +238,4 @@ class EnvironmentManager(object):
 
     def get_nr_variations(self):
         return len(self.get_vadere_scenario_variations())
-
-
-
-# TODO: Write tests for the CLI!
-class CLI(object):
-
-    def __init__(self):
-        self.parser = argparse.ArgumentParser(
-            description="With this CLI you can configure the suq-controller. This includes things that mostly only "
-                        "have to set up once, i.e. actions that are not necessarily required to call each evaluation "
-                        "run of either the Surrogate Model or Uncertainty Quantification. \n"
-                        "'container'\n"
-                        "An container is the parent folder of environments.\n"
-                        "'environment'\n"
-                        "An environment consists of all relevant content to run parameter variations on VADERE "
-                        "scenarios.")
-
-        self.parser.add_argument("--new-con-path", nargs=1, default=None,
-                                 metavar="CONTAINER_PATH",
-                                 help="Set a new path to a container where the 'environments' are located.")
-
-        self.parser.add_argument("--rem-con-path", nargs=1, default=None,
-                                 metavar="CONTAINER_PATH",
-                                 # TODO: solve issue with relative/absolute paths
-                                 help="Remove a path to a container where 'environments' are located. The path has "
-                                      "to be the same as displayed when running --show-env-paths.")
-
-        self.parser.add_argument("--show-con-paths", default=False, action="store_true",
-                                 help="Show all container paths where 'environments' are located")
-
-        self.parser.add_argument("--con-path", default="select",
-                                 help="Set the container path. Together with the environment name, this uniquely "
-                                      "identifies the path to the environment (con-path + name). If not given, the path"
-                                      "can be selected with the command line.")
-
-        self.parser.add_argument("--show-envs", default=False, action="store_true",
-                                 help="Flag to show all environments located in an container path.")
-
-        self.parser.add_argument("--new-env", nargs=3, default=None,
-                                 metavar=("ENV_NAME", "PATH_BASIS_FILE", "MODEL_NAME"),
-                                 help="Create a new environment. The basis file path has to be a '.scneario' file.")
-
-        self.parser.add_argument("--rem-env", nargs=1, default=None,
-                                 metavar="NAME",
-                                 help="Remove environment. The container can be selected with --env-path or can be "
-                                      "selected with the command line.")
-
-        self.parser.add_argument("--show-models", default=False, action="store_true", help="Flag to display all models")
-
-        self.parser.add_argument("--new-model", nargs=2,
-                                 metavar=("NAME", "PATH_MODEL"),
-                                 help="Set new model. Currently only *.jar models are supported")
-        self.parser.add_argument("--rem-model", nargs=1, metavar=("NAME"), help="Remove model by name.")
-
-        self.opts = self.parser.parse_args()
-
-    def _select_env_path(self):
-        if self.opts.con_path == "select":
-            path = _select_env_path()
-        else:
-            path = self.opts.env_path[0]
-            # TODO: there is a problem with relative / absolute paths, maybe this should be handled in a separate function
-            assert path in _get_con_paths()
-
-        assert os.path.exists(path)
-        return path
-
-    def run_user_options(self):
-
-        # --new-con-env
-        if self.opts.new_con_path is not None:
-            path = self.opts.new_env_path[0]
-            new_con_path(path)
-
-        # --rem-con-path [PATH]
-        if self.opts.rem_con_path is not None:
-            remove_con_path(self.opts.rem_env_path[0])
-
-        # --show-con-paths
-        if self.opts.show_con_paths:
-            print(_get_con_paths())
-
-        # --show-envs
-        if self.opts.show_envs:
-            path = self._select_env_path()
-            print(_get_all_envs(path))
-
-        # --new-env [NAME_NEW_ENV, PATH_TO_SCENARIO FILE, MODEL]
-        if self.opts.new_env is not None:
-            path = self._select_env_path()
-            create_environment(name=self.opts.new_env[0],
-                               sc_basis_file=self.opts.new_env[1],
-                               model=self.opts.new_env[2],
-                               env_path=path,
-                               replace=True)
-
-        # --rem-env [NAME_REM_ENV]
-        if self.opts.rem_env is not None:
-            path = self._select_env_path()
-            target_path = os.path.join(path, self.opts.rem_env[0])
-            remove_environment(target_path)
-
-        # --show-models
-        if self.opts.show_models:
-            print(print_models())
-
-        # --new-model [NAME, PATH]
-        if self.opts.new_model:
-            add_new_model(self.opts.new_model[0], self.opts.new_model[1])
-
-        # --rem-model [NAME]
-        if self.opts.rem_model:
-            remove_model(self.opts.rem_model[0])
-
-if __name__ == "__main__":
-    CLI().run_user_options()
 

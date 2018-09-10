@@ -13,29 +13,31 @@ __authors__ = "Daniel Lehmberg"
 __credits__ = ["n/a"]
 # --------------------------------------------------
 
+NAME_PACKAGE = "suqc"
 
-PACKAGE_NAME = "suqc"
+NAME_SUQ_CONFIG_FILE = "suq_config.json"
+NAME_MODELS_FOLDER = "models"
+NAME_CON_FOLDER = "suqc_envs"
 
-SUQ_CONFIG_FILE = "suq_config.json"
-MODELS_FOLDER = "models"
-CFG_PACKAGE_FOLDER = ".suqc"
-CON_PACKAGE_FOLDER = "suqc_envs"
-CON_LOCAL_FOLDER = "envs"
-PACKAGE_FILE = "PACKAGE.txt"
+NAME_PACKAGE_FILE = "PACKAGE.txt"
 
 # TODO: make a central file of all the (config-) filenames, set by suq-controller!
 # relative path of this file:
-SRC_PATH = p.abspath(p.join(p.realpath(__file__), os.pardir, PACKAGE_NAME))
-PACKAGE_FILE_PATH = p.join(SRC_PATH, PACKAGE_FILE)
+PATH_SRC = p.abspath(p.join(p.realpath(__file__), os.pardir, NAME_PACKAGE))
+PATH_PACKAGE_FILE = p.join(PATH_SRC, NAME_PACKAGE_FILE)
 
-if p.exists(PACKAGE_FILE_PATH):  # Package run
-    HOME_PATH = pathlib.Path.home()
-    CFG_FOLDER_PATH = p.join(HOME_PATH, CFG_PACKAGE_FOLDER)
-    SUQ_CONFIG_PATH = p.join(CFG_FOLDER_PATH, SUQ_CONFIG_FILE)
-    MODEL_PATH = p.join(CFG_FOLDER_PATH, MODELS_FOLDER)
-    CON_FOLDER = p.join(HOME_PATH, CON_PACKAGE_FOLDER)
+if p.exists(PATH_PACKAGE_FILE):  # Package run
+    NAME_CFG_FOLDER = ".suqc"
+
+    PATH_HOME = pathlib.Path.home()
+    PATH_CFG_FOLDER = p.join(PATH_HOME, NAME_CFG_FOLDER)
+    PATH_SUQ_CONFIG = p.join(PATH_CFG_FOLDER, NAME_SUQ_CONFIG_FILE)
+    PATH_MODELS = p.join(PATH_CFG_FOLDER, NAME_MODELS_FOLDER)
+    PATH_CONTAINER = p.join(PATH_HOME, NAME_CON_FOLDER)
 else:  # Local run
-    CFG_FOLDER_PATH = SRC_PATH
-    SUQ_CONFIG_PATH = p.join(SRC_PATH, SUQ_CONFIG_FILE)
-    MODEL_PATH = p.join(SRC_PATH, MODELS_FOLDER)
-    CON_FOLDER = p.join(SRC_PATH, CON_LOCAL_FOLDER)
+    NAME_CFG_FOLDER = "suqc"
+
+    PATH_CFG_FOLDER = PATH_SRC
+    PATH_SUQ_CONFIG = p.join(PATH_SRC, NAME_SUQ_CONFIG_FILE)
+    PATH_MODELS = p.join(PATH_SRC, NAME_MODELS_FOLDER)
+    PATH_CONTAINER = p.join(PATH_SRC, NAME_CON_FOLDER)
