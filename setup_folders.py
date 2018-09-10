@@ -4,7 +4,8 @@ import os
 import json
 import shutil
 
-from paths_and_filenames import *
+from suqc.paths import Paths as pa
+import suqc.configuration
 
 # --------------------------------------------------
 # people who contributed code
@@ -17,31 +18,34 @@ __credits__ = ["n/a"]
 # TODO: at the moment there is a silent full replacement of all files
 # TODO think of handling how to do this in future, cannot replace folder with important results
 # Option 1: have another folder, indicating the version...?
-if True or not os.path.exists(CFG_FOLDER_PATH):
+
+pa.set_package_paths(True)
+
+if True:  # TODO: later on make strategy if folder already exist...
     try:
-        shutil.rmtree(CFG_FOLDER_PATH)
+        shutil.rmtree(pa.path_cfg_folder())
     except FileNotFoundError:
         pass
 
-    os.mkdir(CFG_FOLDER_PATH)
-    shutil.copytree(os.path.join(SRC_PATH, "models"), MODEL_PATH)
+    os.mkdir(pa.path_cfg_folder())
+    shutil.copytree(os.path.join(pa.path_src_folder(), "models"), pa.path_models_folder())
 
     with open(os.path.join(".", "suqc", "suq_config.json"), "r") as f:
         config_file = json.loads(f.read())
 
-    config_file["container_paths"] = [CON_FOLDER]
+    config_file["container_paths"] = [pa.path_container_folder()]
 
-    with open(os.path.join(CFG_FOLDER_PATH, "suq_config.json"), "w") as f:
+    with open(os.path.join(pa.path_cfg_folder(), "suq_config.json"), "w") as f:
         json.dump(config_file, f, indent=4)
 
 else:
-    print(f"INFO: Folder {CFG_FOLDER} already exists. ") # TODO: future: ask user to replace folder -- Caution: may delete content...
+    print(f"INFO: Folder {PATH_CFG_FOLDER} already exists. ") # TODO: future: ask user to replace folder -- Caution: may delete content...
 
-if True or not os.path.exists(CON_FOLDER):
+if True:
     try:
-        shutil.rmtree(CON_FOLDER)
+        shutil.rmtree(PATH_CONTAINER)
     except FileNotFoundError:
         pass
-    shutil.copytree(os.path.join(".", "suqc", "envs"), CON_FOLDER)
+    shutil.copytree(os.path.join(".", "suqc", "envs"), PATH_CONTAINER)
 else:
-    print(f"INFO: Folder {CFG_FOLDER_PATH} already exists. ")  # see TODO above
+    print(f"INFO: Folder {PATH_CONTAINER} already exists. ")  # see TODO above

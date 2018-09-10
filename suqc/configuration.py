@@ -5,11 +5,10 @@
 import json
 import glob
 import copy
-import argparse
-
+import os
 import pandas as pd
 
-from suqc.paths import *
+from suqc.paths import Paths as pa
 
 from shutil import copyfile, rmtree
 from suqc.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash, create_folder
@@ -23,7 +22,7 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 # configuration of the suq-controller
-DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(PATH_SRC, "envs")],
+DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(pa.path_src_folder(), "envs")],
                       "models": dict()}
 
 # configuration saved with each environment
@@ -32,10 +31,9 @@ DEFAULT_SC_CONFIG = {"git_hash_at_creation": "not_set", "model": None}
 
 def add_new_model(name, filename):  # TODO: actually it should be copied to the models file
     config = _get_suq_config()
+    print(f"INFO: The model file with {filename} has to be already located in {pa.path_models_folder()}")
 
-    print(f"INFO: The model file with {filename} has to be already located in {PATH_MODELS}")
-
-    assert os.path.exists(os.path.join(PATH_MODELS, filename))
+    assert os.path.exists(os.path.join(pa.path_models_folder(), filename))
     assert name not in config["models"].keys()
 
     config["models"][name] = filename
@@ -124,34 +122,25 @@ def _convert_to_json(s):  # TODO: put in utils
 
 
 def _store_config(d):        # TODO: put in utils
-    with open(PATH_CFG_FOLDER, "w") as outfile:
+    with open(pa.path_cfg_folder(), "w") as outfile:
         json.dump(d, outfile, indent=4)
 
 
-@DeprecationWarning
-def _select_env_path():
-    paths = _get_con_path()
-    if len(paths) == 1:
-        return paths[0]
-    else:
-        return user_query_numbered_list(paths)
-
-
 def _get_suq_config(reset_default=False):
-    if reset_default or not os.path.exists(PATH_SUQ_CONFIG):
-        with open(PATH_SUQ_CONFIG, "w") as f:
+    if reset_default or not os.path.exists(pa.path_suq_config_file()):
+        with open(pa.path_suq_config_file(), "w") as f:
             json.dump(DEFAULT_SUQ_CONFIG, f, indent=4)
-        print(f"INFO: Writing default configuration to \n {PATH_SUQ_CONFIG} \n")
+        print(f"INFO: Writing default configuration to \n {pa.path_suq_config_file()} \n")
         return DEFAULT_SUQ_CONFIG
     else:
-        with open(PATH_SUQ_CONFIG, "r") as f:
+        with open(pa.path_suq_config_file(), "r") as f:
             config_file = f.read()
         return _convert_to_json(config_file)
 
 
 def _get_model_location(name):
     config = _get_suq_config()
-    path = os.path.join(PATH_MODELS, config["models"][name])
+    path = os.path.join(pa.path_models_folder(), config["models"][name])
 
     if not os.path.exists(path):
         raise FileNotFoundError(f"Model {path} not found.")

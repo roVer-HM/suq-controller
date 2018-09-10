@@ -13,31 +13,75 @@ __authors__ = "Daniel Lehmberg"
 __credits__ = ["n/a"]
 # --------------------------------------------------
 
-NAME_PACKAGE = "suqc"
 
-NAME_SUQ_CONFIG_FILE = "suq_config.json"
-NAME_MODELS_FOLDER = "models"
-NAME_CON_FOLDER = "suqc_envs"
+class Paths(object):
 
-NAME_PACKAGE_FILE = "PACKAGE.txt"
+    NAME_PACKAGE = "suqc"
+    NAME_SUQ_CONFIG_FILE = "suq_config.json"
+    NAME_MODELS_FOLDER = "models"
+    NAME_CON_FOLDER = "suqc_envs"
+    NAME_PACKAGE_FILE = "PACKAGE.txt"
 
-# TODO: make a central file of all the (config-) filenames, set by suq-controller!
-# relative path of this file:
-PATH_SRC = p.abspath(p.join(p.realpath(__file__), os.pardir, NAME_PACKAGE))
-PATH_PACKAGE_FILE = p.join(PATH_SRC, NAME_PACKAGE_FILE)
+    IS_PACKAGE: bool = None
 
-if p.exists(PATH_PACKAGE_FILE):  # Package run
-    NAME_CFG_FOLDER = ".suqc"
+    @classmethod
+    def is_package_paths(cls):
+        if cls.IS_PACKAGE is None:
+            return os.path.exists(cls.path_package_indicator_file)
+        else:
+            return Paths.IS_PACKAGE
 
-    PATH_HOME = pathlib.Path.home()
-    PATH_CFG_FOLDER = p.join(PATH_HOME, NAME_CFG_FOLDER)
-    PATH_SUQ_CONFIG = p.join(PATH_CFG_FOLDER, NAME_SUQ_CONFIG_FILE)
-    PATH_MODELS = p.join(PATH_CFG_FOLDER, NAME_MODELS_FOLDER)
-    PATH_CONTAINER = p.join(PATH_HOME, NAME_CON_FOLDER)
-else:  # Local run
-    NAME_CFG_FOLDER = "suqc"
+    @classmethod
+    def set_package_paths(cls, package: bool):
+        Paths.IS_PACKAGE = package
 
-    PATH_CFG_FOLDER = PATH_SRC
-    PATH_SUQ_CONFIG = p.join(PATH_SRC, NAME_SUQ_CONFIG_FILE)
-    PATH_MODELS = p.join(PATH_SRC, NAME_MODELS_FOLDER)
-    PATH_CONTAINER = p.join(PATH_SRC, NAME_CON_FOLDER)
+    @classmethod
+    def _name_cfg_folder(cls):
+        if cls.is_package_paths():
+            return ".suqc"
+        else:
+            raise RuntimeError("This should not be called when IS_PACKAGE=False.")
+
+    @classmethod
+    def path_usrhome_folder(cls):
+        return pathlib.Path.home()
+
+    @classmethod
+    def path_src_folder(cls):
+        return p.abspath(p.join(p.realpath(__file__), os.pardir))
+
+    @classmethod
+    def path_package_indicator_file(cls):
+        return p.join(cls.path_src_folder(), cls.NAME_PACKAGE_FILE)
+
+    @classmethod
+    def path_cfg_folder(cls):
+        if cls.is_package_paths():
+            return p.join(cls.path_usrhome_folder(), cls._name_cfg_folder())
+        else:
+            return cls.path_src_folder()
+
+    @classmethod
+    def path_suq_config_file(cls):
+        if cls.is_package_paths():
+            return p.join(cls.path_cfg_folder(), cls.NAME_SUQ_CONFIG_FILE)
+        else:
+            return p.join(cls.path_src_folder(), cls.NAME_SUQ_CONFIG_FILE)
+
+    @classmethod
+    def path_models_folder(cls):
+        if cls.is_package_paths():
+            return p.join(cls.path_cfg_folder(), cls.NAME_MODELS_FOLDER)
+        else:
+            return p.join(cls.path_src_folder(), cls.NAME_MODELS_FOLDER)
+
+    @classmethod
+    def path_container_folder(cls):
+        if cls.is_package_paths():
+            return p.join(cls.path_usrhome_folder(), cls.NAME_CON_FOLDER)
+        else:
+            return p.join(cls.path_src_folder(), cls.NAME_CON_FOLDER)
+
+if __name__ == "__main__":
+    Paths()
+

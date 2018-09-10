@@ -4,7 +4,7 @@
 
 from setuptools import setup, find_packages
 
-from paths_and_filenames import *
+from suqc.paths import *
 
 # --------------------------------------------------
 # people who contributed code
@@ -14,15 +14,18 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 VERSION = "0.1"
-with open(PACKAGE_FILE_PATH, "w") as file:
+with open(PATH_PACKAGE_FILE, "w") as file:
     file.write(f"version={VERSION}")
 
-setup(  # TODO include the Package file into the installation!
+
+assert os.path.exists(PATH_PACKAGE_FILE)
+
+setup(
     name="suqc",
     version=VERSION,
     packages=find_packages(),
     data_files=[('suqc', ["suqc/PACKAGE.txt"])]
 )
 
-
-os.remove(PACKAGE_FILE_PATH)
+os.remove(PATH_PACKAGE_FILE)
+assert not os.path.exists(PATH_PACKAGE_FILE)
