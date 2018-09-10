@@ -1,6 +1,6 @@
 {
     "container_paths": [
-        "./envs"
+        "./suqc_envs"
     ],
     "models": {
         "vadere": "vadere-console.jar"

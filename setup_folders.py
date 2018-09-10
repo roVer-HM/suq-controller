@@ -39,13 +39,13 @@ if True:  # TODO: later on make strategy if folder already exist...
         json.dump(config_file, f, indent=4)
 
 else:
-    print(f"INFO: Folder {PATH_CFG_FOLDER} already exists. ") # TODO: future: ask user to replace folder -- Caution: may delete content...
+    print(f"INFO: Folder {pa.path_cfg_folder()} already exists. ") # TODO: future: ask user to replace folder -- Caution: may delete content...
 
 if True:
     try:
-        shutil.rmtree(PATH_CONTAINER)
+        shutil.rmtree(pa.path_container_folder())
     except FileNotFoundError:
         pass
-    shutil.copytree(os.path.join(".", "suqc", "envs"), PATH_CONTAINER)
+    shutil.copytree(os.path.join(".", pa.NAME_PACKAGE, pa.NAME_CON_FOLDER), pa.path_container_folder())
 else:
-    print(f"INFO: Folder {PATH_CONTAINER} already exists. ")  # see TODO above
+    print(f"INFO: Folder {pa.path_container_folder()} already exists. ")  # see TODO above

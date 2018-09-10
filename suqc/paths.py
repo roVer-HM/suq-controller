@@ -27,7 +27,7 @@ class Paths(object):
     @classmethod
     def is_package_paths(cls):
         if cls.IS_PACKAGE is None:
-            return os.path.exists(cls.path_package_indicator_file)
+            return os.path.exists(cls.path_package_indicator_file())
         else:
             return Paths.IS_PACKAGE
 
