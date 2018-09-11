@@ -10,7 +10,7 @@ import copy
 import pandas as pd
 import numpy as np
 
-from suqc.qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor
+from suqc.qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor, PedestrianDensityGaussianProcessor
 from suqc.configuration import EnvironmentManager
 from suqc.parameter import ParameterVariation
 
@@ -89,17 +89,17 @@ class Query(object):
 
         return results
 
-    def _mp_query(self, njobs, **kwargs):
-        pool = multiprocessing.Pool(processes=njobs)
-        res = pool.map(self._single_query, self._args_query_request(**kwargs))
-        return self._create_and_fill_df(res)
-
     def _sp_query(self, **kwargs):
         res = list()
 
         # TODO: the par_id probably matches the real case, but the file lookup table should be used!
         for arg in self._args_query_request(**kwargs):  # enumerate returns tuple(par_id, scenario filepath)
             res.append(self._single_query(arg))
+        return self._create_and_fill_df(res)
+
+    def _mp_query(self, njobs, **kwargs):
+        pool = multiprocessing.Pool(processes=njobs)
+        res = pool.map(self._single_query, self._args_query_request(**kwargs))
         return self._create_and_fill_df(res)
 
     def query_simulate_all_new(self, par_var: ParameterVariation, njobs: int=-1):
@@ -124,6 +124,10 @@ if __name__ == "__main__":
     em = EnvironmentManager("corner")
     pv = ParameterVariation(em)
     pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
-    r = Query(em, PedestrianEvacuationTimeProcessor(em)).query_simulate_all_new(pv, njobs=1)
-    r = Query(em, AreaDensityVoronoiProcessor(em)).query_simulate_all_new(pv, njobs=-1)
+
+    q0 = PedestrianEvacuationTimeProcessor(em)
+    q1 = PedestrianDensityGaussianProcessor(em)
+
+    r = Query(em, q1).query_simulate_all_new(pv, njobs=1)
+    #r = Query(em, AreaDensityVoronoiProcessor(em)).query_simulate_all_new(pv, njobs=-1)
     print(r)

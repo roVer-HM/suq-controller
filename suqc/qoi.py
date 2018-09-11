@@ -33,9 +33,9 @@ class QoIProcessor(metaclass=abc.ABCMeta):
     # TODO: use the kwargs!
     # 1) for time selection
     # 2) for for averaging results
-    def read_and_extract_qoi(self, output_path, **kwargs) -> typing.Union[float, pd.Series]:
+    def read_and_extact_qoi(self, output_path, **kwargs) -> typing.Union[float, pd.Series]:
         data = self._read_csv(output_path)
-        return data
+        return cast_series_if_possible(data)
 
     def _get_all_proc_writers(self):
         return self._em.get_value_basis_file(key="processWriters")[0]
@@ -80,7 +80,7 @@ class QoIProcessor(metaclass=abc.ABCMeta):
     def _read_csv(self, output_path):
         fp = self._filepath(output_path)
         df = pd.read_csv(fp, delimiter=" ", index_col=0, header=0)
-        return cast_series_if_possible(df)
+        return df
 
 
 class PedestrianEvacuationTimeProcessor(QoIProcessor):
@@ -103,7 +103,31 @@ class PedestrianEvacuationTimeProcessor(QoIProcessor):
 
     def read_and_extract_qoi(self, output_path, **kwargs):
         df = self._read_csv(output_path)
-        return self._apply_homogenization(df)
+        df = self._apply_homogenization(df)
+        return cast_series_if_possible(df)
+
+
+class PedestrianDensityGaussianProcessor(QoIProcessor):
+
+    def __init__(self, em: EnvironmentManager, apply="mean"):
+        proc_name = "org.vadere.simulator.projects.dataprocessing.processor.PedestrianDensityGaussianProcessor"
+        assert apply in ["mean", "max"]
+
+        self._apply = apply
+        super(PedestrianDensityGaussianProcessor, self).__init__(em, proc_name, "ped_gaussian_density")
+
+    def _apply_homogenization(self, df):
+        gb = df.drop("pedestrianId", axis=1).groupby("timeStep")
+
+        if self._apply == "mean":
+            return gb.mean()
+        else:
+            return gb.max()
+
+    def read_and_extract_qoi(self, output_path, **kwargs):
+        df = self._read_csv(output_path)
+        df = self._apply_homogenization(df)
+        return cast_series_if_possible(df)
 
 
 class AreaDensityVoronoiProcessor(QoIProcessor):
@@ -117,3 +141,4 @@ class CustomProcessor(QoIProcessor):
 
     def __init__(self, em: EnvironmentManager, proc_name: str, qoi_name: str):
         super(CustomProcessor, self).__init__(em, proc_name, qoi_name)
+
