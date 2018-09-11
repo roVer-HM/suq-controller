@@ -29,27 +29,46 @@ DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(pa.path_src_folder(), "en
 DEFAULT_SC_CONFIG = {"git_hash_at_creation": "not_set", "model": None}
 
 
-def add_new_model(name, filename):  # TODO: actually it should be copied to the models file
+def add_new_model(name, filepath):
+
+    if not os.path.exists(filepath):
+        raise FileNotFoundError("File {filepath} does not exist! Either check 'filepath' or consider using absolute "
+                                "paths.")
+
+    dst_fp = os.path.join(pa.path_models_folder(), os.path.basename(filepath))
+
+    if os.path.exists(dst_fp):
+        raise FileExistsError(f"Model file '{os.path.basename(dst_fp)}' exists already!")
+
     config = _get_suq_config()
-    print(f"INFO: The model file with {filename} has to be already located in {pa.path_models_folder()}")
 
-    assert os.path.exists(os.path.join(pa.path_models_folder(), filename))
-    assert name not in config["models"].keys()
+    if name in config["models"].keys():
+        raise ValueError(f"Model with name '{name}' already exists.")
 
-    config["models"][name] = filename
+    print(f"INFO: The model file {filepath} is copied to {dst_fp}.")
+
+    copyfile(src=filepath, dst=dst_fp)
+    config["models"][name] = os.path.basename(dst_fp)
     _store_config(config)
 
 
 def remove_model(name):
     assert name is not None
     config = _get_suq_config()
-    del config["models"][name]
-    _store_config(config)
+    # remove from config file:
+    try:
+        filename = config["models"][name]
+        del config["models"][name]
+        _store_config(config)
 
+        # remove file in models path
+        os.remove(os.path.join(pa.path_models_folder(), filename))
 
-def print_models():
-    config = _get_suq_config()
-    return config["models"]
+    except KeyError:
+        print(f"WARNING: The model {name} is not present. List of all current model names: {config['models'].keys()}")
+    except FileNotFoundError:
+        print(f"WARNING: The corresponding file with filename {filename} is not present in {pa.path_models_folder()}. "
+              f"The model with {name} was removed from the config file.")
 
 
 def new_con_path(p):
@@ -99,7 +118,8 @@ def create_environment(name, sc_basis_file, model, env_path, replace=False):
     # Create and store the configuration file to the new folder
     cfg = copy.deepcopy(DEFAULT_SC_CONFIG)
 
-    assert model in print_models(), f"Set model {model} is not listed in configured models {print_models()}"
+    if model not in _all_model_names():
+        raise ValueError("Set model {model} is not listed in configured models {_all_model_names()}")
 
     cfg["model"] = model
     cfg["git_hash_at_creation"] = get_git_hash()[0]
@@ -109,6 +129,11 @@ def create_environment(name, sc_basis_file, model, env_path, replace=False):
 
     # Create the 'vadere_scenarios' folder
     os.mkdir(os.path.join(target_path, "vadere_scenarios"))
+
+
+def _all_model_names():
+    config = _get_suq_config()
+    return config["models"].keys()
 
 
 def _get_con_path():
@@ -122,7 +147,7 @@ def _convert_to_json(s):  # TODO: put in utils
 
 
 def _store_config(d):        # TODO: put in utils
-    with open(pa.path_cfg_folder(), "w") as outfile:
+    with open(pa.path_suq_config_file(), "w") as outfile:
         json.dump(d, outfile, indent=4)
 
 
@@ -228,3 +253,6 @@ class EnvironmentManager(object):
     def get_nr_variations(self):
         return len(self.get_vadere_scenario_variations())
 
+if __name__ == "__main__":
+    #add_new_model("vadere1", "./vadere-console1.jar")
+    remove_model("vadere1")
