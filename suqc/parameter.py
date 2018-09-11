@@ -92,7 +92,7 @@ class ParameterVariation(object):
 if __name__ == "__main__":
     di = {"speedDistributionStandardDeviation": [0.0, 0.1, 0.2]}
 
-    em = EnvironmentManager.set_by_env_name("corner")
+    em = EnvironmentManager("corner")
     pv = ParameterVariation(em)
     pv.add_dict_grid(di)
 

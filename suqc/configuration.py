@@ -142,11 +142,7 @@ def _get_con_path():
     return path[0]
 
 
-def _convert_to_json(s):  # TODO: put in utils
-    return json.loads(s)
-
-
-def _store_config(d):        # TODO: put in utils
+def _store_config(d):
     with open(pa.path_suq_config_file(), "w") as outfile:
         json.dump(d, outfile, indent=4)
 
@@ -160,7 +156,7 @@ def _get_suq_config(reset_default=False):
     else:
         with open(pa.path_suq_config_file(), "r") as f:
             config_file = f.read()
-        return _convert_to_json(config_file)
+        return json.loads(config_file)
 
 
 def _get_model_location(name):
@@ -244,6 +240,23 @@ class EnvironmentManager(object):
     def parid_from_scenario_path(self, path):
         sc_name = os.path.basename(path).split(".scenario")[0]
         return int(sc_name)
+
+    def get_vadere_scenario_name(self, sc_path):
+
+        if not os.path.exists(sc_path):
+            raise FileNotFoundError(f"Scenario file {sc_path} not found.")
+
+        required_prefix = "scenario"
+
+        try:
+            fname, prefix = os.path.basename(sc_path).split(".")
+        except ValueError:
+            raise ValueError("Invalid file naming ({sc_path}), only one point is allowed in the filename.")
+
+        if prefix != required_prefix:
+            raise ValueError(f"A valid VADERE scenario file has to end with file ending '.{required_prefix}'")
+
+        return fname
 
     def get_vadere_scenario_variations(self):
         sc_folder = self.get_scenario_variation_path()

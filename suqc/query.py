@@ -52,7 +52,7 @@ class Query(object):
         scfp = kwargs["scenario_path"]
         kwargs_qoi = kwargs["kwargs_qoi"]  # all arguments handled to the QoI processor
 
-        sc_name = os.path.basename(scfp).split(".scenario")[0]  # TODO: do this better, possibly via env.manager
+        sc_name = self._env_man.get_vadere_scenario_name(scfp)
         output_path = self._env_man.get_output_path(sc_name, create=True)
 
         self._simulate(scfp, output_path)
