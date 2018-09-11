@@ -33,7 +33,7 @@ class QoIProcessor(metaclass=abc.ABCMeta):
     # TODO: use the kwargs!
     # 1) for time selection
     # 2) for for averaging results
-    def read_and_extact_qoi(self, output_path, **kwargs) -> typing.Union[float, pd.Series]:
+    def read_and_extract_qoi(self, output_path, **kwargs) -> typing.Union[float, pd.Series]:
         data = self._read_csv(output_path)
         return cast_series_if_possible(data)
 
@@ -136,9 +136,11 @@ class AreaDensityVoronoiProcessor(QoIProcessor):
         proc_name = "org.vadere.simulator.projects.dataprocessing.processor.AreaDensityVoronoiProcessor"
         super(AreaDensityVoronoiProcessor, self).__init__(em, proc_name, "voronoi_density")
 
-
 class CustomProcessor(QoIProcessor):
 
     def __init__(self, em: EnvironmentManager, proc_name: str, qoi_name: str):
         super(CustomProcessor, self).__init__(em, proc_name, qoi_name)
 
+if __name__ == "__main__":
+
+    AreaDensityVoronoiProcessor

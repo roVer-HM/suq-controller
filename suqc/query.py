@@ -128,6 +128,6 @@ if __name__ == "__main__":
     q0 = PedestrianEvacuationTimeProcessor(em)
     q1 = PedestrianDensityGaussianProcessor(em)
 
-    r = Query(em, q1).query_simulate_all_new(pv, njobs=1)
-    #r = Query(em, AreaDensityVoronoiProcessor(em)).query_simulate_all_new(pv, njobs=-1)
+    #r = Query(em, q1).query_simulate_all_new(pv, njobs=1)
+    r = Query(em, AreaDensityVoronoiProcessor(em)).query_simulate_all_new(pv, njobs=1)
     print(r)
