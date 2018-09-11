@@ -1,8 +1,7 @@
 {
   "name" : "rimea_06_corner",
   "description" : "",
-  "release" : "0.4",
-  "commithash" : "e291f1561c1cf38cda29ff1d2f6f6cdc14e1c926",
+  "release" : "0.6",
   "processWriters" : {
     "files" : [ {
       "type" : "org.vadere.simulator.projects.dataprocessing.outputfile.PedestrianIdOutputFile",
@@ -24,6 +23,10 @@
       "type" : "org.vadere.simulator.projects.dataprocessing.outputfile.TimestepOutputFile",
       "filename" : "voronoi_density.txt",
       "processors" : [ 6 ]
+    }, {
+      "type" : "org.vadere.simulator.projects.dataprocessing.outputfile.TimestepPedestrianIdOutputFile",
+      "filename" : "gaussian_density.txt",
+      "processors" : [ 7 ]
     } ],
     "processors" : [ {
       "type" : "org.vadere.simulator.projects.dataprocessing.processor.PedestrianWaitingTimeProcessor",
@@ -80,6 +83,16 @@
           "height" : 10.0,
           "type" : "RECTANGLE"
         }
+      }
+    }, {
+      "type" : "org.vadere.simulator.projects.dataprocessing.processor.PedestrianDensityGaussianProcessor",
+      "id" : 7,
+      "attributesType" : "org.vadere.state.attributes.processor.AttributesPedestrianDensityGaussianProcessor",
+      "attributes" : {
+        "pedestrianPositionProcessorId" : 3,
+        "scale" : 10.0,
+        "standardDerivation" : 0.7,
+        "obstacleDensity" : true
       }
     } ],
     "isTimestamped" : true
@@ -141,7 +154,6 @@
       "writeSimulationData" : true,
       "visualizationEnabled" : true,
       "printFPS" : false,
-      "needsBoundary" : false,
       "digitsPerCoordinate" : 2,
       "useFixedSeed" : true,
       "fixedSeed" : 1,
