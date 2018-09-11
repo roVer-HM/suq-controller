@@ -7,6 +7,7 @@ import os
 from setuptools import setup, find_packages
 
 from suqc.paths import Paths as pa
+from suqc import __version__
 
 # --------------------------------------------------
 # people who contributed code
@@ -15,16 +16,15 @@ __authors__ = "Daniel Lehmberg"
 __credits__ = ["n/a"]
 # --------------------------------------------------
 
-VERSION = "0.1"
 with open(pa.path_package_indicator_file(), "w") as file:
-    file.write(f"version={VERSION}")
+    file.write(f"version={__version__}")
 
 
 assert os.path.exists(pa.path_package_indicator_file())
 
 setup(
     name="suqc",
-    version=VERSION,
+    version=__version__,
     packages=find_packages(),
     data_files=[('suqc', ["suqc/PACKAGE.txt"])]
 )
