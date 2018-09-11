@@ -1,10 +1,14 @@
 .idea 
 __pycache__
-
-# for VADERE console
 *.pyc
 
 log.out
+
+# do not track vadere processor outputs and overview files (every computer as different paths, which results in changes for every commit)
+vadere_scenarios
+parid_lookup.csv
+
+
 
 # folders / files when packaging
 build
