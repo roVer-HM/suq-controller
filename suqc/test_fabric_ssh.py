@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
@@ -14,7 +14,9 @@ __credits__ = ["n/a"]
 
 c = Connection("minimuc.cs.hm.edu", user="dlehmberg", port=5022)
 
-result = c.run("""python3 -c 'import suqc; print(suqc.__version__)'""")
+result = c.run("""python3 -c 'import suqc.configuration
+print(suqc.configuration.get_con_path())
+'""")
 print(result)
 
 c.close()

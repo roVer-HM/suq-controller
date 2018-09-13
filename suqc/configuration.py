@@ -93,13 +93,13 @@ def remove_environment(env_folder):
         return False
 
 
-def create_environment(name, sc_basis_file, model, env_path, replace=False):
+def create_environment(name, sc_basis_file, model, replace=False):
     # check the given .scenario file
     assert os.path.isfile(sc_basis_file), "Filepath to .scenario does not exist"
     assert sc_basis_file.split(".")[-1] == "scenario", "File has to be a VADERE '*.scenario' file"
 
     # Check if environment already exists
-    target_path = os.path.join(env_path, name)
+    target_path = os.path.join(get_container_path(), name)
 
     if replace and os.path.exists(target_path):
         if not remove_environment(target_path):
@@ -131,7 +131,7 @@ def create_environment(name, sc_basis_file, model, env_path, replace=False):
     os.mkdir(os.path.join(target_path, "vadere_scenarios"))
 
 
-def get_con_path():
+def get_container_path():
     path = _get_suq_config()["container_paths"]
     assert len(path) == 1, "Currently only a single container path is supported"
     assert os.path.exists(path), "The path does not exist. Please run the command setup_folders.py given in the " \
@@ -178,8 +178,8 @@ def _get_all_envs(env_path):
 class EnvironmentManager(object):
 
     def __init__(self, name):
-        con_path = get_con_path()
-
+        con_path = get_container_path()
+        self.name = name
         self.env_path = os.path.join(con_path, name)
         if not os.path.exists(self.env_path):
             raise FileNotFoundError(f"Environment {self.env_path} does not exist")
