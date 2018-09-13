@@ -1,19 +1,20 @@
 ### WORK IN PROGRESS
 
 The suq-controller connects the modules "Surrogate Model" (S) and "Uncertainty Quantification" (UQ) (see other vadere Repos). 
-The main functionality of the `suq-controller` is to query and run many differently parametrized VADERE scenarios and 
+The main functionality of the `suq-controller` is to query many differently parametrized VADERE scenarios and 
 return the result of specified quantity of interests (QoI) in a convenient format ([pandas DataFrame](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html)). 
 
 
-This git repository uses git large file storage (git-lfs). Primarily this to give VADERE models as .jar files. 
+This git repository uses git large file storage (git-lfs). This allows to ship default VADERE models (larger .jar files.)
+with the git repository. 
 
 For developers: To install git-lfs follow the instructions [here](https://github.com/git-lfs/git-lfs/wiki/Installation)
 In file `.gitattributes` in the repo shows the settings for git-lfs. 
 
 
-###Glossary
+### Glossary
 
-Other words were used in this project to not confuse terminology with VADERE (such as `scenario`). 
+Other words were used in this project to not confuse terminology with VADERE (such as `scenario` and `project`). 
 
 * **container** is the parent folder of (multiple) environments
 * **environment** is folder consisting of a specifed VADERE scenario that is intended to query
@@ -37,12 +38,10 @@ to use `python>=3.6`.
 python3 setup.py install
 ``` 
 
-Note: This may have to be executed with `sudo` in Linux.
+Note: In Linux this may have to be executed with `sudo`.
 
-This installs the essential package, but does **not** copy the the models or example container consisting of one 
-environment. 
-
-To set up the corresponding folders run the following command:
+This installs the essential package, but does **not** copy the models or example environments. To set up the 
+corresponding folders and copy the models to the appropriate position run
 
 ```
 python3 setup_folders.py TODO
