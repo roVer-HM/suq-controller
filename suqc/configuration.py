@@ -93,10 +93,17 @@ def remove_environment(env_folder):
         return False
 
 
-def create_environment(name, sc_basis_file, model, replace=False):
-    # check the given .scenario file
-    assert os.path.isfile(sc_basis_file), "Filepath to .scenario does not exist"
-    assert sc_basis_file.split(".")[-1] == "scenario", "File has to be a VADERE '*.scenario' file"
+def create_environment_from_file(name, filepath, model, replace=False):
+    assert os.path.isfile(filepath), "Filepath to .scenario does not exist"
+    assert filepath.split(".")[-1] == "scenario", "File has to be a VADERE '*.scenario' file"
+
+    with open(filepath, "r") as file:
+        basis_scenario = file.read()
+
+    create_environment(name, basis_scenario, model, replace)
+
+
+def create_environment(name, basis_scenario, model, replace=False):
 
     # Check if environment already exists
     target_path = os.path.join(get_container_path(), name)
@@ -112,8 +119,14 @@ def create_environment(name, sc_basis_file, model, replace=False):
     # FILL IN THE STANDARD FILES IN THE NEW SCENARIO:
 
     # copy the .scenario file to the new folder
-    filename = os.path.basename(sc_basis_file)
-    copyfile(sc_basis_file, os.path.join(target_path, filename))
+
+    basis_fp = os.path.join(target_path, f"scenario_basis_{name}.scenario")
+
+    with open(basis_fp, "w") as file:
+        if isinstance(basis_scenario, dict):
+            json.dump(basis_scenario, file, indent=4)
+        else:
+            file.write(basis_scenario)
 
     # Create and store the configuration file to the new folder
     cfg = copy.deepcopy(DEFAULT_SC_CONFIG)
@@ -274,5 +287,8 @@ class EnvironmentManager(object):
         return len(self.get_vadere_scenario_variations())
 
 if __name__ == "__main__":
-    #add_new_model("vadere1", "./vadere-console1.jar")
-    remove_model("vadere1")
+
+    with open("/home/daniel/REPOS/vadere/suq-controller/suqc/suqc_envs/corner/rimea_06_corner.scenario", "r") as f:
+        basis_file = json.load(f)
+
+    create_environment("test", basis_file, "vadere", True)
