@@ -67,6 +67,7 @@ class ServerConnection(object):
 
 class ServerSimulation(object):
 
+    FILENAME_PICKLE_SIMDEF = "simdef.p"
     FILENAME_PICKLE_RESULTS = "results.p"
 
     def __init__(self, server: ServerConnection):
@@ -75,7 +76,9 @@ class ServerSimulation(object):
     @classmethod
     def _create_remote_environment(cls, fp):
         from suqc.configuration import create_environment
-        simdef = pickle.load(fp)
+
+        with open(fp, "rb") as f:
+            simdef = pickle.load(f)
         create_environment(simdef.name, simdef.basis_file, simdef.model, replace=True)
 
     @classmethod
@@ -101,13 +104,12 @@ class ServerSimulation(object):
 
         rem_con_path = self._server.read_terminal_stdout(
             "python3 -c 'import suqc.configuration as c; print(c.get_container_path())'")
-        rem_env_path = os.path.join(rem_con_path, simdef.name)
-        self._server.send_file2server("INVALID", rem_env_path)
+        self._server.send_file2server(local_pickle_path, rem_con_path)
 
-        return rem_env_path
+        return os.path.join(rem_con_path, ServerSimulation.FILENAME_PICKLE_SIMDEF)
 
     def _local_submit_request(self, fp):
-        s = f"""python3 -c 'import suqc.rem; rem.ServerProcedure.remove_simulate({fp})' """
+        s = f"""python3 -c 'import suqc.remote as rem; rem.ServerSimulation.remote_simulate(\"{fp}\")' """
         result = self._server.con.run(s)
         last_line = result.stdout.rstrip().split("\n")[-1]  # last line to get the last 'print(path)' statement
         return last_line
@@ -123,9 +125,9 @@ class ServerSimulation(object):
     def run(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor):
         simdef = SimulationDefinition(env_man, par_var, qoi)
 
-        local_pickle_path = os.path.join(env_man.env_path, "simdef.p")
-        fp_env = self._setup_server_env(local_pickle_path=local_pickle_path, simdef=simdef)
-        fp_rem_results = self._local_submit_request(fp_env)
+        local_pickle_path = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_SIMDEF)
+        fp_rem_simdef = self._setup_server_env(local_pickle_path=local_pickle_path, simdef=simdef)
+        fp_rem_results = self._local_submit_request(fp_rem_simdef)
         fp_loc_results = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_RESULTS)
         results = self._read_results(fp_loc_results, fp_rem_results)
         return results
