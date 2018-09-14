@@ -11,6 +11,7 @@ from fabric import Connection
 from suqc.parameter import ParameterVariation
 from suqc.qoi import QoIProcessor
 from suqc.configuration import EnvironmentManager
+from suqc.simdef import SimulationDefinition
 
 # --------------------------------------------------
 # people who contributed code
@@ -18,16 +19,6 @@ __authors__ = "Daniel Lehmberg"
 # people who made suggestions or reported bugs but didn't contribute code
 __credits__ = ["n/a"]
 # --------------------------------------------------
-
-
-class SimulationDefinition(object):
-
-    def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor):
-        self.name = env_man.name
-        self.basis_file = env_man.get_vadere_scenario_basis_file()
-        self.model = env_man.get_cfg_value("model")
-        self.par_var = par_var
-        self.qoi = qoi
 
 
 class ServerConnection(object):
@@ -133,17 +124,17 @@ class ServerSimulation(object):
         return results
 
 
-if __name__ == "__main__":
 
-    from suqc.qoi import PedestrianEvacuationTimeProcessor
 
-    env_man = EnvironmentManager("corner")
-    par_var = ParameterVariation(env_man)
-    par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
-    qoi = PedestrianEvacuationTimeProcessor(env_man)
+from suqc.qoi import PedestrianEvacuationTimeProcessor
 
-    with ServerConnection() as sc:
-        server_sim = ServerSimulation(sc)
-        result = server_sim.run(env_man, par_var, qoi)
+env_man = EnvironmentManager("corner")
+par_var = ParameterVariation(env_man)
+par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
+qoi = PedestrianEvacuationTimeProcessor(env_man)
 
-    print(result)
+with ServerConnection() as sc:
+    server_sim = ServerSimulation(sc)
+    result = server_sim.run(env_man, par_var, qoi)
+
+print(result)
