@@ -3,9 +3,12 @@
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
 # include imports after here:
-import subprocess
 import os
+import sys
 import shutil
+import subprocess
+
+import suqc.paths
 
 import pandas as pd
 from typing import Union
@@ -18,20 +21,25 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
-def get_git_hash():
-    GIT_COMMIT_HASH = subprocess.check_output(["git", "rev-parse", "HEAD"])
-    GIT_COMMIT_HASH = GIT_COMMIT_HASH.decode().strip()
+def get_current_suqc_state():
+    # message only for developer, -- if the installed package is running
+    if not suqc.paths.Paths.is_package_paths():
+        GIT_COMMIT_HASH = subprocess.check_output(["git", "rev-parse", "HEAD"])
+        GIT_COMMIT_HASH = GIT_COMMIT_HASH.decode().strip()
 
-    uncommited_changes = subprocess.check_output(["git", "status", "--porcelain"])
-    uncommited_changes = uncommited_changes.decode()  # is returned as a byte sequence -> decode to string
+        uncommited_changes = subprocess.check_output(["git", "status", "--porcelain"])
+        uncommited_changes = uncommited_changes.decode()  # is returned as a byte sequence -> decode to string
 
-    if uncommited_changes:
-        print("WARNING: THERE ARE UNCOMMITED CHANGED IN THE REPO")
-        print("In order to have a reproducible scenario run you should check if untracked changes in the following "
-              "files should be commited before: \n")
-        print(uncommited_changes)
+        if uncommited_changes:
+            print("WARNING: THERE ARE UNCOMMITED CHANGED IN THE REPO")
+            print("In order to have a reproducible scenario run you should check if untracked changes in the following "
+                  "files should be commited before: \n")
+            print(uncommited_changes)
 
-    return GIT_COMMIT_HASH, uncommited_changes
+        return {"git_hash": GIT_COMMIT_HASH, "umcommited_changes": uncommited_changes}
+    else:
+        return {"suqc_version": suqc.__version__}
+
 
 
 def cast_series_if_possible(df: Union[pd.DataFrame, pd.Series]):
@@ -80,8 +88,12 @@ def user_query_yes_no(question: str, default=None) -> bool:
         raise ValueError("invalid default answer: '%s'" % default)
 
     while True:
-        print(question + prompt)
+        sys.stdout.write(question + prompt)
+        sys.stdout.flush()
         choice = input().lower()
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:

@@ -11,7 +11,7 @@ import pandas as pd
 from suqc.paths import Paths as pa
 
 from shutil import copyfile, rmtree
-from suqc.utils.general import user_query_yes_no, user_query_numbered_list, get_git_hash, create_folder
+from suqc.utils.general import user_query_yes_no, get_current_suqc_state, create_folder
 from suqc.utils.dict_utils import deep_dict_lookup
 
 # --------------------------------------------------
@@ -26,7 +26,7 @@ DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(pa.path_src_folder(), "en
                       "models": dict()}
 
 # configuration saved with each environment
-DEFAULT_SC_CONFIG = {"git_hash_at_creation": "not_set", "model": None}
+DEFAULT_SC_CONFIG = {"model": None}
 
 
 def add_new_model(name, filepath):
@@ -89,8 +89,7 @@ def remove_environment(env_folder):
     if user_query_yes_no(question=f"Are you sure you want to remove the current environment? Path: \n {env_folder}"):
         rmtree(env_folder)
         return True
-    else:
-        return False
+    return False
 
 
 def create_environment_from_file(name, filepath, model, replace=False):
@@ -135,7 +134,7 @@ def create_environment(name, basis_scenario, model, replace=False):
         raise ValueError("Set model {model} is not listed in configured models {_all_model_names()}")
 
     cfg["model"] = model
-    cfg["git_hash_at_creation"] = get_git_hash()[0]
+    cfg["suqc_state"] = get_current_suqc_state()
 
     with open(os.path.join(target_path, "sc_config.json"), 'w') as outfile:
         json.dump(cfg, outfile, indent=4)
