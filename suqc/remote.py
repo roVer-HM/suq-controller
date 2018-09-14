@@ -134,10 +134,12 @@ class ServerSimulation(object):
 
 if __name__ == "__main__":
     from suqc.qoi import PedestrianEvacuationTimeProcessor
+    import numpy as np
 
     env_man = EnvironmentManager("corner")
     par_var = ParameterVariation(env_man)
-    par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
+    par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3],
+                           "speedDistributionMean": np.linspace(0.5, 2, 20)})
     qoi = PedestrianEvacuationTimeProcessor(env_man)
 
     with ServerConnection() as sc:
@@ -145,3 +147,11 @@ if __name__ == "__main__":
         result = server_sim.run(env_man, par_var, qoi)
 
     print(result)
+
+    # TODO Next steps:
+    # TODO: remove environment remotely automatically, if it already exists
+    # TODO: Make a script to update the squc automatically (fresh installation)
+    # TODO: Check how to disable logging in Vadere
+    # TODO: sort results df
+    # TODO: integrate (make an own class?) the parameter in the results (see writings...)
+
