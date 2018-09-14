@@ -125,16 +125,16 @@ class ServerSimulation(object):
 
 
 
+if __name__ == "__main__":
+    from suqc.qoi import PedestrianEvacuationTimeProcessor
 
-from suqc.qoi import PedestrianEvacuationTimeProcessor
+    env_man = EnvironmentManager("corner")
+    par_var = ParameterVariation(env_man)
+    par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
+    qoi = PedestrianEvacuationTimeProcessor(env_man)
 
-env_man = EnvironmentManager("corner")
-par_var = ParameterVariation(env_man)
-par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
-qoi = PedestrianEvacuationTimeProcessor(env_man)
+    with ServerConnection() as sc:
+        server_sim = ServerSimulation(sc)
+        result = server_sim.run(env_man, par_var, qoi)
 
-with ServerConnection() as sc:
-    server_sim = ServerSimulation(sc)
-    result = server_sim.run(env_man, par_var, qoi)
-
-print(result)
+    print(result)
