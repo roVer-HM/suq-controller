@@ -64,19 +64,26 @@ class ServerSimulation(object):
     def __init__(self, server: ServerConnection):
         self._server = server
 
+
+    @classmethod
+    def _remote_load_simdef(cls, fp):
+        with open(fp, "rb") as f:
+            simdef = pickle.load(f)
+        return simdef
+
     @classmethod
     def _create_remote_environment(cls, fp):
         from suqc.configuration import create_environment
 
-        with open(fp, "rb") as f:
-            simdef = pickle.load(f)
+        simdef = ServerSimulation._remote_load_simdef(fp)
         create_environment(simdef.name, simdef.basis_file, simdef.model, replace=True)
 
     @classmethod
     def _remote_run_env(cls, fp):
         import suqc.query
         import suqc.configuration
-        simdef = pickle.load(fp)
+
+        simdef = ServerSimulation._remote_load_simdef(fp)
 
         env_man = suqc.configuration.EnvironmentManager(simdef.name)
         ret = suqc.query.Query(env_man, simdef.qoi).query_simulate_all_new(simdef.par_var, njobs=-1)

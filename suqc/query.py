@@ -126,7 +126,7 @@ if __name__ == "__main__":
     pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
 
     q0 = PedestrianEvacuationTimeProcessor(em)
-    q1 = PedestrianDensityGaussianProcessor(em)
+    #q1 = PedestrianDensityGaussianProcessor(em) # TODO: need to check if qoi-processpor is available in basis file!
 
     #r = Query(em, q1).query_simulate_all_new(pv, njobs=1)
     r = Query(em, AreaDensityVoronoiProcessor(em)).query_simulate_all_new(pv, njobs=1)
