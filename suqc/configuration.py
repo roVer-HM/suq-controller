@@ -71,6 +71,7 @@ def remove_model(name):
               f"The model with {name} was removed from the config file.")
 
 
+@DeprecationWarning  # NOTE: currently there is only one container path allowed, therefore it should not get removed...
 def new_con_path(p):
     config = _get_suq_config()
     assert p not in config["container_paths"]
@@ -79,17 +80,27 @@ def new_con_path(p):
     _store_config(config)
 
 
-def remove_con_path(p):
+@DeprecationWarning  # NOTE: currently there is only one container path allowed, therefore it should not get removed...
+def remove_container_path(p):
     config = _get_suq_config()
     config["container_paths"].remove(p)
     _store_config(config)
 
 
-def remove_environment(env_folder):
-    if user_query_yes_no(question=f"Are you sure you want to remove the current environment? Path: \n {env_folder}"):
-        rmtree(env_folder)
+def remove_environment(name, force=False):
+    target_path = get_env_path(name)
+    if force or user_query_yes_no(question=f"Are you sure you want to remove the current environment? Path: \n "
+                                           f"{target_path}"):
+        try:
+            rmtree(target_path)
+        except FileNotFoundError:
+            print("INFO: Tried to remove environment {name}, but did not exist.")
         return True
     return False
+
+
+def get_env_path(name):
+    return os.path.join(get_container_path(), name)
 
 
 def create_environment_from_file(name, filepath, model, replace=False):
@@ -105,10 +116,10 @@ def create_environment_from_file(name, filepath, model, replace=False):
 def create_environment(name, basis_scenario, model, replace=False):
 
     # Check if environment already exists
-    target_path = os.path.join(get_container_path(), name)
+    target_path = get_env_path(name)
 
     if replace and os.path.exists(target_path):
-        if not remove_environment(target_path):
+        if not remove_environment(name):
             print("Aborting to create a new scenario.")
             return
 
@@ -116,8 +127,6 @@ def create_environment(name, basis_scenario, model, replace=False):
     os.mkdir(target_path)
 
     # FILL IN THE STANDARD FILES IN THE NEW SCENARIO:
-
-    # copy the .scenario file to the new folder
 
     basis_fp = os.path.join(target_path, f"scenario_basis_{name}.scenario")
 
@@ -194,7 +203,7 @@ class EnvironmentManager(object):
     def __init__(self, name):
         con_path = get_container_path()
         self.name = name
-        self.env_path = os.path.join(con_path, name)
+        self.env_path = get_env_path(self.name)
         if not os.path.exists(self.env_path):
             raise FileNotFoundError(f"Environment {self.env_path} does not exist")
 
@@ -287,7 +296,4 @@ class EnvironmentManager(object):
 
 if __name__ == "__main__":
 
-    with open("/home/daniel/REPOS/vadere/suq-controller/suqc/suqc_envs/corner/rimea_06_corner.scenario", "r") as f:
-        basis_file = json.load(f)
-
-    create_environment("test", basis_file, "vadere", True)
+    remove_environment("test")

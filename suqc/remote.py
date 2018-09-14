@@ -55,7 +55,6 @@ class ServerConnection(object):
         self._con.put(local_fp, server_fp)
 
 
-
 class ServerSimulation(object):
 
     FILENAME_PICKLE_SIMDEF = "simdef.p"
@@ -73,9 +72,10 @@ class ServerSimulation(object):
 
     @classmethod
     def _create_remote_environment(cls, fp):
-        from suqc.configuration import create_environment
+        from suqc.configuration import remove_environment, create_environment
 
         simdef = ServerSimulation._remote_load_simdef(fp)
+        remove_environment(simdef.name, force=True)  # TODO: for now it is simply gets replaced (a user may loose data)
         create_environment(simdef.name, simdef.basis_file, simdef.model, replace=True)
 
     @classmethod
@@ -149,7 +149,6 @@ if __name__ == "__main__":
     print(result)
 
     # TODO Next steps:
-    # TODO: remove environment remotely automatically, if it already exists
     # TODO: Make a script to update the squc automatically (fresh installation)
     # TODO: Check how to disable logging in Vadere
     # TODO: sort results df
