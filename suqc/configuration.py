@@ -136,8 +136,8 @@ def get_container_path():
     assert len(path) == 1, "Currently only a single container path is supported"
 
     path = path[0]
-    assert os.path.exists(path), "The path does not exist. Please run the command setup_folders.py given in the " \
-                                 "software repository"
+    assert os.path.exists(path), f"The path {path} does not exist. Please run the command setup_folders.py given in " \
+                                 f"the software repository"
     return path
 
 

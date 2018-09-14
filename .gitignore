@@ -9,6 +9,9 @@ vadere_scenarios
 parid_lookup.csv
 
 
+# pickle files
+*.p
+
 
 # folders / files when packaging
 build
