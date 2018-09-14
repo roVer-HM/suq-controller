@@ -100,7 +100,7 @@ class ServerSimulation(object):
             pickle.dump(simdef, f)
 
         rem_con_path = self._server.read_terminal_stdout(
-            "python3 -c 'import suqc.configuration as c; print(c._get_con_path())'")
+            "python3 -c 'import suqc.configuration as c; print(c.get_container_path())'")
         rem_env_path = os.path.join(rem_con_path, simdef.name)
         self._server.send_file2server("INVALID", rem_env_path)
 
