@@ -23,11 +23,7 @@
       "type" : "org.vadere.simulator.projects.dataprocessing.outputfile.TimestepOutputFile",
       "filename" : "voronoi_density.txt",
       "processors" : [ 6 ]
-    }, {
-      "type" : "org.vadere.simulator.projects.dataprocessing.outputfile.TimestepPedestrianIdOutputFile",
-      "filename" : "gaussian_density.txt",
-      "processors" : [ 7 ]
-    } ],
+    }],
     "processors" : [ {
       "type" : "org.vadere.simulator.projects.dataprocessing.processor.PedestrianWaitingTimeProcessor",
       "id" : 1,
@@ -83,16 +79,6 @@
           "height" : 10.0,
           "type" : "RECTANGLE"
         }
-      }
-    }, {
-      "type" : "org.vadere.simulator.projects.dataprocessing.processor.PedestrianDensityGaussianProcessor",
-      "id" : 7,
-      "attributesType" : "org.vadere.state.attributes.processor.AttributesPedestrianDensityGaussianProcessor",
-      "attributes" : {
-        "pedestrianPositionProcessorId" : 3,
-        "scale" : 10.0,
-        "standardDerivation" : 0.7,
-        "obstacleDensity" : true
       }
     } ],
     "isTimestamped" : true
