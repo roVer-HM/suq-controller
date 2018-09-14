@@ -134,9 +134,11 @@ def create_environment(name, sc_basis_file, model, replace=False):
 def get_container_path():
     path = _get_suq_config()["container_paths"]
     assert len(path) == 1, "Currently only a single container path is supported"
+
+    path = path[0]
     assert os.path.exists(path), "The path does not exist. Please run the command setup_folders.py given in the " \
                                  "software repository"
-    return path[0]
+    return path
 
 
 def _all_model_names():
