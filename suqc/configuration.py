@@ -23,7 +23,12 @@ __credits__ = ["n/a"]
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(pa.path_src_folder(), "envs")],
-                      "models": dict()}
+                      "models": dict(),
+                      "server": {
+                          "host": "minimuc",
+                          "user": "",
+                          "port": -1
+                      }}
 
 # configuration saved with each environment
 DEFAULT_SC_CONFIG = {"model": None}
@@ -40,7 +45,7 @@ def add_new_model(name, filepath):
     if os.path.exists(dst_fp):
         raise FileExistsError(f"Model file '{os.path.basename(dst_fp)}' exists already!")
 
-    config = _get_suq_config()
+    config = get_suq_config()
 
     if name in config["models"].keys():
         raise ValueError(f"Model with name '{name}' already exists.")
@@ -54,7 +59,7 @@ def add_new_model(name, filepath):
 
 def remove_model(name):
     assert name is not None
-    config = _get_suq_config()
+    config = get_suq_config()
     # remove from config file:
     try:
         filename = config["models"][name]
@@ -73,7 +78,7 @@ def remove_model(name):
 
 @DeprecationWarning  # NOTE: currently there is only one container path allowed, therefore it should not get removed...
 def new_con_path(p):
-    config = _get_suq_config()
+    config = get_suq_config()
     assert p not in config["container_paths"]
     assert os.path.exists(p) and isinstance(p, str)
     config["container_paths"].append(p)
@@ -82,7 +87,7 @@ def new_con_path(p):
 
 @DeprecationWarning  # NOTE: currently there is only one container path allowed, therefore it should not get removed...
 def remove_container_path(p):
-    config = _get_suq_config()
+    config = get_suq_config()
     config["container_paths"].remove(p)
     _store_config(config)
 
@@ -153,7 +158,7 @@ def create_environment(name, basis_scenario, model, replace=False):
 
 
 def get_container_path():
-    path = _get_suq_config()["container_paths"]
+    path = get_suq_config()["container_paths"]
     assert len(path) == 1, "Currently only a single container path is supported"
 
     path = path[0]
@@ -163,7 +168,7 @@ def get_container_path():
 
 
 def _all_model_names():
-    config = _get_suq_config()
+    config = get_suq_config()
     return config["models"].keys()
 
 
@@ -172,11 +177,11 @@ def _store_config(d):
         json.dump(d, outfile, indent=4)
 
 
-def _get_suq_config(reset_default=False):
-    if reset_default or not os.path.exists(pa.path_suq_config_file()):
+def get_suq_config():
+    if not os.path.exists(pa.path_suq_config_file()):
         with open(pa.path_suq_config_file(), "w") as f:
             json.dump(DEFAULT_SUQ_CONFIG, f, indent=4)
-        print(f"INFO: Writing default configuration to \n {pa.path_suq_config_file()} \n")
+        print(f"WARNING: Config did not exist. Writing default configuration to \n {pa.path_suq_config_file()} \n")
         return DEFAULT_SUQ_CONFIG
     else:
         with open(pa.path_suq_config_file(), "r") as f:
@@ -185,7 +190,7 @@ def _get_suq_config(reset_default=False):
 
 
 def _get_model_location(name):
-    config = _get_suq_config()
+    config = get_suq_config()
     path = os.path.join(pa.path_models_folder(), config["models"][name])
 
     if not os.path.exists(path):
@@ -218,8 +223,10 @@ class EnvironmentManager(object):
         rel_path = os.path.join(self.env_path, "vadere_scenarios")
         return os.path.abspath(rel_path)
 
-    def get_output_path(self, sc_name, create):
-        output_path = os.path.join(self.get_scenario_variation_path(), "".join([sc_name, "_output"]))
+    def get_output_path(self, par_id, create):
+        scenario_filename = self.get_scenario_variation_filename(par_id=par_id)
+        scenario_filename = scenario_filename.replace(".scenario", "")
+        output_path = os.path.join(self.get_scenario_variation_path(), "".join([scenario_filename, "_output"]))
         if create:
             create_folder(output_path)
         return output_path
@@ -286,13 +293,6 @@ class EnvironmentManager(object):
 
         return fname
 
-    def get_vadere_scenario_variations(self):
-        sc_folder = self.get_scenario_variation_path()
-        sc_files = glob.glob(os.path.join(sc_folder, "*.scenario"))
-        return [[self.parid_from_scenario_path(i), i] for i in sc_files]
-
-    def get_nr_variations(self):
-        return len(self.get_vadere_scenario_variations())
 
 if __name__ == "__main__":
 

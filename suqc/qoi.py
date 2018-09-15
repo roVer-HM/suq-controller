@@ -10,6 +10,7 @@ import pandas as pd
 
 from suqc.utils.general import cast_series_if_possible
 from suqc.configuration import EnvironmentManager
+from suqc.resultformat import ParameterResult
 
 # --------------------------------------------------
 # people who contributed code
@@ -33,9 +34,10 @@ class QoIProcessor(metaclass=abc.ABCMeta):
     # TODO: use the kwargs!
     # 1) for time selection
     # 2) for for averaging results
-    def read_and_extract_qoi(self, output_path, **kwargs) -> typing.Union[float, pd.Series]:
+    def read_and_extract_qoi(self, par_id, output_path) -> ParameterResult:
         data = self._read_csv(output_path)
-        return cast_series_if_possible(data)
+        data = cast_series_if_possible(data)
+        return ParameterResult.from_extracted_vadere_results(par_id, data, self.name)
 
     def _get_all_proc_writers(self):
         return self._em.get_value_basis_file(key="processWriters")[0]
@@ -97,14 +99,14 @@ class PedestrianEvacuationTimeProcessor(QoIProcessor):
 
     def _apply_homogenization(self, data: pd.Series):
         if self._apply == "mean":
-            return float(data.mean())
+            return data.mean()
         else:
-            return float(data.max())
+            return data.max()
 
-    def read_and_extract_qoi(self, output_path, **kwargs):
-        df = self._read_csv(output_path)
-        df = self._apply_homogenization(df)
-        return cast_series_if_possible(df)
+    def read_and_extract_qoi(self, par_id, output_path):
+        data = self._read_csv(output_path)
+        data = self._apply_homogenization(data)
+        return ParameterResult.from_extracted_vadere_results(par_id, data, self.name)
 
 
 class PedestrianDensityGaussianProcessor(QoIProcessor):
@@ -124,7 +126,7 @@ class PedestrianDensityGaussianProcessor(QoIProcessor):
         else:
             return gb.max()
 
-    def read_and_extract_qoi(self, output_path, **kwargs):
+    def read_and_extract_qoi(self, output_path):
         df = self._read_csv(output_path)
         df = self._apply_homogenization(df)
         return cast_series_if_possible(df)
@@ -134,7 +136,7 @@ class AreaDensityVoronoiProcessor(QoIProcessor):
 
     def __init__(self, em: EnvironmentManager):
         proc_name = "org.vadere.simulator.projects.dataprocessing.processor.AreaDensityVoronoiProcessor"
-        super(AreaDensityVoronoiProcessor, self).__init__(em, proc_name, "voronoi_density")
+        super(AreaDensityVoronoiProcessor, self).__init__(em, proc_name, "voronoiDensity")
 
 class CustomProcessor(QoIProcessor):
 
@@ -142,5 +144,5 @@ class CustomProcessor(QoIProcessor):
         super(CustomProcessor, self).__init__(em, proc_name, qoi_name)
 
 if __name__ == "__main__":
-
-    AreaDensityVoronoiProcessor
+    pass
+    #AreaDensityVoronoiProcessor

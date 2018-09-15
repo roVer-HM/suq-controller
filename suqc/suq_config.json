@@ -4,5 +4,10 @@
     ],
     "models": {
         "vadere": "vadere-console_0-6.jar"
+    },
+    "server": {
+      "host": "minimuc.cs.hm.edu",
+      "user": "dlehmberg",
+      "port": 5022
     }
 }

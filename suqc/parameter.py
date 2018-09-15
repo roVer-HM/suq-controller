@@ -21,23 +21,28 @@ __credits__ = ["n/a"]
 
 class ParameterVariation(object):
 
+    MULTI_IDX_LEVEL0_PAR = "Parameter"
+    MULTI_IDX_LEVEL0_LOC = "Location"
+    ROW_IDX_NAME = "par_id"  # TODO: think of defining the 'default' data parts somewhere else...
+
+
     def __init__(self, env_man: EnvironmentManager):
         self._env_man = env_man
         self._points = pd.DataFrame()
+
+    @property
+    def points(self):
+        return self._points
 
     def _add_points_df(self, points):
         # NOTE: it may be required to generalize 'points' definition, at the moment it is assumed to be a list(grid),
         # where 'grid' is a ParameterGrid of scikit-learn
 
         df = pd.concat([self._points, pd.DataFrame(points)], ignore_index=True, axis=0)
-        df.index.name = "par_id"
+        df.index.name = ParameterVariation.ROW_IDX_NAME
 
-        df.columns = pd.MultiIndex.from_product([["parameters"], df.columns])
-        df["location"] = np.nan
+        df.columns = pd.MultiIndex.from_product([[ParameterVariation.MULTI_IDX_LEVEL0_PAR], df.columns])
         return df
-
-    def add_dict_grid(self, d: dict):
-        return self.add_sklearn_grid(ParameterGrid(param_grid=d))
 
     def _check_key(self, scjson, key):
         try:  # check that the value is 'final' (i.e. not another sub-directory) and that the key is unique.
@@ -60,23 +65,27 @@ class ParameterVariation(object):
 
     def _save_scenario(self, par_id, s):
         fp = self._env_man.save_scenario_variation(par_id, s)
-        self._points.loc[par_id, "location"] = fp
+        self._points.loc[par_id, ParameterVariation.MULTI_IDX_LEVEL0_LOC] = fp
+        return fp
 
-    def _save_overview(self):
-        fp = self._env_man.path_parid_table_file()
-        self._points.to_csv(fp)
+    def _vars_object(self, pid, fp):
+        return {ParameterVariation.ROW_IDX_NAME: pid, "scenario_path": fp}
 
-    def generate_store_scenario_variation_files(self):
+    def generate_vadere_scenarios(self):
         target_path = self._env_man.get_scenario_variation_path()
 
-        # TODO: for now everytime it is removed an inserted again, but later it may be better to add and keep stuff...
         remove_folder(target_path)
         create_folder(target_path)
 
+        vars = list()
         for par_id, par_changes in self.par_iter():
             new_scenario = self._create_new_vadere_scenario(par_changes)
-            self._save_scenario(par_id, new_scenario)
-        self._save_overview()
+            fp = self._save_scenario(par_id, new_scenario)
+            vars.append(self._vars_object(par_id, fp))
+        return vars
+
+    def add_dict_grid(self, d: dict):
+        return self.add_sklearn_grid(ParameterGrid(param_grid=d))
 
     def add_sklearn_grid(self, grid: ParameterGrid):
         scjson = self._env_man.get_vadere_scenario_basis_file()        # corresponding scenario file
@@ -84,8 +93,11 @@ class ParameterVariation(object):
         self._points = self._add_points_df(points=list(grid))         # list creates all points described by the 'grid'
         return self._points
 
+    def nr_par_variations(self):
+        return self._points.shape[0]
+
     def par_iter(self):
-        for i, row in self._points["parameters"].iterrows():
+        for i, row in self._points[ParameterVariation.MULTI_IDX_LEVEL0_PAR].iterrows():
             yield (i, dict(row))
 
 
@@ -96,4 +108,4 @@ if __name__ == "__main__":
     pv = ParameterVariation(em)
     pv.add_dict_grid(di)
 
-    pv.generate_store_scenario_variation_files()
+    pv.generate_vadere_scenarios()

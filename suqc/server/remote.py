@@ -10,8 +10,8 @@ from fabric import Connection
 
 from suqc.parameter import ParameterVariation
 from suqc.qoi import QoIProcessor
-from suqc.configuration import EnvironmentManager
-from suqc.simdef import SimulationDefinition
+from suqc.configuration import EnvironmentManager, get_suq_config
+from suqc.server.simdef import SimulationDefinition
 
 # --------------------------------------------------
 # people who contributed code
@@ -25,7 +25,8 @@ class ServerConnection(object):
 
     READ_VERSION = "python3 -c 'import suqc; print(suqc.__version__)'"
 
-    def __init__(self):
+    def __init__(self, sudo=False):
+        self._sudo = sudo
         self._con = None
 
     @property
@@ -43,9 +44,29 @@ class ServerConnection(object):
         print("INFO: Server connection closed")
 
     def _connect_server(self):
-        self._con: Connection = Connection("minimuc.cs.hm.edu", user="dlehmberg", port=5022)
+        import getpass
+        #if self._sudo:
+        #     from fabric import Config
+        #     sudo_pass = getpass.unix_getpass("What's your sudo password?")
+        #     config = Config(overrides={'sudo': {'password': sudo_pass}})
+        #else:
+        config = None
+
+        server_config = get_suq_config()["server"]
+        self._con: Connection = Connection(server_config["host"],
+                                           user=server_config["user"],
+                                           port=server_config["port"],
+                                           config=config)
+
         version = self.read_terminal_stdout(ServerConnection.READ_VERSION)
         print(f"INFO: Connection established. Detected suqc version {version} on server side.")
+
+    @NotImplementedError  # TODO: still problems with sudo with local <-> remote...
+    def remove_folder(self, rem_folder, use_sudo=False):
+        if use_sudo:
+            self.con.sudo(f"rm -r {rem_folder}")
+        else:
+            self.con.run(f"rm -r {rem_folder}")
 
     def read_terminal_stdout(self, s: str) -> str:
         r = self._con.run(s)
@@ -62,7 +83,6 @@ class ServerSimulation(object):
 
     def __init__(self, server: ServerConnection):
         self._server = server
-
 
     @classmethod
     def _remote_load_simdef(cls, fp):
@@ -86,7 +106,7 @@ class ServerSimulation(object):
         simdef = ServerSimulation._remote_load_simdef(fp)
 
         env_man = suqc.configuration.EnvironmentManager(simdef.name)
-        ret = suqc.query.Query(env_man, simdef.qoi).query_simulate_all_new(simdef.par_var, njobs=-1)
+        ret = suqc.query.Query(env_man, simdef.par_var, simdef.qoi).run(njobs=-1)
         path = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_RESULTS)
         ret.to_pickle(path)
         print(path)  # Is read from console (from local). This allows to transfer the file back.
@@ -131,17 +151,16 @@ class ServerSimulation(object):
         return results
 
 
-
 if __name__ == "__main__":
-    from suqc.qoi import PedestrianEvacuationTimeProcessor
     import numpy as np
+    from suqc.qoi import PedestrianEvacuationTimeProcessor
 
     env_man = EnvironmentManager("corner")
     par_var = ParameterVariation(env_man)
     par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3],
                            "speedDistributionMean": np.linspace(0.5, 2, 20)})
     qoi = PedestrianEvacuationTimeProcessor(env_man)
-
+    
     with ServerConnection() as sc:
         server_sim = ServerSimulation(sc)
         result = server_sim.run(env_man, par_var, qoi)
@@ -149,8 +168,5 @@ if __name__ == "__main__":
     print(result)
 
     # TODO Next steps:
-    # TODO: Make a script to update the squc automatically (fresh installation)
+    # TODO: Make a script to update the suqc automatically (fresh installation) --> problems with sudo and ssh
     # TODO: Check how to disable logging in Vadere
-    # TODO: sort results df
-    # TODO: integrate (make an own class?) the parameter in the results (see writings...)
-

@@ -41,15 +41,14 @@ def get_current_suqc_state():
         return {"suqc_version": suqc.__version__}
 
 
+def cast_series_if_possible(data: Union[pd.DataFrame, pd.Series]):
+    if isinstance(data, pd.Series):
+        return data  # already Series, nothing to do
 
-def cast_series_if_possible(df: Union[pd.DataFrame, pd.Series]):
-    if isinstance(df, pd.Series):
-        return df  # already Series, nothing to do
-
-    if isinstance(df, pd.DataFrame) and df.shape[1] == 1:
-        return df.iloc[:, 0]
+    if isinstance(data, pd.DataFrame) and data.shape[1] == 1:
+        return data.iloc[:, 0]
     else:
-        return df  # not a Series, remains a DataFrame
+        return data  # not a Series, remains a DataFrame
 
 
 def create_folder(path, delete_if_exists=True):
