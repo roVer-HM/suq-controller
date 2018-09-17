@@ -4,7 +4,7 @@
 
 import unittest
 
-from try_outs.utils.dict_utils import *
+from suqc.utils.dict_utils import *
 
 # --------------------------------------------------
 # people who contributed code

@@ -23,8 +23,6 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
-# TODO: make an abstract function for all...
-
 class ParameterVariation(metaclass=abc.ABCMeta):
 
     MULTI_IDX_LEVEL0_PAR = "Parameter"
@@ -40,6 +38,7 @@ class ParameterVariation(metaclass=abc.ABCMeta):
         return self._points
 
     def reset_env_man(self, env_man: EnvironmentManager):
+        """The environment manager is resetted when it is used remotely on a server (i.e. with other paths)."""
         self._env_man = env_man
 
     def _add_points_df(self, points: List[dict]):
@@ -98,6 +97,7 @@ class FullGridSampling(ParameterVariation):
 
     def __init__(self, env_man: EnvironmentManager):
         super(FullGridSampling, self).__init__(env_man)
+        self._added_grid = False
 
     def _keys_of_paramgrid(self, grid: ParameterGrid):
         return grid.param_grid[0].keys()
@@ -106,12 +106,17 @@ class FullGridSampling(ParameterVariation):
         return self.add_sklearn_grid(ParameterGrid(param_grid=d))
 
     def add_sklearn_grid(self, grid: ParameterGrid):
-        self._check_selected_keys(self._keys_of_paramgrid(grid))   # validate, that keys are valid
-        self._add_points_df(points=list(grid))         # list creates all points described by the 'grid'
+        if self._added_grid:
+            print("WARNING: Grid has already been added, can only add once.")
+        else:
+            self._check_selected_keys(self._keys_of_paramgrid(grid))   # validate, that keys are valid
+            self._add_points_df(points=list(grid))         # list creates all points described by the 'grid'
         return self._points
 
 
 class RandomSampling(ParameterVariation):
+
+    # TODO: Check out ParameterSampler in scikit learn which I think combines random sampling with a grid.
 
     def __init__(self, env_man: EnvironmentManager):
         super(RandomSampling, self).__init__(env_man=env_man)
@@ -123,7 +128,7 @@ class RandomSampling(ParameterVariation):
                                      "afterwards"
         self.dists[par] = {"dist": dist, "dist_pars": dist_pars}
 
-    def _create_random_numbers(self, nr_samples):
+    def _create_distribution_samples(self, nr_samples):
 
         samples = list()
         for i in range(nr_samples):
@@ -149,7 +154,7 @@ class RandomSampling(ParameterVariation):
     def create_grid(self, nr_samples=100):
         self._add_parameters = False
         self._check_selected_keys(self.dists.keys())
-        samples = self._create_random_numbers(nr_samples)
+        samples = self._create_distribution_samples(nr_samples)
         self._add_points_df(samples)
 
 

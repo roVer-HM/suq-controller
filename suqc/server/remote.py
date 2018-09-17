@@ -117,6 +117,9 @@ class ServerSimulation(object):
         env_man = suqc.configuration.EnvironmentManager(simdef.name)
 
         par_var = simdef.par_var
+
+        # TODO: is there a better way? The problam is, that env_man is generated locally, i.e. with the wrong paths
+        # TODO: 1) try to disable env_man in par_var? 2) implement method reset_env_man (currently) 3) implement new classmethod constructor
         par_var.reset_env_man(env_man)
 
         ret = suqc.query.Query(env_man, par_var, simdef.qoi).run(njobs=-1)
@@ -171,8 +174,7 @@ if __name__ == "__main__":
 
     env_man = EnvironmentManager("corner")
     par_var = FullGridSampling(env_man)
-    par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3, 0.4],
-                           "speedDistributionMean": np.linspace(0.5, 2, 20)})
+    par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0]})
     qoi = PedestrianEvacuationTimeProcessor(env_man)
 
     with ServerConnection() as sc:

@@ -18,13 +18,15 @@ Other words were used in this project to not confuse terminology with VADERE (su
 
 * **container** is the parent folder of (multiple) environments
 * **environment** is folder consisting of a specifed VADERE scenario that is intended to query
-* **query** is to a user request for a specific VADERE setting, given the scenario set in the environment. A query can
-also be multiple scenario settings (such as a full grid sampling)
+* **query** is an user request for a quantity of interest for the specific VADERE setting with the given the scenario 
+set in the environment. A query can simulate VADERE for multiple scenario settings for the parameter variation 
+(such as a full grid sampling).
 
 #### Getting started
 
-
 1. Download and install:
+
+**It is highly recommended to install git-lfs to also download the VADERE models.** 
 
 Download source code, pre-set VADERE models and example environments with git:
 ```
@@ -41,15 +43,13 @@ python3 setup.py install
 Note: In Linux this may have to be executed with `sudo`.
 
 This installs the essential package, but does **not** copy the models or example environments. To set up the 
-corresponding folders and copy the models to the appropriate position run
+corresponding folders and copy the models to the appropriate position run the following command separately.
 
 ```
 python3 setup_folders.py TODO
 ```
-##### TODO: Make setup_folders configurable, i.e. allow to only setup folders without copying examples
 
-
-Test if the installed package was installed successfully by running (TODO: do with printing the version of suqc):
+Test if the installed package was installed successfully by running:
 
 ```
 python3 -c "import suqc; print(suqc.__version__)"
@@ -86,32 +86,34 @@ consists of a VADERE basis file. Script to run:
 
 ```python
 # TODO: simplify the importing stuff...
-import suqc.configuration as scfg
-import suqc.query as query
-import suqc.parameter as par
-import suqc.qoi as qoi
+import suqc
 
 # Set up the environment to make queries
-em = scfg.EnvironmentManager("corner")
+em = suqc.EnvironmentManager("corner")
 
 # Initiate an object to define the parameters to query
-pv = par.ParameterVariation(em)
+pv = suqc.FullGridSampling(em)
 
 # Define a grid to run the simulation, here: vary the standard distribution from 0 to 0.3 in 0.1 intervals
 pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
 
 
 # Define a quantity of interest that we are interested in
-q1 = qoi.PedestrianEvacuationTimeProcessor(em)
+q1 = suqc.PedestrianEvacuationTimeProcessor(em)
 
 # Initiate and run (i.e. simulate) the query. Here, only a single processor is used
-r = query.Query(em, qoi=q1).query_simulate_all_new(pv, njobs=1)
+r = suqc.Query(em, pv, q1).run(njobs=1)
 print(r)
 
 # Define another, time dependent, quantity of interest 
-q2 = qoi.AreaDensityVoronoiProcessor(em)
+q2 = suqc.AreaDensityVoronoiProcessor(em)
 
 # Initiate and run (i.e. simulate) the query. Here, all available processors are used to run the simulations in parallel
-r = query.Query(em, qoi=q2).query_simulate_all_new(pv, njobs=-1)
-print(r)
+r2 = suqc.Query(em, pv, q2).run(njobs=-1)
+print(r2)
+
+# To run a simulation on a server (ssh required!) :
+with suqc.ServerConnection() as sc:
+    ss = suqc.ServerSimulation(sc)
+    ss.run(env_man=em, par_var=pv, qoi=q2)
 ```

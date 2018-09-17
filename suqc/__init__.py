@@ -11,4 +11,10 @@ __authors__ = "Daniel Lehmberg"
 __credits__ = ["n/a"]
 # --------------------------------------------------
 
+from suqc.configuration import EnvironmentManager
+from suqc.parameter import *
+from suqc.qoi import *
+from suqc.query import Query
+from suqc.server.remote import ServerConnection, ServerSimulation
+
 __version__ = "0.1"
