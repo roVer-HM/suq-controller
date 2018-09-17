@@ -8,7 +8,7 @@ import pandas as pd
 
 from fabric import Connection
 
-from suqc.parameter import ParameterVariation
+from suqc.parameter import ParameterVariation, FullGridSampling, BoxSampling, RandomSampling
 from suqc.qoi import QoIProcessor
 from suqc.configuration import EnvironmentManager, get_suq_config, store_server_config
 from suqc.server.simdef import SimulationDefinition
@@ -51,6 +51,8 @@ class ServerConnection(object):
             user = input("Enter the user name:")
             port = int(input("Enter the port number (int):"))
             store_server_config(host, user, port)
+        else:
+            host, user, port = server_cfg["host"], server_cfg["user"], server_cfg["port"]
         print(f"INFO: Try to connect to ssh -p {port} {user}@{host} ")
         return server_cfg
 
@@ -165,7 +167,7 @@ if __name__ == "__main__":
     from suqc.qoi import PedestrianEvacuationTimeProcessor
 
     env_man = EnvironmentManager("corner")
-    par_var = ParameterVariation(env_man)
+    par_var = FullGridSampling(env_man)
     par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3, 0.4],
                            "speedDistributionMean": np.linspace(0.5, 2, 20)})
     qoi = PedestrianEvacuationTimeProcessor(env_man)

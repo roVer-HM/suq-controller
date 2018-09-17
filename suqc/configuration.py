@@ -105,7 +105,9 @@ def remove_environment(name, force=False):
 
 
 def get_env_path(name):
-    return os.path.join(get_container_path(), name)
+    path = os.path.join(get_container_path(), name)
+    print(f"INFO: Set environment path to {path}")
+    return path
 
 
 def create_environment_from_file(name, filepath, model, replace=False):
@@ -158,10 +160,16 @@ def create_environment(name, basis_scenario, model, replace=False):
 
 
 def get_container_path():
+
+    if not pa.is_package_paths():
+        rel_path = pa.path_src_folder()
+    else:
+        rel_path = ""
+
     path = get_suq_config()["container_paths"]
     assert len(path) == 1, "Currently only a single container path is supported"
 
-    path = path[0]
+    path = os.path.abspath(os.path.join(rel_path, path[0]))
     assert os.path.exists(path), f"The path {path} does not exist. Please run the command setup_folders.py given in " \
                                  f"the software repository"
     return path
@@ -214,7 +222,6 @@ def _get_all_envs(env_path):
 class EnvironmentManager(object):
 
     def __init__(self, name):
-        con_path = get_container_path()
         self.name = name
         self.env_path = get_env_path(self.name)
         if not os.path.exists(self.env_path):
