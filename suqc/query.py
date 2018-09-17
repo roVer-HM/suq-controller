@@ -89,6 +89,7 @@ class Query(object):
         self._result_df.add_multi_results(results)
 
     def run(self, njobs: int=-1):
+
         query_list = self._par_var.generate_vadere_scenarios()
         nr_simulations = self._par_var.nr_par_variations()
 

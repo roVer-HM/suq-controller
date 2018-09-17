@@ -114,12 +114,12 @@ class ServerSimulation(object):
         import suqc.configuration
 
         simdef = ServerSimulation._remote_load_simdef(fp)
-
         env_man = suqc.configuration.EnvironmentManager(simdef.name)
 
-        print(env_man.env_path)
+        par_var = simdef.par_var
+        par_var.reset_env_man(env_man)
 
-        ret = suqc.query.Query(env_man, simdef.par_var, simdef.qoi).run(njobs=-1)
+        ret = suqc.query.Query(env_man, par_var, simdef.qoi).run(njobs=-1)
         path = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_RESULTS)
         ret.to_pickle(path)
         print(path)  # Is read from console (from local). This allows to transfer the file back.

@@ -39,6 +39,9 @@ class ParameterVariation(metaclass=abc.ABCMeta):
     def points(self):
         return self._points
 
+    def reset_env_man(self, env_man: EnvironmentManager):
+        self._env_man = env_man
+
     def _add_points_df(self, points: List[dict]):
         # NOTE: it may be required to generalize 'points' definition, at the moment it is assumed to be a list(grid),
         # where 'grid' is a ParameterGrid of scikit-learn
@@ -72,8 +75,6 @@ class ParameterVariation(metaclass=abc.ABCMeta):
 
     def generate_vadere_scenarios(self):
         target_path = self._env_man.get_scenario_variation_path()
-        print(self._env_man.env_path)
-        print(f"INFO: generate vadere scenario is in {target_path}")
 
         remove_folder(target_path)
         create_folder(target_path)
