@@ -23,8 +23,8 @@ __credits__ = ["n/a"]
 
 class Query(object):
 
-    def __init__(self, env_manager: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor):
-        self._env_man = env_manager
+    def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor):
+        self._env_man = env_man
         self._par_var = par_var
         self._result_df = ResultDF(self._par_var)
         self._qoi = qoi
