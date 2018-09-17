@@ -73,6 +73,8 @@ class ParameterVariation(metaclass=abc.ABCMeta):
     def generate_vadere_scenarios(self):
         target_path = self._env_man.get_scenario_variation_path()
 
+        print(f"INFO: generate vadere scenario is in {target_path}")
+
         remove_folder(target_path)
         create_folder(target_path)
 
