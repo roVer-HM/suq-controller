@@ -1,0 +1,7 @@
+{
+    "model": "vadere",
+    "suqc_state": {
+        "git_hash": "85ca2d70e81122f62ad2b70a4933f9dc3da93b45",
+        "umcommited_changes": " M setup.py\n M suqc/configuration.py\n M suqc/parameter.py\n M suqc/qoi.py\n M suqc/query.py\n M suqc/resultformat.py\n M suqc/server/remote.py\n D suqc/suqc_envs/chicken/basic_2_density_neder_mead.scenario\n D suqc/suqc_envs/chicken/sc_config.json\n?? suqc/suqc_envs/fp_operator/\n"
+    }
+}

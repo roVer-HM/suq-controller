@@ -29,7 +29,7 @@ class ParameterResult(object):
 
     @property
     def data(self):
-        # add the multiindex, to be able to insert it into the final ResultDF with guarantee of correct cols
+        # add the multi-index, to be able to insert it into the final ResultDF with guarantee of correct cols
         # DataFrame
         idx = self.get_multi_index()
         data = self._data.copy(deep=True)

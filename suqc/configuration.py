@@ -25,7 +25,7 @@ __credits__ = ["n/a"]
 DEFAULT_SUQ_CONFIG = {"container_paths": [os.path.join(pa.path_src_folder(), "envs")],
                       "models": dict(),
                       "server": {
-                          "host": "minimuc",
+                          "host": "",
                           "user": "",
                           "port": -1
                       }}
@@ -189,6 +189,14 @@ def get_suq_config():
         return json.loads(config_file)
 
 
+def store_server_config(host: str, user: str, port: int):
+    cfg = get_suq_config()
+    cfg["server"]["host"] = host
+    cfg["server"]["user"] = user
+    cfg["server"]["port"] = port
+    _store_config(cfg)
+
+
 def _get_model_location(name):
     config = get_suq_config()
     path = os.path.join(pa.path_models_folder(), config["models"][name])
@@ -295,5 +303,7 @@ class EnvironmentManager(object):
 
 
 if __name__ == "__main__":
-
-    remove_environment("test")
+    pass
+    #create_environment_from_file(name="fp_operator", filepath=
+    #"/home/daniel/REPOS/vadere_projects/vadere/VadereModelTests/TestOSM/scenarios/New_Simple_FP.scenario",
+    #                             model="vadere")

@@ -4,7 +4,6 @@
 
 import abc
 import os
-import typing
 
 import pandas as pd
 
@@ -31,9 +30,7 @@ class QoIProcessor(metaclass=abc.ABCMeta):
         self._proc_id = self._proc_config["id"]
         self._outputfile_name = self._get_outout_filename()
 
-    # TODO: use the kwargs!
-    # 1) for time selection
-    # 2) for for averaging results
+    # TODO: think about time selection option (possibly they can also be located in VADERE directly...)
     def read_and_extract_qoi(self, par_id, output_path) -> ParameterResult:
         data = self._read_csv(output_path)
         data = cast_series_if_possible(data)
@@ -114,7 +111,6 @@ class PedestrianDensityGaussianProcessor(QoIProcessor):
     def __init__(self, em: EnvironmentManager, apply="mean"):
         proc_name = "org.vadere.simulator.projects.dataprocessing.processor.PedestrianDensityGaussianProcessor"
         assert apply in ["mean", "max"]
-
         self._apply = apply
         super(PedestrianDensityGaussianProcessor, self).__init__(em, proc_name, "ped_gaussian_density")
 
@@ -126,7 +122,7 @@ class PedestrianDensityGaussianProcessor(QoIProcessor):
         else:
             return gb.max()
 
-    def read_and_extract_qoi(self, output_path):
+    def read_and_extract_qoi(self, par_id, output_path):
         df = self._read_csv(output_path)
         df = self._apply_homogenization(df)
         return cast_series_if_possible(df)
@@ -137,6 +133,7 @@ class AreaDensityVoronoiProcessor(QoIProcessor):
     def __init__(self, em: EnvironmentManager):
         proc_name = "org.vadere.simulator.projects.dataprocessing.processor.AreaDensityVoronoiProcessor"
         super(AreaDensityVoronoiProcessor, self).__init__(em, proc_name, "voronoiDensity")
+
 
 class CustomProcessor(QoIProcessor):
 

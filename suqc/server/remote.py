@@ -10,7 +10,7 @@ from fabric import Connection
 
 from suqc.parameter import ParameterVariation
 from suqc.qoi import QoIProcessor
-from suqc.configuration import EnvironmentManager, get_suq_config
+from suqc.configuration import EnvironmentManager, get_suq_config, store_server_config
 from suqc.server.simdef import SimulationDefinition
 
 # --------------------------------------------------
@@ -21,6 +21,7 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
+# TODO: if serfer configs are not set yet, then have a routine to ask the user
 class ServerConnection(object):
 
     READ_VERSION = "python3 -c 'import suqc; print(suqc.__version__)'"
@@ -32,7 +33,7 @@ class ServerConnection(object):
     @property
     def con(self):
         if self._con is None:
-            raise RuntimeError("Server not initialized")
+            raise RuntimeError("Server not initialized.")
         return self._con
 
     def __enter__(self):
@@ -41,21 +42,31 @@ class ServerConnection(object):
 
     def __exit__(self, type, value, traceback):
         self.con.close()
-        print("INFO: Server connection closed")
+        print("INFO: Server connection closed.")
+
+    def get_server_config(self):
+        server_cfg = get_suq_config()["server"]
+        if not server_cfg["host"] or not server_cfg["user"] or server_cfg["port"] <= 0:
+            host = input("Enter the host server name:")
+            user = input("Enter the user name:")
+            port = int(input("Enter the port number (int):"))
+            store_server_config(host, user, port)
+        print(f"INFO: Try to connect to ssh -p {port} {user}@{host} ")
+        return server_cfg
 
     def _connect_server(self):
-        import getpass
+        #import getpass  # TODO: does not work reall with sudo
         #if self._sudo:
         #     from fabric import Config
         #     sudo_pass = getpass.unix_getpass("What's your sudo password?")
         #     config = Config(overrides={'sudo': {'password': sudo_pass}})
         #else:
         config = None
+        server_cfg = self.get_server_config()
 
-        server_config = get_suq_config()["server"]
-        self._con: Connection = Connection(server_config["host"],
-                                           user=server_config["user"],
-                                           port=server_config["port"],
+        self._con: Connection = Connection(server_cfg["host"],
+                                           user=server_cfg["user"],
+                                           port=server_cfg["port"],
                                            config=config)
 
         version = self.read_terminal_stdout(ServerConnection.READ_VERSION)
@@ -71,9 +82,6 @@ class ServerConnection(object):
     def read_terminal_stdout(self, s: str) -> str:
         r = self._con.run(s)
         return r.stdout.rstrip()  # rstrip -> remove trailing whitespaces and new lines
-
-    def send_file2server(self, local_fp, server_fp):
-        self._con.put(local_fp, server_fp)
 
 
 class ServerSimulation(object):
@@ -122,12 +130,13 @@ class ServerSimulation(object):
 
         rem_con_path = self._server.read_terminal_stdout(
             "python3 -c 'import suqc.configuration as c; print(c.get_container_path())'")
-        self._server.send_file2server(local_pickle_path, rem_con_path)
+
+        self._server.con.put(local_pickle_path, rem_con_path)
 
         return os.path.join(rem_con_path, ServerSimulation.FILENAME_PICKLE_SIMDEF)
 
     def _local_submit_request(self, fp):
-        s = f"""python3 -c 'import suqc.remote as rem; rem.ServerSimulation.remote_simulate(\"{fp}\")' """
+        s = f"""python3 -c 'import suqc.server.remote as rem; rem.ServerSimulation.remote_simulate(\"{fp}\")' """
         result = self._server.con.run(s)
         last_line = result.stdout.rstrip().split("\n")[-1]  # last line to get the last 'print(path)' statement
         return last_line
@@ -157,7 +166,7 @@ if __name__ == "__main__":
 
     env_man = EnvironmentManager("corner")
     par_var = ParameterVariation(env_man)
-    par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3],
+    par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3, 0.4],
                            "speedDistributionMean": np.linspace(0.5, 2, 20)})
     qoi = PedestrianEvacuationTimeProcessor(env_man)
 

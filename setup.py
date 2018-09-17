@@ -25,6 +25,8 @@ assert os.path.exists(pa.path_package_indicator_file())
 setup(
     name="suqc",
     version=__version__,
+    license="LGPL",
+    url="www.vadere.org",
     packages=find_packages(),
     data_files=[('suqc', ["suqc/PACKAGE.txt"])]
 )

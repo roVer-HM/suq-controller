@@ -10,7 +10,7 @@ import numpy as np
 
 from suqc.qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor
 from suqc.configuration import EnvironmentManager
-from suqc.parameter import ParameterVariation
+from suqc.parameter import ParameterVariation, FullGridSampling, RandomSampling, BoxSampling
 from suqc.resultformat import ResultDF
 
 # --------------------------------------------------
@@ -104,16 +104,20 @@ class Query(object):
 
 
 if __name__ == "__main__":
-    em = EnvironmentManager("corner")
-    pv = ParameterVariation(em)
-    pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3], "speedDistributionMean": [1.2, 1.3]})
 
+    em = EnvironmentManager("fp_operator")
+    # pv = FullGridSampling(em)
+    # pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3], "speedDistributionMean": [1.2, 1.3]})
+    #
     q0 = PedestrianEvacuationTimeProcessor(em)
-    #q1 = PedestrianDensityGaussianProcessor(em) # TODO: need to check if qoi-processpor is available in basis file!
-    #r = Query(em, q1).query_simulate_all_new(pv, njobs=1)
+    #q1 = PedestrianDensityGaussianProcessor(em) # TODO: need to check if qoi-processor is available in basis file!
+
+
+    pv = BoxSampling(em)
+    pv.create_grid("speedDistributionStandardDeviation", 0, 0.5, 3, 3)
 
     q = Query(em, pv, q0).run(njobs=-1)
     print(q)
 
-    q = Query(em, pv, AreaDensityVoronoiProcessor(em)).run(njobs=1)
-    print(q)
+    # q = Query(em, pv, AreaDensityVoronoiProcessor(em)).run(njobs=1)
+    # print(q)
