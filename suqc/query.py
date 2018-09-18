@@ -7,7 +7,7 @@ import multiprocessing
 
 from suqc.qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor
 from suqc.configuration import EnvironmentManager
-from suqc.parameter import ParameterVariation, FullGridSampling, RandomSampling, BoxSampling
+from suqc.parameter.parvariation import ParameterVariation, FullGridSampling, RandomSampling, BoxSampling
 from suqc.resultformat import ResultDF
 
 # --------------------------------------------------

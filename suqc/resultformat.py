@@ -7,7 +7,7 @@ import pandas as pd
 
 from typing import List
 
-from suqc.parameter import ParameterVariation
+from suqc.parameter.parvariation import ParameterVariation
 
 # --------------------------------------------------
 # people who contributed code
