@@ -85,7 +85,6 @@ In the setup file `setup_folders.py` an example environment is copyied in `$HOME
 consists of a VADERE basis file. Script to run:
 
 ```python
-# TODO: simplify the importing stuff...
 import suqc
 
 # Set up the environment to make queries
