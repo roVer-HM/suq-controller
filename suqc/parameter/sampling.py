@@ -14,8 +14,6 @@ from sklearn.model_selection import ParameterGrid, ParameterSampler
 
 from suqc.configuration import EnvironmentManager
 from suqc.utils.dict_utils import *
-from suqc.utils.general import create_folder, remove_folder
-from suqc.parameter.postchanges import ScenarioChanges
 
 # --------------------------------------------------
 # people who contributed code
@@ -31,18 +29,12 @@ class ParameterVariation(metaclass=abc.ABCMeta):
     MULTI_IDX_LEVEL0_LOC = "Location"
     ROW_IDX_NAME = "par_id"  # TODO: think of defining the 'default' data parts somewhere else...
 
-    def __init__(self, env_man: EnvironmentManager, scenario_changes: ScenarioChanges=None):
-        self._env_man = env_man
-        self._sc_change = scenario_changes
+    def __init__(self):
         self._points = pd.DataFrame()
 
     @property
     def points(self):
         return self._points
-
-    def reset_env_man(self, env_man: EnvironmentManager):
-        """The environment manager is resetted when it is used remotely on a server (i.e. with other paths)."""
-        self._env_man = env_man
 
     def _add_points_df(self, points: List[dict]):
         # NOTE: it may be required to generalize 'points' definition, at the moment it is assumed to be a list(grid),
@@ -54,52 +46,15 @@ class ParameterVariation(metaclass=abc.ABCMeta):
         df.columns = pd.MultiIndex.from_product([[ParameterVariation.MULTI_IDX_LEVEL0_PAR], df.columns])
         self._points = df
 
-    def _check_selected_keys(self, keys):
-        scjson = self._env_man.get_vadere_scenario_basis_file()
-        for key in keys:
+    def check_selected_keys(self, scenario: dict):
+        keys = self._points[ParameterVariation.MULTI_IDX_LEVEL0_PAR].columns
+
+        for k in keys:
             try:  # check that the value is 'final' (i.e. not another sub-directory) and that the key is unique.
-                deep_dict_lookup(scjson, key, check_final_leaf=True, check_unique_key=True)
+                deep_dict_lookup(scenario, k, check_final_leaf=True, check_unique_key=True)
             except ValueError as e:
                 raise e  # re-raise Exception
         return True
-
-    def _create_new_vadere_scenario(self, par_id: int, par_var: dict):
-        basis_scenario = self._env_man.get_vadere_scenario_basis_file()
-        par_var_scenario = change_existing_dict(basis_scenario, changes=par_var)
-
-        if self._sc_change is not None:
-            # Apply pre-defined changes to each scenario file
-            final_scenario = self._sc_change.change_scenario(scenario=par_var_scenario, par_id=par_id, par_var=par_var)
-        else:
-            final_scenario = par_var_scenario
-
-        return final_scenario
-
-    def _save_vadere_scenario(self, par_id, s):
-        fp = self._env_man.save_scenario_variation(par_id, s)
-        self._points.loc[par_id, ParameterVariation.MULTI_IDX_LEVEL0_LOC] = fp
-        return fp
-
-    def _vars_object(self, pid, fp):
-        return {ParameterVariation.ROW_IDX_NAME: pid, "scenario_path": fp}
-
-    def generate_vadere_scenarios(self):
-        # TODO: it may be better to move the generation of the vadere scenarios to a new class or separate function
-        # TODO: the reason is, that - later - it may also be beneficial to check the qoi (e.g. to remove unnecessary
-        # TODO: dataprocessors in the post-scenario-changes. Opened issue: #19
-
-        # TODO: this way it is also possible to decouple ParameterVariation and post-scenario changes...
-        target_path = self._env_man.get_scenario_variation_path()
-
-        remove_folder(target_path)
-        create_folder(target_path)
-
-        vars = list()
-        for par_id, par_changes in self.par_iter():
-            new_scenario = self._create_new_vadere_scenario(par_id, par_changes)
-            fp = self._save_vadere_scenario(par_id, new_scenario)
-            vars.append(self._vars_object(par_id, fp))
-        return vars
 
     def nr_par_variations(self):
         return self._points.shape[0]
@@ -111,8 +66,8 @@ class ParameterVariation(metaclass=abc.ABCMeta):
 
 class FullGridSampling(ParameterVariation):
 
-    def __init__(self, env_man: EnvironmentManager, scenario_changes: ScenarioChanges=None):
-        super(FullGridSampling, self).__init__(env_man, scenario_changes)
+    def __init__(self):
+        super(FullGridSampling, self).__init__()
         self._added_grid = False
 
     def _keys_of_paramgrid(self, grid: ParameterGrid):
@@ -125,7 +80,6 @@ class FullGridSampling(ParameterVariation):
         if self._added_grid:
             print("WARNING: Grid has already been added, can only add once.")
         else:
-            self._check_selected_keys(self._keys_of_paramgrid(grid))   # validate, that keys are valid
             self._add_points_df(points=list(grid))         # list creates all points described by the 'grid'
         return self._points
 
@@ -134,8 +88,8 @@ class RandomSampling(ParameterVariation):
 
     # TODO: Check out ParameterSampler in scikit learn which I think combines random sampling with a grid.
 
-    def __init__(self, env_man: EnvironmentManager, scenario_changes: ScenarioChanges=None):
-        super(RandomSampling, self).__init__(env_man, scenario_changes)
+    def __init__(self):
+        super(RandomSampling, self).__init__()
         self._add_parameters = True
         self.dists = dict()
 
@@ -169,15 +123,14 @@ class RandomSampling(ParameterVariation):
 
     def create_grid(self, nr_samples=100):
         self._add_parameters = False
-        self._check_selected_keys(self.dists.keys())
         samples = self._create_distribution_samples(nr_samples)
         self._add_points_df(samples)
 
 
 class BoxSampling(ParameterVariation):
 
-    def __init__(self, env_man: EnvironmentManager, scenario_changes: ScenarioChanges=None):
-        super(BoxSampling, self).__init__(env_man, scenario_changes)
+    def __init__(self):
+        super(BoxSampling, self).__init__()
         self._edges = None
 
     def _create_box_points(self, par, test_p):
@@ -207,11 +160,8 @@ if __name__ == "__main__":
 
     em = EnvironmentManager("corner")
 
-    ch = ScenarioChanges()
-
-    pv = FullGridSampling(em, ch)
+    pv = FullGridSampling()
     pv.add_dict_grid({"speedDistributionStandardDeviation": [0.1, 0.2, 0.3, 0.4]})
-    pv.generate_vadere_scenarios()
     print(pv.points)
 
     # pv = RandomSampling(em)

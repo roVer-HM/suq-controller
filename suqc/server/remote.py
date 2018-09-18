@@ -8,7 +8,8 @@ import pandas as pd
 
 from fabric import Connection
 
-from suqc.parameter.parvariation import ParameterVariation, FullGridSampling, BoxSampling, RandomSampling
+from suqc.parameter.sampling import ParameterVariation, FullGridSampling, BoxSampling, RandomSampling
+from suqc.parameter.postchanges import ScenarioChanges
 from suqc.qoi import QoIProcessor
 from suqc.configuration import EnvironmentManager, get_suq_config, store_server_config
 from suqc.server.simdef import SimulationDefinition
@@ -116,13 +117,8 @@ class ServerSimulation(object):
         simdef = ServerSimulation._remote_load_simdef(fp)
         env_man = suqc.configuration.EnvironmentManager(simdef.name)
 
-        par_var = simdef.par_var
-
-        # TODO: is there a better way? The problam is, that env_man is generated locally, i.e. with the wrong paths
-        # TODO: 1) try to disable env_man in par_var? 2) implement method reset_env_man (currently) 3) implement new classmethod constructor
-        par_var.reset_env_man(env_man)
-
-        ret = suqc.query.Query(env_man, par_var, simdef.qoi).run(njobs=-1)
+        # njobs = -1 --> always use all available processors as this is the main reason to use the server
+        ret = suqc.query.Query(env_man, simdef.par_var, simdef.qoi, simdef.sc).run(njobs=-1)
         path = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_RESULTS)
         ret.to_pickle(path)
         print(path)  # Is read from console (from local). This allows to transfer the file back.
@@ -157,8 +153,10 @@ class ServerSimulation(object):
             isinstance(df, pd.DataFrame)
         return df
 
-    def run(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor):
-        simdef = SimulationDefinition(env_man, par_var, qoi)
+    def run(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor,
+            sc: ScenarioChanges=None):
+
+        simdef = SimulationDefinition(env_man, par_var, qoi, sc)
 
         local_pickle_path = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_SIMDEF)
         fp_rem_simdef = self._setup_server_env(local_pickle_path=local_pickle_path, simdef=simdef)
@@ -169,11 +167,10 @@ class ServerSimulation(object):
 
 
 if __name__ == "__main__":
-    import numpy as np
     from suqc.qoi import PedestrianEvacuationTimeProcessor
 
     env_man = EnvironmentManager("corner")
-    par_var = FullGridSampling(env_man)
+    par_var = FullGridSampling()
     par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0]})
     qoi = PedestrianEvacuationTimeProcessor(env_man)
 

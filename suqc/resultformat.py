@@ -7,7 +7,7 @@ import pandas as pd
 
 from typing import List
 
-from suqc.parameter.parvariation import ParameterVariation
+from suqc.parameter.sampling import ParameterVariation
 
 # --------------------------------------------------
 # people who contributed code
@@ -57,8 +57,8 @@ class ParameterResult(object):
 
 class ResultDF(object):
 
-    def __init__(self, par_var: ParameterVariation):
-        self._df: pd.DataFrame = par_var.points
+    def __init__(self):
+        self._df: pd.DataFrame = None
 
     @property
     def data(self):
@@ -81,12 +81,15 @@ class ResultDF(object):
         self._df = pd.concat([self._df, init_df], axis=1)
         self._insert_qoi_result(vals)
 
-    def add_result(self, result: ParameterResult):
+    def _add_result(self, result: ParameterResult):
         if self._is_first_insert(result):
             self._insert_inital_qoi(result)
         else:
             self._insert_qoi_result(result)
 
-    def add_multi_results(self, results: List[ParameterResult]):
+    def add_par_var_data(self, par_var_points: pd.DataFrame):
+        self._df = par_var_points
+
+    def add_qoi_data(self, results: List[ParameterResult]):
         for r in results:
-            self.add_result(r)
+            self._add_result(r)

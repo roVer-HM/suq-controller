@@ -4,7 +4,7 @@
 
 import abc
 
-from suqc.utils.dict_utils import change_existing_dict
+from suqc.utils.dict_utils import change_dict
 
 # --------------------------------------------------
 # people who contributed code
@@ -40,7 +40,7 @@ class ScenarioChanges(object):
         return changes
 
     def change_scenario(self, scenario, par_id, par_var):
-        return change_existing_dict(scenario, changes=self._collect_changes(scenario, par_id, par_var))
+        return change_dict(scenario, changes=self._collect_changes(scenario, par_id, par_var))
 
 
 class PostScenarioChange(metaclass=abc.ABCMeta):

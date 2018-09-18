@@ -197,19 +197,19 @@ def change_value(d: dict, path: list, last_key: str, value):
     return set_dict_value_keylist(d, path, last_key, value)
 
 
-def change_existing_dict(d: dict, changes: dict):
+def change_dict(d: dict, changes: dict):
     for k, v in changes.items():
         _, p = deep_dict_lookup(d, k)
         path, last_key = p[:-1], p[-1]
         d = change_value(d, path, last_key, v)
-    return d
+    return deepcopy(d)
 
 
 if __name__ == "__main__":
     d1 = {"a": {"b": 1, "c": {"x": 3}, "d": {"f": 3}}}
     # print(deep_dict_lookup(d, "x", True))
 
-    print(change_existing_dict(d1, {"a|b": 3}))
+    print(change_dict(d1, {"a|b": 3}))
 
     #print(deep_subdict(d, ["c"]))
     #print(abs_path_key(d, "a|c|x"))
