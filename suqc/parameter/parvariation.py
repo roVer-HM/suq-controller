@@ -11,9 +11,11 @@ from typing import List
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid, ParameterSampler
+
 from suqc.configuration import EnvironmentManager
 from suqc.utils.dict_utils import *
 from suqc.utils.general import create_folder, remove_folder
+from suqc.parameter.postchanges import ScenarioChanges
 
 # --------------------------------------------------
 # people who contributed code
@@ -29,8 +31,9 @@ class ParameterVariation(metaclass=abc.ABCMeta):
     MULTI_IDX_LEVEL0_LOC = "Location"
     ROW_IDX_NAME = "par_id"  # TODO: think of defining the 'default' data parts somewhere else...
 
-    def __init__(self, env_man: EnvironmentManager, scenario_changes: ):
+    def __init__(self, env_man: EnvironmentManager, scenario_changes: ScenarioChanges=None):
         self._env_man = env_man
+        self._sc_change = scenario_changes
         self._points = pd.DataFrame()
 
     @property
@@ -60,9 +63,17 @@ class ParameterVariation(metaclass=abc.ABCMeta):
                 raise e  # re-raise Exception
         return True
 
-    def _create_new_vadere_scenario(self, par: dict):
+    def _create_new_vadere_scenario(self, par_id: int, par_var: dict):
         basis_scenario = self._env_man.get_vadere_scenario_basis_file()
-        return change_existing_dict(basis_scenario, changes=par)
+        par_var_scenario = change_existing_dict(basis_scenario, changes=par_var)
+
+        if self._sc_change is not None:
+            # Apply pre-defined changes to each scenario file
+            final_scenario = self._sc_change.change_scenario(scenario=par_var_scenario, par_id=par_id, par_var=par_var)
+        else:
+            final_scenario = par_var_scenario
+
+        return final_scenario
 
     def _save_vadere_scenario(self, par_id, s):
         fp = self._env_man.save_scenario_variation(par_id, s)
@@ -73,6 +84,11 @@ class ParameterVariation(metaclass=abc.ABCMeta):
         return {ParameterVariation.ROW_IDX_NAME: pid, "scenario_path": fp}
 
     def generate_vadere_scenarios(self):
+        # TODO: it may be better to move the generation of the vadere scenarios to a new class or separate function
+        # TODO: the reason is, that - later - it may also be beneficial to check the qoi (e.g. to remove unnecessary
+        # TODO: dataprocessors in the post-scenario-changes. Opened issue: #19
+
+        # TODO: this way it is also possible to decouple ParameterVariation and post-scenario changes...
         target_path = self._env_man.get_scenario_variation_path()
 
         remove_folder(target_path)
@@ -80,7 +96,7 @@ class ParameterVariation(metaclass=abc.ABCMeta):
 
         vars = list()
         for par_id, par_changes in self.par_iter():
-            new_scenario = self._create_new_vadere_scenario(par_changes)
+            new_scenario = self._create_new_vadere_scenario(par_id, par_changes)
             fp = self._save_vadere_scenario(par_id, new_scenario)
             vars.append(self._vars_object(par_id, fp))
         return vars
@@ -95,8 +111,8 @@ class ParameterVariation(metaclass=abc.ABCMeta):
 
 class FullGridSampling(ParameterVariation):
 
-    def __init__(self, env_man: EnvironmentManager):
-        super(FullGridSampling, self).__init__(env_man)
+    def __init__(self, env_man: EnvironmentManager, scenario_changes: ScenarioChanges=None):
+        super(FullGridSampling, self).__init__(env_man, scenario_changes)
         self._added_grid = False
 
     def _keys_of_paramgrid(self, grid: ParameterGrid):
@@ -118,8 +134,8 @@ class RandomSampling(ParameterVariation):
 
     # TODO: Check out ParameterSampler in scikit learn which I think combines random sampling with a grid.
 
-    def __init__(self, env_man: EnvironmentManager):
-        super(RandomSampling, self).__init__(env_man=env_man)
+    def __init__(self, env_man: EnvironmentManager, scenario_changes: ScenarioChanges=None):
+        super(RandomSampling, self).__init__(env_man, scenario_changes)
         self._add_parameters = True
         self.dists = dict()
 
@@ -160,8 +176,8 @@ class RandomSampling(ParameterVariation):
 
 class BoxSampling(ParameterVariation):
 
-    def __init__(self, env_man: EnvironmentManager):
-        super(BoxSampling, self).__init__(env_man)
+    def __init__(self, env_man: EnvironmentManager, scenario_changes: ScenarioChanges=None):
+        super(BoxSampling, self).__init__(env_man, scenario_changes)
         self._edges = None
 
     def _create_box_points(self, par, test_p):
@@ -191,14 +207,16 @@ if __name__ == "__main__":
 
     em = EnvironmentManager("corner")
 
-    pv = BoxSampling(em)
-    pv.create_grid("speedDistributionMean", 0, 1, 100, 100)
+    ch = ScenarioChanges()
 
+    pv = FullGridSampling(em, ch)
+    pv.add_dict_grid({"speedDistributionStandardDeviation": [0.1, 0.2, 0.3, 0.4]})
+    pv.generate_vadere_scenarios()
     print(pv.points)
 
-    pv = RandomSampling(em)
-    pv.add_parameter("speedDistributionStandardDeviation", np.random.normal)
-    pv.add_parameter("speedDistributionMean", np.random.normal)
-    pv.create_grid()
-
-    print(pv._points)
+    # pv = RandomSampling(em)
+    # pv.add_parameter("speedDistributionStandardDeviation", np.random.normal)
+    # pv.add_parameter("speedDistributionMean", np.random.normal)
+    # pv.create_grid()
+    #
+    # print(pv._points)

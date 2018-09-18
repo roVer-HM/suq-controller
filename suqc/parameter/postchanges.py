@@ -21,7 +21,10 @@ class ScenarioChanges(object):
         self._defaults()
 
     def _defaults(self):
+        self.add_scenario_change(ChangeScenarioName())
         self.add_scenario_change(ChangeRandomNumber())
+        self.add_scenario_change(ChangeDescription())
+
 
     def add_scenario_change(self, sc: 'PostScenarioChange'):
         # ABCScenarioChange in '' to support forward reference,
@@ -30,14 +33,14 @@ class ScenarioChanges(object):
             raise KeyError(f"Scenario change with {sc.name} is already present.")
         self._apply_scenario_changes[sc.name] = sc
 
-    def _collect_changes(self, par_id, scenario):
+    def _collect_changes(self, scenario, par_id, par_var):
         changes = {}
         for chn in self._apply_scenario_changes.values():
-            changes.update(chn.get_changes_dict(par_id, scenario))
+            changes.update(chn.get_changes_dict(scenario, par_id, par_var))
         return changes
 
-    def change_scenario(self, par_id, scenario):
-        return change_existing_dict(scenario, changes=self._collect_changes(par_id, scenario))
+    def change_scenario(self, scenario, par_id, par_var):
+        return change_existing_dict(scenario, changes=self._collect_changes(scenario, par_id, par_var))
 
 
 class PostScenarioChange(metaclass=abc.ABCMeta):
@@ -46,21 +49,24 @@ class PostScenarioChange(metaclass=abc.ABCMeta):
         self.name = name
 
     @abc.abstractmethod
-    def get_changes_dict(self, par_id, scenario, par_var_changes):
+    def get_changes_dict(self, scenario, par_id, par_var):
         raise NotImplementedError("ABC method")
 
 
 class ChangeRandomNumber(PostScenarioChange):
     KEY_FIXED = "useFixedSeed"
     KEY_SEED = "fixedSeed"
+    KEY_SIM_SEED = "simulationSeed"
 
     def __init__(self):
         super(ChangeRandomNumber, self).__init__(name="random_number")
 
-    def get_changes_dict(self, par_id, scenario, par_var_changes):
+    def get_changes_dict(self, scenario, par_id, par_var):
         # TODO: Currently the seed in VADERE is set to the par_id -- this may not always be desired...
-        # 4294967295 = max unisgned 32 bit integer
-        return {ChangeRandomNumber.KEY_FIXED: True, ChangeRandomNumber.KEY_SEED: par_id}
+        # 4294967295 = max unsigned 32 bit integer
+        return {ChangeRandomNumber.KEY_FIXED: True,
+                ChangeRandomNumber.KEY_SEED: par_id,
+                ChangeRandomNumber.KEY_SIM_SEED: par_id}
 
 
 class ChangeScenarioName(PostScenarioChange):
@@ -70,9 +76,10 @@ class ChangeScenarioName(PostScenarioChange):
     def __init__(self):
         super(ChangeScenarioName, self).__init__(name="scenario_name")
 
-    def get_changes_dict(self, par_id, scenario, par_var_changes):
+    def get_changes_dict(self, scenario, par_id, par_var):
         existing = scenario[ChangeScenarioName.KEY_NAME]
-        return {ChangeScenarioName.KEY_NAME: "_".join([existing, str(par_id)])}
+        add_name = f"parid={par_id}"
+        return {ChangeScenarioName.KEY_NAME: "_".join([existing, add_name])}
 
 
 class ChangeDescription(PostScenarioChange):
@@ -82,5 +89,6 @@ class ChangeDescription(PostScenarioChange):
     def __init__(self):
         super(ChangeDescription, self).__init__(name="description")
     
-    def get_changes_dict(self, par_id, scenario, par_var_changes):
-        return {ChangeDescription.KEY_DESCRIPTION: " ".join([f"par_id={par_id}", str(par_var_changes)])}
+    def get_changes_dict(self, scenario, par_id, par_var):
+        changes_in_description = " ".join(["applied parameter variation=", str(par_var)])
+        return {ChangeDescription.KEY_DESCRIPTION: "--".join([f"par_id={par_id}", changes_in_description])}
