@@ -4,6 +4,8 @@
 
 import abc
 
+import numpy as np
+
 from suqc.utils.dict_utils import change_dict
 
 # --------------------------------------------------
@@ -16,13 +18,16 @@ __credits__ = ["n/a"]
 
 class ScenarioChanges(object):
 
-    def __init__(self):
+    def __init__(self, apply_default=False):
+
         self._apply_scenario_changes = {}
-        self._defaults()
+
+        if apply_default:
+            self._defaults()
 
     def _defaults(self):
         self.add_scenario_change(ChangeScenarioName())
-        self.add_scenario_change(ChangeRandomNumber())
+        self.add_scenario_change(ChangeRandomNumber(par_id=True))
         self.add_scenario_change(ChangeDescription())
 
 
@@ -58,15 +63,35 @@ class ChangeRandomNumber(PostScenarioChange):
     KEY_SEED = "fixedSeed"
     KEY_SIM_SEED = "simulationSeed"
 
-    def __init__(self):
+    def __init__(self, fixed=False, randint=False, par_id=False):
+        assert fixed + randint + par_id == 1, "Exactly one parameter has to be set to true"
+        self._isfixed = fixed
+        self._fixed_randnr = None
+
+        self._israndint = randint
+        self._isparid = par_id
+
         super(ChangeRandomNumber, self).__init__(name="random_number")
+
+    def set_fixed_random_nr(self, random_number: int):
+        assert self._isfixed, "Modus has to be set to fixed"
+        self._fixed_randnr = random_number
 
     def get_changes_dict(self, scenario, par_id, par_var):
         # TODO: Currently the seed in VADERE is set to the par_id -- this may not always be desired...
-        # 4294967295 = max unsigned 32 bit integer
+
+        if self._isfixed:
+            assert self._fixed_randnr is not None, "Fixed random number has to be set with method set_fixed_random_nr"
+            rnr = self._fixed_randnr
+        elif self._israndint:
+            # 4294967295 = max unsigned 32 bit integer
+            rnr = np.random.randint(0, 4294967295)
+        else:  # --> self._isparid
+            rnr = par_id
+
         return {ChangeRandomNumber.KEY_FIXED: True,
-                ChangeRandomNumber.KEY_SEED: par_id,
-                ChangeRandomNumber.KEY_SIM_SEED: par_id}
+                ChangeRandomNumber.KEY_SEED: rnr,
+                ChangeRandomNumber.KEY_SIM_SEED: rnr}
 
 
 class ChangeScenarioName(PostScenarioChange):

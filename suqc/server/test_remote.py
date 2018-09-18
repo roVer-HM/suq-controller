@@ -21,7 +21,7 @@ class TestRemote(unittest.TestCase):
         env_man = EnvironmentManager("corner")
         par_var = FullGridSampling()
         par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.3]})
-        scch = ScenarioChanges()
+        scch = ScenarioChanges(apply_default=True)
         qoi = PedestrianEvacuationTimeProcessor(env_man)
 
         with ServerConnection() as sc:

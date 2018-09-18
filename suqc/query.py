@@ -92,7 +92,7 @@ if __name__ == "__main__":
     pv = BoxSampling()
     pv.create_grid("speedDistributionStandardDeviation", 0, 0.5, 3, 3)
 
-    sc = ScenarioChanges()
+    sc = ScenarioChanges(apply_default=True)
 
     q = Query(em, pv, q0, sc).run(njobs=-1)
     print(q)
