@@ -3,7 +3,7 @@
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
 from suqc.configuration import EnvironmentManager
-from suqc.parameter import ParameterVariation
+from suqc.parameter.parvariation import ParameterVariation
 from suqc.qoi import QoIProcessor
 
 # --------------------------------------------------
