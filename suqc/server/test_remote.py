@@ -20,12 +20,13 @@ class TestRemote(unittest.TestCase):
     def test_small_corner_environment(self):
         env_man = EnvironmentManager("corner")
         par_var = FullGridSampling()
-        par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0]})
+        par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.3]})
+        scch = ScenarioChanges()
         qoi = PedestrianEvacuationTimeProcessor(env_man)
 
         with ServerConnection() as sc:
             server_sim = ServerSimulation(sc)
-            server_sim.run(env_man, par_var, qoi)
+            server_sim.run(env_man, par_var, qoi, scch)
 
 
 def main():
