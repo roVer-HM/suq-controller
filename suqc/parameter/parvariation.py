@@ -29,7 +29,7 @@ class ParameterVariation(metaclass=abc.ABCMeta):
     MULTI_IDX_LEVEL0_LOC = "Location"
     ROW_IDX_NAME = "par_id"  # TODO: think of defining the 'default' data parts somewhere else...
 
-    def __init__(self, env_man: EnvironmentManager):
+    def __init__(self, env_man: EnvironmentManager, scenario_changes: ):
         self._env_man = env_man
         self._points = pd.DataFrame()
 
