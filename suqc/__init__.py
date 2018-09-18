@@ -12,7 +12,7 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 from suqc.configuration import EnvironmentManager
-from suqc.parameter.parvariation import *
+from suqc.parameter.sampling import *
 from suqc.qoi import *
 from suqc.query import Query
 from suqc.server.remote import ServerConnection, ServerSimulation

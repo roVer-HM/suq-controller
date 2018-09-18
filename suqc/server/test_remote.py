@@ -19,7 +19,7 @@ class TestRemote(unittest.TestCase):
 
     def test_small_corner_environment(self):
         env_man = EnvironmentManager("corner")
-        par_var = FullGridSampling(env_man)
+        par_var = FullGridSampling()
         par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0]})
         qoi = PedestrianEvacuationTimeProcessor(env_man)
 

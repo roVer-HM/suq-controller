@@ -7,7 +7,9 @@ import multiprocessing
 
 from suqc.qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor
 from suqc.configuration import EnvironmentManager
-from suqc.parameter.parvariation import ParameterVariation, FullGridSampling, RandomSampling, BoxSampling
+from suqc.parameter.sampling import ParameterVariation, FullGridSampling, RandomSampling, BoxSampling
+from suqc.parameter.postchanges import ScenarioChanges
+from suqc.parameter.create import VadereScenarioCreation
 from suqc.resultformat import ResultDF
 
 # --------------------------------------------------
@@ -20,11 +22,16 @@ __credits__ = ["n/a"]
 
 class Query(object):
 
-    def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor):
+    def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor,
+                 sc_change: ScenarioChanges=None):
+
         self._env_man = env_man
         self._par_var = par_var
-        self._result_df = ResultDF(self._par_var)
         self._qoi = qoi
+        self._sc_change = sc_change
+
+        self._result_df = ResultDF()
+        self._result_df.add_par_var_data(self._par_var.points)
 
     @property
     def result(self):
@@ -46,16 +53,18 @@ class Query(object):
         results = list()
         for arg in query_list:
             results.append(self._single_query(arg))
-        self._result_df.add_multi_results(results)
+        self._result_df.add_qoi_data(results)
 
     def _mp_query(self, query_list, njobs):
         pool = multiprocessing.Pool(processes=njobs)
         results = pool.map(self._single_query, query_list)
-        self._result_df.add_multi_results(results)
+        self._result_df.add_qoi_data(results)
 
     def run(self, njobs: int=-1):
 
-        query_list = self._par_var.generate_vadere_scenarios()
+        vadcreate = VadereScenarioCreation(self._env_man, self._par_var, self._sc_change)
+        query_list = vadcreate.generate_vadere_scenarios()
+
         nr_simulations = self._par_var.nr_par_variations()
 
         if njobs == -1:
@@ -72,7 +81,7 @@ class Query(object):
 
 if __name__ == "__main__":
 
-    em = EnvironmentManager("fp_operator")
+    em = EnvironmentManager("corner")
     # pv = FullGridSampling(em)
     # pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3], "speedDistributionMean": [1.2, 1.3]})
     #
@@ -80,10 +89,12 @@ if __name__ == "__main__":
     #q1 = PedestrianDensityGaussianProcessor(em) # TODO: need to check if qoi-processor is available in basis file!
 
 
-    pv = BoxSampling(em)
+    pv = BoxSampling()
     pv.create_grid("speedDistributionStandardDeviation", 0, 0.5, 3, 3)
 
-    q = Query(em, pv, q0).run(njobs=-1)
+    sc = ScenarioChanges()
+
+    q = Query(em, pv, q0, sc).run(njobs=-1)
     print(q)
 
     # q = Query(em, pv, AreaDensityVoronoiProcessor(em)).run(njobs=1)
