@@ -6,6 +6,7 @@ import abc
 import os
 
 import pandas as pd
+import numpy as np
 
 from suqc.utils.general import cast_series_if_possible
 from suqc.configuration import EnvironmentManager
@@ -63,10 +64,10 @@ class QoIProcessor(metaclass=abc.ABCMeta):
             if self._proc_id in procs_list:
                 if file_cfg is None:
                     # Multiple processors for the output file are not allowed, as this mixes up data.
-                    if len(procs_list) != 1:
-                        raise RuntimeError(f"The processor (id = {self._proc_id})\n {self._proc_name} \n"
-                                           f"has multiple processor ids set in the output file. Currently, the only"
-                                           f"content in the output file has to be from the processor.")
+                    #if len(procs_list) != 1: # TODO: need for qoi Position Processor with multiple defined...
+                    #    raise RuntimeError(f"The processor (id = {self._proc_id})\n {self._proc_name} \n"
+                    #                       f"has multiple processor ids set in the output file. Currently, the only"
+                    #                       f"content in the output file has to be from the processor.")
                     file_cfg = file
                 else:
                     raise RuntimeError("The processor has to be unique to avoid confusion which processor to use for "
@@ -133,6 +134,22 @@ class AreaDensityVoronoiProcessor(QoIProcessor):
     def __init__(self, em: EnvironmentManager):
         proc_name = "org.vadere.simulator.projects.dataprocessing.processor.AreaDensityVoronoiProcessor"
         super(AreaDensityVoronoiProcessor, self).__init__(em, proc_name, "voronoiDensity")
+
+
+class PedestrianPositionProcessor(QoIProcessor):
+
+    def __init__(self, em: EnvironmentManager):
+        proc_name = "org.vadere.simulator.projects.dataprocessing.processor.PedestrianPositionProcessor"
+        super(PedestrianPositionProcessor, self).__init__(em, proc_name, "PositionProcessor")
+
+
+    def read_and_extract_qoi(self, par_id, output_path):
+        df = self._read_csv(output_path)
+        assert len(np.unique(df["pedestrianId"])) == 1, "For now only single ped. supported"
+
+        df_first_last = df.iloc[[0, -1], :].loc[:, ["x", "y"]]
+
+        return df_first_last
 
 
 class CustomProcessor(QoIProcessor):

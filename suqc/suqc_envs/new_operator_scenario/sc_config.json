@@ -1,0 +1,7 @@
+{
+    "model": "vadere",
+    "suqc_state": {
+        "git_hash": "0043b7bdd082ffa9e986defa66c03435c598b2fd",
+        "umcommited_changes": " M README.md\nAD Tutorial/Tutorial.py\n M suqc/__init__.py\n D suqc/suqc_envs/fp_operator/sc_config.json\n D suqc/suqc_envs/fp_operator/scenario_basis_fp_operator.scenario\n?? suqc/create_new_operator_sc.py\n?? suqc/suqc_envs/Tutorial/\n?? suqc/suqc_envs/new_operator_scenario/\n?? test.sh\n?? update_server.sh\n"
+    }
+}
