@@ -111,11 +111,11 @@ class ServerSimulation(object):
         create_environment(simdef.name, simdef.basis_file, simdef.model, replace=True)
 
     @classmethod
-    def store_pickle_results(cls, par_lookup, results):
-        path_parlu = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_PARAMETER)
+    def store_pickle_results(cls, path, par_lookup, results):
+        path_parlu = os.path.join(path, ServerSimulation.FILENAME_PICKLE_PARAMETER)
         par_lookup.to_pickle(path_parlu)
 
-        path_results = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_RESULTS)
+        path_results = os.path.join(path, ServerSimulation.FILENAME_PICKLE_RESULTS)
         results.to_pickle(path_results)
 
         print(env_man.env_path)  # this print statement gets read from console, to have it correctly via scp
@@ -131,7 +131,7 @@ class ServerSimulation(object):
 
         # njobs = -1 --> always use all available processors as this is the main reason to use the server
         par, res = suqc.query.Query(env_man, simdef.par_var, simdef.qoi, simdef.sc).run(njobs=-1)
-        ServerSimulation.store_pickle_results(par, res)
+        ServerSimulation.store_pickle_results(env_man.env_path, par, res)
 
     @classmethod
     def remote_simulate(cls, fp):
