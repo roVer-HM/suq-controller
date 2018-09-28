@@ -56,7 +56,7 @@ class Query(object):
     def _mp_query(self, query_list, njobs):
         pool = multiprocessing.Pool(processes=njobs)
         results = pool.map(self._single_query, query_list)
-        self._result_df.add_qoi_data(results)
+        self._result_df = ParameterResult.concat_parameter_results(results)
 
     def run(self, njobs: int=-1):
 
