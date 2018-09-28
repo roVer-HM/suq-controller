@@ -118,7 +118,7 @@ class ServerSimulation(object):
         path_results = os.path.join(path, ServerSimulation.FILENAME_PICKLE_RESULTS)
         results.to_pickle(path_results)
 
-        print(env_man.env_path)  # this print statement gets read from console, to have it correctly via scp
+        print(path)  # this print statement gets read from console, to have it correctly via scp
 
 
     @classmethod
