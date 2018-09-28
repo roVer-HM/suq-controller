@@ -35,7 +35,7 @@ class QoIProcessor(metaclass=abc.ABCMeta):
     def read_and_extract_qoi(self, par_id, output_path) -> ParameterResult:
         data = self._read_csv(output_path)
         data = cast_series_if_possible(data)
-        return ParameterResult.from_extracted_vadere_results(par_id, data, self.name)
+        return ParameterResult(par_id, data, self.name)
 
     def _get_all_proc_writers(self):
         return self._em.get_value_basis_file(key="processWriters")[0]
@@ -104,7 +104,7 @@ class PedestrianEvacuationTimeProcessor(QoIProcessor):
     def read_and_extract_qoi(self, par_id, output_path):
         data = self._read_csv(output_path)
         data = self._apply_homogenization(data)
-        return ParameterResult.from_extracted_vadere_results(par_id, data, self.name)
+        return ParameterResult(par_id, data, self.name)
 
 
 class PedestrianDensityGaussianProcessor(QoIProcessor):
@@ -136,26 +136,31 @@ class AreaDensityVoronoiProcessor(QoIProcessor):
         super(AreaDensityVoronoiProcessor, self).__init__(em, proc_name, "voronoiDensity")
 
 
-class PedestrianPositionProcessor(QoIProcessor):
+class InitialAndLastPositionProcessor(QoIProcessor):
+    """Measures the initial and the last position of an agent."""
+
 
     def __init__(self, em: EnvironmentManager):
         proc_name = "org.vadere.simulator.projects.dataprocessing.processor.PedestrianPositionProcessor"
-        super(PedestrianPositionProcessor, self).__init__(em, proc_name, "PositionProcessor")
-
+        self._name = "pedPosition"
+        super(InitialAndLastPositionProcessor, self).__init__(em, proc_name, self._name)
 
     def read_and_extract_qoi(self, par_id, output_path):
         df = self._read_csv(output_path)
         assert len(np.unique(df["pedestrianId"])) == 1, "For now only single ped. supported"
 
         df_first_last = df.iloc[[0, -1], :].loc[:, ["x", "y"]]
+        df_first_last.index = ["initial", "last"]
+        df_first_last.index.name = "categ"
 
-        return df_first_last
+        return ParameterResult(par_id, df_first_last, self._name)
 
 
 class CustomProcessor(QoIProcessor):
 
     def __init__(self, em: EnvironmentManager, proc_name: str, qoi_name: str):
         super(CustomProcessor, self).__init__(em, proc_name, qoi_name)
+
 
 if __name__ == "__main__":
     pass

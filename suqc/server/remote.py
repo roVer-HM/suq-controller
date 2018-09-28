@@ -90,7 +90,8 @@ class ServerConnection(object):
 class ServerSimulation(object):
 
     FILENAME_PICKLE_SIMDEF = "simdef.p"
-    FILENAME_PICKLE_RESULTS = "results.p"
+    FILENAME_PICKLE_RESULTS = "parameter_results.p"
+    FILENAME_PICKLE_PARAMETER = "par_lookup.p"
 
     def __init__(self, server: ServerConnection):
         self._server = server
@@ -110,6 +111,17 @@ class ServerSimulation(object):
         create_environment(simdef.name, simdef.basis_file, simdef.model, replace=True)
 
     @classmethod
+    def store_pickle_results(cls, par_lookup, results):
+        path_parlu = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_PARAMETER)
+        par_lookup.to_pickle(path_parlu)
+
+        path_results = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_RESULTS)
+        results.to_pickle(path_results)
+
+        print(env_man.env_path)  # this print statement gets read from console, to have it correctly via scp
+
+
+    @classmethod
     def _remote_run_env(cls, fp):
         import suqc.query
         import suqc.configuration
@@ -118,10 +130,8 @@ class ServerSimulation(object):
         env_man = suqc.configuration.EnvironmentManager(simdef.name)
 
         # njobs = -1 --> always use all available processors as this is the main reason to use the server
-        ret = suqc.query.Query(env_man, simdef.par_var, simdef.qoi, simdef.sc).run(njobs=-1)
-        path = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_RESULTS)
-        ret.to_pickle(path)
-        print(path)  # Is read from console (from local). This allows to transfer the file back.
+        par, res = suqc.query.Query(env_man, simdef.par_var, simdef.qoi, simdef.sc).run(njobs=-1)
+        ServerSimulation.store_pickle_results(par, res)
 
     @classmethod
     def remote_simulate(cls, fp):
@@ -146,12 +156,21 @@ class ServerSimulation(object):
         return last_line
 
     def _read_results(self, local_path, remote_path):
-        self._server.con.get(remote_path, local_path)
 
-        with open(local_path, "rb") as f:
-            df = pickle.load(f)
-            isinstance(df, pd.DataFrame)
-        return df
+        self._server.con.get(os.path.join(remote_path, ServerSimulation.FILENAME_PICKLE_PARAMETER),
+                             os.path.join(local_path, ServerSimulation.FILENAME_PICKLE_PARAMETER))
+
+        with open(os.path.join(local_path, ServerSimulation.FILENAME_PICKLE_PARAMETER), "rb") as f:
+            df_par = pickle.load(f)
+            isinstance(df_par, pd.DataFrame)
+
+        self._server.con.get(os.path.join(remote_path, ServerSimulation.FILENAME_PICKLE_RESULTS),
+                             os.path.join(local_path, ServerSimulation.FILENAME_PICKLE_RESULTS))
+
+        with open(os.path.join(local_path, ServerSimulation.FILENAME_PICKLE_RESULTS), "rb") as f:
+            df_res = pickle.load(f)
+            isinstance(df_res, pd.DataFrame)
+        return df_par, df_res
 
     def run(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor,
             sc: ScenarioChanges=None):
@@ -160,9 +179,12 @@ class ServerSimulation(object):
 
         local_pickle_path = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_SIMDEF)
         fp_rem_simdef = self._setup_server_env(local_pickle_path=local_pickle_path, simdef=simdef)
+
         fp_rem_results = self._local_submit_request(fp_rem_simdef)
-        fp_loc_results = os.path.join(env_man.env_path, ServerSimulation.FILENAME_PICKLE_RESULTS)
+        fp_loc_results = env_man.env_path
+
         results = self._read_results(fp_loc_results, fp_rem_results)
+
         return results
 
 
