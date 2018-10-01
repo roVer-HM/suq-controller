@@ -151,7 +151,7 @@ class InitialAndLastPositionProcessor(QoIProcessor):
     def read_and_extract_qoi(self, par_id, output_path):
         df = self._read_csv(output_path)
         assert len(np.unique(df["pedestrianId"])) == 1, f"For now only single ped. supported, value is " \
-                                                        f"{len(np.unique(df['pedestrianId']))}"
+                                                        f"{len(np.unique(df['pedestrianId']))} in {output_path}"
 
         df_first_last = df.iloc[[0, -1], :].loc[:, ["x", "y"]]
         df_first_last.index = ["initial", "last"]
