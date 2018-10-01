@@ -91,18 +91,17 @@ import suqc
 em = suqc.EnvironmentManager("corner")
 
 # Initiate an object to define the parameters to query
-pv = suqc.FullGridSampling(em)
+pv = suqc.FullGridSampling()
 
 # Define a grid to run the simulation, here: vary the standard distribution from 0 to 0.3 in 0.1 intervals
 pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
-
 
 # Define a quantity of interest that we are interested in
 q1 = suqc.PedestrianEvacuationTimeProcessor(em)
 
 # Initiate and run (i.e. simulate) the query. Here, only a single processor is used
-r = suqc.Query(em, pv, q1).run(njobs=1)
-print(r)
+r1 = suqc.Query(em, pv, q1).run(njobs=1)
+print(r1)
 
 # Define another, time dependent, quantity of interest 
 q2 = suqc.AreaDensityVoronoiProcessor(em)
@@ -114,5 +113,7 @@ print(r2)
 # To run a simulation on a server (ssh required!) :
 with suqc.ServerConnection() as sc:
     ss = suqc.ServerSimulation(sc)
-    ss.run(env_man=em, par_var=pv, qoi=q2)
+    r3 = ss.run(env_man=em, par_var=pv, qoi=q2)
+
+print(r3)
 ```

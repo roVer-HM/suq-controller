@@ -10,7 +10,7 @@ from suqc.configuration import EnvironmentManager
 from suqc.parameter.sampling import ParameterVariation, FullGridSampling, RandomSampling, BoxSampling
 from suqc.parameter.postchanges import ScenarioChanges
 from suqc.parameter.create import VadereScenarioCreation
-from suqc.resultformat import ResultDF
+from suqc.resultformat import ParameterResult
 
 # --------------------------------------------------
 # people who contributed code
@@ -29,13 +29,11 @@ class Query(object):
         self._par_var = par_var
         self._qoi = qoi
         self._sc_change = sc_change
-
-        self._result_df = ResultDF()
-        self._result_df.add_par_var_data(self._par_var.points)
+        self._result_df = None
 
     @property
     def result(self):
-        return self._result_df.data
+        return self._result_df
 
     def _run_vadere_simulation(self, scenario_fp, output_path):
         model_path = self._env_man.get_model_path()
@@ -53,12 +51,12 @@ class Query(object):
         results = list()
         for arg in query_list:
             results.append(self._single_query(arg))
-        self._result_df.add_qoi_data(results)
+        self._result_df = ParameterResult.concat_parameter_results(results)
 
     def _mp_query(self, query_list, njobs):
         pool = multiprocessing.Pool(processes=njobs)
         results = pool.map(self._single_query, query_list)
-        self._result_df.add_qoi_data(results)
+        self._result_df = ParameterResult.concat_parameter_results(results)
 
     def run(self, njobs: int=-1):
 
@@ -70,13 +68,14 @@ class Query(object):
         if njobs == -1:
             avail_cpus = multiprocessing.cpu_count()
             njobs = min(avail_cpus, nr_simulations)
-            print(f"INFO: Available cpus: {avail_cpus}. Nr. of simulation {nr_simulations}. Setting to {njobs} processes.")
+            print(f"INFO: Available cpus: {avail_cpus}. Nr. of simulation {nr_simulations}. "
+                  f"Setting to {njobs} processes.")
 
         if njobs == 1:
             self._sp_query(query_list=query_list)
         else:
             self._mp_query(query_list=query_list, njobs=njobs)
-        return self.result
+        return self._par_var.points, self.result
 
 
 if __name__ == "__main__":
