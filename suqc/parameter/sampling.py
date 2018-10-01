@@ -245,8 +245,7 @@ class BoxSampling(ParameterVariation):
         df_final["boxid"] = df_final.T.apply(self._get_box)
 
         self._add_df_points(points=df_final)
-
-        print(self._points)
+        
 
 if __name__ == "__main__":
     di = {"speedDistributionStandardDeviation": [0.0, 0.1, 0.2]}

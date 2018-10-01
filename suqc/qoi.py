@@ -142,7 +142,6 @@ class AreaDensityVoronoiProcessor(QoIProcessor):
 class InitialAndLastPositionProcessor(QoIProcessor):
     """Measures the initial and the last position of an agent."""
 
-
     def __init__(self, em: EnvironmentManager):
         proc_name = "org.vadere.simulator.projects.dataprocessing.processor.PedestrianPositionProcessor"
         self._name = "pedPosition"
@@ -150,12 +149,16 @@ class InitialAndLastPositionProcessor(QoIProcessor):
 
     def read_and_extract_qoi(self, par_id, output_path):
         df = self._read_csv(output_path)
-        assert len(np.unique(df["pedestrianId"])) == 1, f"For now only single ped. supported, value is " \
+        assert len(np.unique(df["pedestrianId"])) <= 1, f"For now only single ped. supported, value is " \
                                                         f"{len(np.unique(df['pedestrianId']))} in {output_path}"
 
-        df_first_last = df.iloc[[0, -1], :].loc[:, ["x", "y"]]
-        df_first_last.index = ["initial", "last"]
-        df_first_last.index.name = "categ"
+        if len(np.unique(df["pedestrianId"])) == 0:
+            idx = pd.Index(data=["initial", "last"], name="categ")
+            df_first_last = pd.DataFrame(np.nan, index=idx, columns=["x", "y"])
+        else:
+            df_first_last = df.iloc[[0, -1], :].loc[:, ["x", "y"]]
+            df_first_last.index = ["initial", "last"]
+            df_first_last.index.name = "categ"
 
         return ParameterResult(par_id, df_first_last, self._name)
 
