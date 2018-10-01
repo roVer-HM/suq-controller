@@ -27,8 +27,12 @@ class TestRemote(unittest.TestCase):
         with ServerConnection() as sc:
             server_sim = ServerSimulation(sc)
             par, ret = server_sim.run(env_man, par_var, qoi, scch)
-            assert isinstance(par)
-            assert isinstance(ret)
+
+        assert isinstance(par, pd.DataFrame)
+        assert isinstance(ret, pd.DataFrame)
+
+        print(par)
+        print(ret)
 
 
 def main():
