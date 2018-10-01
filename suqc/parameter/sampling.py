@@ -187,7 +187,7 @@ class BoxSampling(ParameterVariation):
         if isinstance(nr_testf, int):
             nr_testf = [nr_testf, 0, 0]
 
-        assert len(lb) == len(rb) == len(nr_boxes) == 3
+        assert len(lb) == len(rb) == len(nr_boxes) == len(nr_testf) == 3
 
         self._nr_boxes = nr_boxes  # TODO: possible bring this in constructor
 
