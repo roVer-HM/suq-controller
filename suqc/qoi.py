@@ -52,6 +52,9 @@ class QoIProcessor(metaclass=abc.ABCMeta):
                 else:
                     raise RuntimeError(
                         "The processor has to be unique to avoid confusion which processor to use for the QoI.")
+        if return_cfg is None:
+            raise KeyError(f"Could not find QoIProcessor with name {self._proc_name}.")
+
         return return_cfg
 
     def _get_outout_filename(self):
@@ -147,7 +150,8 @@ class InitialAndLastPositionProcessor(QoIProcessor):
 
     def read_and_extract_qoi(self, par_id, output_path):
         df = self._read_csv(output_path)
-        assert len(np.unique(df["pedestrianId"])) == 1, "For now only single ped. supported"
+        assert len(np.unique(df["pedestrianId"])) == 1, f"For now only single ped. supported, value is " \
+                                                        f"{len(np.unique(df['pedestrianId']))}"
 
         df_first_last = df.iloc[[0, -1], :].loc[:, ["x", "y"]]
         df_first_last.index = ["initial", "last"]
