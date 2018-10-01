@@ -27,9 +27,9 @@ class ScenarioChanges(object):
 
     def _defaults(self):
         self.add_scenario_change(ChangeScenarioName())
+        self.add_scenario_change(ChangeRealTimeSimTimeRatio())
         self.add_scenario_change(ChangeRandomNumber(par_id=True))
         self.add_scenario_change(ChangeDescription())
-
 
     def add_scenario_change(self, sc: 'PostScenarioChange'):
         # ABCScenarioChange in '' to support forward reference,
@@ -58,6 +58,15 @@ class PostScenarioChange(metaclass=abc.ABCMeta):
         raise NotImplementedError("ABC method")
 
 
+class ChangeRealTimeSimTimeRatio(PostScenarioChange):
+
+    def __init__(self):
+        super(ChangeRealTimeSimTimeRatio, self).__init__(name="real_time_sim_time_ratio")
+
+    def get_changes_dict(self, scenario, par_id, par_var):
+        return {"realTimeSimTimeRatio": 0.0}  # Speeds up the non-visual computations in case a ratio was set!
+
+
 class ChangeRandomNumber(PostScenarioChange):
     KEY_FIXED = "useFixedSeed"
     KEY_SEED = "fixedSeed"
@@ -78,7 +87,6 @@ class ChangeRandomNumber(PostScenarioChange):
         self._fixed_randnr = random_number
 
     def get_changes_dict(self, scenario, par_id, par_var):
-        # TODO: Currently the seed in VADERE is set to the par_id -- this may not always be desired...
 
         if self._isfixed:
             assert self._fixed_randnr is not None, "Fixed random number has to be set with method set_fixed_random_nr"
