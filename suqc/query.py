@@ -60,16 +60,18 @@ class Query(object):
 
     def run(self, njobs: int=-1):
 
-        vadcreate = VadereScenarioCreation(self._env_man, self._par_var, self._sc_change)
-        query_list = vadcreate.generate_vadere_scenarios()
+        assert njobs != 0, "njobs cannot be zero"
 
-        nr_simulations = self._par_var.nr_par_variations()
+        nr_simulations = self._par_var.points.shape[0]  # nr of rows = nr of parameter settings = #simulations
 
         if njobs == -1:
             avail_cpus = multiprocessing.cpu_count()
             njobs = min(avail_cpus, nr_simulations)
             print(f"INFO: Available cpus: {avail_cpus}. Nr. of simulation {nr_simulations}. "
                   f"Setting to {njobs} processes.")
+
+        vadcreate = VadereScenarioCreation(self._env_man, self._par_var, self._sc_change)
+        query_list = vadcreate.generate_vadere_scenarios(njobs)
 
         if njobs == 1:
             self._sp_query(query_list=query_list)
@@ -81,10 +83,13 @@ class Query(object):
 if __name__ == "__main__":
 
     em = EnvironmentManager("corner")
-    # pv = FullGridSampling(em)
-    # pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3], "speedDistributionMean": [1.2, 1.3]})
-    #
+    pv = FullGridSampling()
+    pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3], "speedDistributionMean": [1.2, 1.3]})
     q0 = PedestrianEvacuationTimeProcessor(em)
+
+    Query(em, pv, q0).run(njobs=-1)
+    exit()
+
     #q1 = PedestrianDensityGaussianProcessor(em) # TODO: need to check if qoi-processor is available in basis file!
 
 

@@ -2,6 +2,8 @@
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
+import multiprocessing
+
 from suqc.configuration import EnvironmentManager
 from suqc.parameter.sampling import ParameterVariation
 from suqc.parameter.postchanges import ScenarioChanges
@@ -24,7 +26,10 @@ class VadereScenarioCreation(object):
         self._par_var = par_var
         self._sc_change = sc_change
 
-    def _vars_object(self, pid, fp):
+        self._basis_scenario = self._env_man.get_vadere_scenario_basis_file()
+        self._par_var.check_selected_keys(self._basis_scenario)
+
+    def _vars_dict(self, pid, fp):
         return {"par_id": pid, "scenario_path": fp}
 
     def _create_new_vadere_scenario(self, scenario: dict, par_id: int, par_var: dict):
@@ -43,19 +48,41 @@ class VadereScenarioCreation(object):
         fp = self._env_man.save_scenario_variation(par_id, s)
         return fp
 
-    def generate_vadere_scenarios(self):
+    def _create_scenario(self, args):  # TODO: how do multiple arguments work for pool.map functions? (see below)
+        """Set up a new scenario and return info of parameter id and location."""
+        par_id = args[0]  # TODO: this would kind of reduce this ugly code
+        par_change = args[1]
+
+        new_scenario = self._create_new_vadere_scenario(self._basis_scenario, par_id, par_change)
+        fp = self._save_vadere_scenario(par_id, new_scenario)
+        return self._vars_dict(par_id, fp)
+
+    def _sp_creation(self):
+        """Single process loop to create all requested scenarios."""
+        basis_scenario = self._env_man.get_vadere_scenario_basis_file()
+        self._par_var.check_selected_keys(basis_scenario)
+
+        vars_ = list()
+        for par_id, par_change in self._par_var.par_iter():
+            vars_.append(self._create_scenario([par_id, par_change]))
+        return vars_
+
+    def _mp_creation(self, njobs):
+        """Multi process function to create all requested scenarios."""
+        pool = multiprocessing.Pool(processes=njobs)
+        vars_ = pool.map(self._create_scenario, self._par_var.par_iter())
+        return vars_
+
+    def generate_vadere_scenarios(self, njobs):
 
         target_path = self._env_man.get_scenario_variation_path()
-        basis_scenario = self._env_man.get_vadere_scenario_basis_file()
-
-        self._par_var.check_selected_keys(basis_scenario)
 
         remove_folder(target_path)
         create_folder(target_path)
 
-        vars = list()
-        for par_id, par_changes in self._par_var.par_iter():
-            new_scenario = self._create_new_vadere_scenario(basis_scenario, par_id, par_changes)
-            fp = self._save_vadere_scenario(par_id, new_scenario)
-            vars.append(self._vars_object(par_id, fp))
-        return vars
+        if njobs == 1:
+            vars_ = self._sp_creation()
+        else:
+            vars_ = self._mp_creation(njobs)
+
+        return vars_
