@@ -8,7 +8,7 @@ import pandas as pd
 
 from fabric import Connection
 
-from suqc.parameter.sampling import ParameterVariation, FullGridSampling, BoxSampling, RandomSampling
+from suqc.parameter.sampling import ParameterVariation, FullGridSampling, BoxSamplingUlamMethod, RandomSampling
 from suqc.parameter.postchanges import ScenarioChanges
 from suqc.qoi import QoIProcessor
 from suqc.configuration import EnvironmentManager, get_suq_config, store_server_config

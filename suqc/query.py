@@ -7,7 +7,7 @@ import multiprocessing
 
 from suqc.qoi import QoIProcessor, PedestrianEvacuationTimeProcessor, AreaDensityVoronoiProcessor
 from suqc.configuration import EnvironmentManager
-from suqc.parameter.sampling import ParameterVariation, FullGridSampling, RandomSampling, BoxSampling
+from suqc.parameter.sampling import ParameterVariation, FullGridSampling, RandomSampling, BoxSamplingUlamMethod
 from suqc.parameter.postchanges import ScenarioChanges
 from suqc.parameter.create import VadereScenarioCreation
 from suqc.resultformat import ParameterResult
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     #q1 = PedestrianDensityGaussianProcessor(em) # TODO: need to check if qoi-processor is available in basis file!
 
 
-    pv = BoxSampling()
+    pv = BoxSamplingUlamMethod()
     pv.create_grid("speedDistributionStandardDeviation", 0, 0.5, 3, 3)
 
     sc = ScenarioChanges(apply_default=True)

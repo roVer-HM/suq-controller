@@ -130,10 +130,10 @@ class RandomSampling(ParameterVariation):
         self._add_dict_points(samples)
 
 
-class BoxSampling(ParameterVariation):
+class BoxSamplingUlamMethod(ParameterVariation):
 
     def __init__(self):
-        super(BoxSampling, self).__init__()
+        super(BoxSamplingUlamMethod, self).__init__()
         self._edges = None
 
     def _create_box_points(self, par, test_p):
@@ -149,23 +149,23 @@ class BoxSampling(ParameterVariation):
             arr[i*nr_testf: i*nr_testf+nr_testf] = np.linspace(s, e, nr_testf+2)[1:-1]
         return arr
 
-    def _get_idx(self, val, dim):
-        return int(np.floor((val-self._edges[dim][0]) / self._box_width[dim]))
-
     def _get_box(self, row):
 
         vals = row.values
 
-        idx_x = self._get_idx(vals[0], 0)
+        def _get_idx(val, dim):
+            return int(np.floor((val - self._edges[dim][0]) / self._box_width[dim]))
+
+        idx_x = _get_idx(vals[0], 0)
         if len(vals) == 1:
             idx_y = 0
             idx_z = 0
         elif len(vals) == 2:
-            idx_y = self._get_idx(vals[1], 1)
+            idx_y = _get_idx(vals[1], 1)
             idx_z = 0
         else:
-            idx_y = self._get_idx(vals[1], 1)
-            idx_z = self._get_idx(vals[2], 2)
+            idx_y = _get_idx(vals[1], 1)
+            idx_z = _get_idx(vals[2], 2)
 
         box = idx_x + idx_y * (self._nr_boxes[0]) + idx_z * (self._nr_boxes[0] * self._nr_boxes[1])
         return box
@@ -201,9 +201,6 @@ class BoxSampling(ParameterVariation):
 
                 # the linspace guarantees equidistant box-domains
                 self._box_width[i] = self._edges[i][1] - self._edges[i][0]
-
-        all_points = list()
-
 
         # ^ y
         # |
@@ -245,20 +242,150 @@ class BoxSampling(ParameterVariation):
         df_final["boxid"] = df_final.T.apply(self._get_box)
 
         self._add_df_points(points=df_final)
-        
+
+    def generate_markov_matrix(self, result):
+
+        #bool_idx = np.isnan(result).any(axis=1)
+        #result = result.loc[~bool_idx, :]
+
+        def apply_result(point):
+            row = point.iloc[:, 0]
+            if np.isnan(row).any():
+                return np.nan
+            else:
+                return self._get_box(row)
+
+        idx = pd.IndexSlice
+        box_start = self._points["boxid"]
+        box_finish = result.loc[:, idx[:, "last"]].groupby(level=0).apply(apply_result)
+
+        nr_boxes = box_start.max() + 1   # box ids start with 0
+
+        markov = np.zeros([nr_boxes, nr_boxes])
+
+        for i in range(nr_boxes):
+            fboxes = box_finish.loc[box_start == i]
+            vals, counts = np.unique(fboxes, return_counts=True)
+
+            # make all nan boxes (usually happens when the ped is spawned into target) a self reference
+            if np.isnan(vals).any():
+                pos_nan = np.where(np.isnan(vals))
+
+                # length bc. np.nan != np.nan --> therefore only count=1 entries in np.unique
+                markov[i, i] = len(pos_nan[0])
+                counts = np.delete(counts, pos_nan)
+                vals = np.delete(vals, pos_nan)
+
+            markov[i, vals.astype(np.int)] = counts
+
+        bool_idx = markov.sum(axis=1).astype(np.bool)
+        markov[bool_idx, :] = markov[bool_idx, :] / markov[bool_idx, :].sum(axis=1)[:, np.newaxis]
+
+        return markov
+
+    def compute_eig(self, markov):
+        eigval, eigvec = np.linalg.eig(markov.T)
+        idx = eigval.argsort()[::-1]
+        eigval = eigval[idx]
+        eigvec = eigvec[:, idx]
+        return eigval, eigvec
+
+
+    def uniform_distribution_over_boxes_included(self, points: pd.DataFrame):
+
+        boxes_included = points.groupby(level=0, axis=0).apply(lambda row: self._get_box(row.iloc[0, :]))
+        boxes_included = np.unique(boxes_included)
+
+        all_boxes = self._points["boxid"].max() + 1
+
+        initial_condition = np.zeros(all_boxes)
+        initial_condition[boxes_included.astype(np.int)] = 1 / boxes_included.shape[0]  # uniform
+
+        return initial_condition
+
+    def transfer_initial_condition(self, markov: np.array, initial_cond: np.array, nrsteps: int):
+
+        all_boxes = self._points["boxid"].max() + 1
+
+        states = np.zeros([all_boxes, nrsteps+1])
+        states[:, 0] = initial_cond
+
+        for i in range(1, nrsteps+1):
+            states[:, i] = markov.T @ states[:, i-1]
+
+        return states
+
+    def _get_bar_data_from_state(self, state):
+        # Note: only works for 2D as only this can be plotted
+
+        all_boxes = self._points["boxid"].max() + 1
+
+        x_dir = lambda box_id: (np.mod(box_id, self._nr_boxes[0])).astype(np.int)
+        y_dir = lambda box_id: (box_id / self._nr_boxes[0]).astype(np.int)
+
+        df = pd.DataFrame(0, index=np.arange(state.shape[0]), columns=["x", "y", "z", "dx", "dy", "dz"])
+
+        idx_edges_x = x_dir(np.arange(all_boxes))
+        idx_edges_y = y_dir(np.arange(all_boxes))
+
+        for i in range(idx_edges_x.shape[0]):
+            df.loc[i, ["x", "y", "z"]] = [self._edges[0][idx_edges_x[i]], self._edges[1][idx_edges_y[i]], 0]
+            df.loc[i, ["dx", "dy", "dz"]] = [self._box_width[0], self._box_width[1], state[i]]
+        return df
+
+    def plot_states(self, states, cols, rows):
+        # https://matplotlib.org/gallery/mplot3d/3d_bars.html
+
+        import matplotlib.pyplot as plt
+        # This import registers the 3D projection, but is otherwise unused.
+        from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+
+        fig = plt.figure(figsize=(8, 3))
+
+        for sidx in range(states.shape[1]):
+
+            ax = fig.add_subplot(cols, rows, sidx+1, projection='3d')
+
+            df = self._get_bar_data_from_state(states[:, sidx])
+
+            zeros = df.loc[df["dz"] < 1E-3]
+            nonzero = df.loc[df["dz"] != 0]
+
+            ax.bar3d(zeros["x"], zeros["y"], zeros["z"], zeros["dx"], zeros["dy"], zeros["dz"], color="gray", shade=True)
+            ax.bar3d(nonzero["x"], nonzero["y"], nonzero["z"], nonzero["dx"], nonzero["dy"], nonzero["dz"], color="red", shade=True)
+
+            ax.set_xlabel("x")
+            ax.set_ylabel("y")
+            ax.set_zlabel("probability")
+            ax.set_title(f"step={sidx}")
+        plt.tight_layout()
+        plt.show()
+
+
+
+
 
 if __name__ == "__main__":
+    par = BoxSamplingUlamMethod()
+    par.create_grid(["dynamicElements.[id==1].position.x", "dynamicElements.[id==1].position.y", None],
+                    lb=[0, 0, 0], rb=[20, 10, 0], nr_boxes=[20, 10, 0], nr_testf=[1, 1, 0])
+
+
+
+
+
+    par.plot_states(initial_cond)
+
+    exit()
+
     di = {"speedDistributionStandardDeviation": [0.0, 0.1, 0.2]}
 
     pd.options.display.max_columns = 4
 
     em = EnvironmentManager("corner")
 
-    pv = BoxSampling()
+    pv = BoxSamplingUlamMethod()
     pv.create_grid(["speedDistributionStandardDeviation", "speedDistributionMean", "minimumSpeed"], [0, 1, 2], [1, 2, 3], [2, 2, 2], [2, 2, 2])
-
-
-
 
 
     #pv = FullGridSampling()
