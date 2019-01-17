@@ -15,6 +15,11 @@ __authors__ = "Daniel Lehmberg"
 __credits__ = ["n/a"]
 # --------------------------------------------------
 
+# TODO: is it possible to remove all "processor writers" from QoI that are not requested (via Quantity of Interest)
+#  without too much ugly code? Furthermore, remove all processors for perfomance win. Do this **only** with explicit
+#  user setting, otherwise the tool is blamed for not writing required data.
+#  see issue #34
+
 
 class ScenarioChanges(object):
 
