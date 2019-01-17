@@ -2,15 +2,13 @@
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
-import abc
 import os
 
 import pandas as pd
 import numpy as np
 
-from suqc.utils.general import cast_series_if_possible
+from suqc.utils.dict_utils import deep_dict_lookup
 from suqc.configuration import EnvironmentManager
-from suqc.resultformat import ParameterResult
 
 # --------------------------------------------------
 # people who contributed code
@@ -20,155 +18,135 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
-class QoIProcessor(metaclass=abc.ABCMeta):
+class FileDataInfo(object):
 
-    def __init__(self, em: EnvironmentManager, proc_name: str, qoi_name: str):
-        self.name = qoi_name
+    # TODO: see also vadere issue #199, to include this information in the scenario
+    map_outputtype2index = {"IdOutputFile": 1,
+                            "LogEventOutputFile": 1,
+                            "NotDataKeyOutputFile": 0,
+                            "PedestrianIdOutputFile": 1,
+                            "TimestepOutputFile": 1,
+                            "TimestepPedestrianIdOutputFile": 2,
+                            "TimestepPedestrianIdOverlapOutputFile": 3,
+                            "TimestepPositionOutputFile": 3,
+                            "TimestepRowOutputFile": 2}
 
-        self._em = em
-        self._proc_name = proc_name
-        self._proc_config = self._get_proc_config()
-        self._proc_id = self._proc_config["id"]
-        self._outputfile_name = self._get_outout_filename()
+    def __init__(self, process_file, processors):
+        self.filename = process_file["filename"]
+        self.output_key = process_file["type"].split(".")[-1]
 
-    # TODO: think about time selection option (possibly they can also be located in VADERE directly...)
-    def read_and_extract_qoi(self, par_id, output_path) -> ParameterResult:
-        data = self._read_csv(output_path)
-        data = cast_series_if_possible(data)
-        return ParameterResult(par_id, data, self.name)
+        self.processors = processors  # not really needed yet, but maybe in future.
 
-    def _get_all_proc_writers(self):
-        return self._em.get_value_basis_file(key="processWriters")[0]
+        try:
+            self.nr_indices = self.map_outputtype2index[self.output_key]
+        except KeyError:
+            raise KeyError(f"Outputtype={self.output_key} not present in mapping. May have to be inserted manually in "
+                           f"code. Check out Vadere Gitlab issue # 199.")
 
-    def _get_proc_config(self):
-        procwriter_json = self._get_all_proc_writers()
-        procs_list = procwriter_json["processors"]
+    @DeprecationWarning
+    def _select_qoiname(self, processors):
 
-        return_cfg = None
-        for d in procs_list:
-            if d["type"] == self._proc_name:
-                if return_cfg is None:
-                    return_cfg = d
-                else:
-                    raise RuntimeError(
-                        "The processor has to be unique to avoid confusion which processor to use for the QoI.")
-        if return_cfg is None:
-            raise KeyError(f"Could not find QoIProcessor with name {self._proc_name}.")
+        full_name = set([p["type"] for p in processors])
 
-        return return_cfg
+        if len(full_name) != 1:
+            raise ValueError("Only equal types are allowed")
 
-    def _get_outout_filename(self):
-        procwriter_json = self._get_all_proc_writers()
-        files = procwriter_json["files"]
+        # get the last identifier
+        # e.g. org.vadere.simulator.projects.dataprocessing.outputfile.TimestepPedestrianIdOutputFile
+        # to TimestepPedestrianIdOutputFile
+        datakey = full_name.pop().split(".")[-1]
 
-        file_cfg = None
-        for file in files:
-            procs_list = file["processors"]
-            if self._proc_id in procs_list:
-                if file_cfg is None:
-                    # Multiple processors for the output file are not allowed, as this mixes up data.
-                    #if len(procs_list) != 1: # TODO: need for qoi Position Processor with multiple defined...
-                    #    raise RuntimeError(f"The processor (id = {self._proc_id})\n {self._proc_name} \n"
-                    #                       f"has multiple processor ids set in the output file. Currently, the only"
-                    #                       f"content in the output file has to be from the processor.")
-                    file_cfg = file
-                else:
-                    raise RuntimeError("The processor has to be unique to avoid confusion which processor to use for "
-                                       "the QoI.")
-        return file_cfg["filename"]
-
-    def _filepath(self, output_path):
-        return os.path.join(output_path, self._outputfile_name)
-
-    def _read_csv(self, output_path):
-        fp = self._filepath(output_path)
-        df = pd.read_csv(fp, delimiter=" ", index_col=0, header=0)
-        return df
+        return datakey
 
 
-class PedestrianEvacuationTimeProcessor(QoIProcessor):
+class QuantityOfInterest(object):
 
-    def __init__(self, em: EnvironmentManager, apply="mean"):
+    def __init__(self, requested_files, em: EnvironmentManager):
 
-        assert apply in ["mean", "max"]
-        self._apply = apply
+        assert isinstance(requested_files, (list, str))
 
-        proc_name = "org.vadere.simulator.projects.dataprocessing.processor.PedestrianEvacuationTimeProcessor"
-        qoi_name = "_".join(["evacTime", self._apply])
+        if isinstance(requested_files, str):
+            requested_files = [requested_files]
 
-        super(PedestrianEvacuationTimeProcessor, self).__init__(em, proc_name, qoi_name)
+        basis = em.get_vadere_scenario_basis_file()
 
-    def _apply_homogenization(self, data: pd.Series):
-        if self._apply == "mean":
-            return data.mean()
-        else:
-            return data.max()
+        user_set_writers, _ = deep_dict_lookup(basis, "processWriters")
+        process_files = user_set_writers["files"]
+        processsors = user_set_writers["processors"]
 
-    def read_and_extract_qoi(self, par_id, output_path):
-        data = self._read_csv(output_path)
-        data = self._apply_homogenization(data)
-        return ParameterResult(par_id, data, self.name)
+        self.req_qois = self._requested_qoi(requested_files, process_files, processsors)
 
+    def _requested_qoi(self, requested_files, process_files, processsors):
 
-class PedestrianDensityGaussianProcessor(QoIProcessor):
+        req_qois = list()
 
-    def __init__(self, em: EnvironmentManager, apply="mean"):
-        proc_name = "org.vadere.simulator.projects.dataprocessing.processor.PedestrianDensityGaussianProcessor"
-        assert apply in ["mean", "max"]
-        self._apply = apply
-        super(PedestrianDensityGaussianProcessor, self).__init__(em, proc_name, "ped_gaussian_density")
+        for pf in process_files:
 
-    def _apply_homogenization(self, df):
-        gb = df.drop("pedestrianId", axis=1).groupby("timeStep")
+            # TODO: This has to exactly match, maybe make more robust to allow without
+            filename = pf["filename"]  # TODO: see issue #33
 
-        if self._apply == "mean":
-            return gb.mean()
-        else:
-            return gb.max()
+            if filename in requested_files:
 
-    def read_and_extract_qoi(self, par_id, output_path):
-        df = self._read_csv(output_path)
-        df = self._apply_homogenization(df)
-        return cast_series_if_possible(df)
+                sel_procs = self._select_corresp_processors(pf, processsors)
 
+                req_qois.append(FileDataInfo(process_file=pf, processors=sel_procs))
 
-class AreaDensityVoronoiProcessor(QoIProcessor):
+                requested_files.remove(filename)  # -> processed, list should be empty when leaving function
 
-    def __init__(self, em: EnvironmentManager):
-        proc_name = "org.vadere.simulator.projects.dataprocessing.processor.AreaDensityVoronoiProcessor"
-        super(AreaDensityVoronoiProcessor, self).__init__(em, proc_name, "voronoiDensity")
+        if requested_files:  # has to be empty
+            raise ValueError(f"The requested files {requested_files} are not set in the Vadere scenario: \n "
+                             f"{process_files}")
 
+        return req_qois
 
-class InitialAndLastPositionProcessor(QoIProcessor):
-    """Measures the initial and the last position of an agent."""
+    def _select_corresp_processors(self, process_file, processors):
+        proc_ids = process_file["processors"]
 
-    def __init__(self, em: EnvironmentManager):
-        proc_name = "org.vadere.simulator.projects.dataprocessing.processor.PedestrianPositionProcessor"
-        self._name = "pedPosition"
-        super(InitialAndLastPositionProcessor, self).__init__(em, proc_name, self._name)
+        selected_procs = list()
 
-    def read_and_extract_qoi(self, par_id, output_path):
-        df = self._read_csv(output_path)
-        assert len(np.unique(df["pedestrianId"])) <= 1, f"For now only single ped. supported, value is " \
-                                                        f"{len(np.unique(df['pedestrianId']))} in {output_path}"
+        # TODO: see issue #33
+        for pid in proc_ids:
+            found = False
+            for p in processors:
+                if pid == p["id"]:
+                    selected_procs.append(p)
 
-        if len(np.unique(df["pedestrianId"])) == 0:
-            idx = pd.Index(data=["initial", "last"], name="categ")
-            df_first_last = pd.DataFrame(np.nan, index=idx, columns=["x", "y"])
-        else:
-            df_first_last = df.iloc[[0, -1], :].loc[:, ["x", "y"]]
-            df_first_last.index = ["initial", "last"]
-            df_first_last.index.name = "categ"
+                    if not found:
+                        found = True
+                    else:
+                        raise ValueError("The Vadere scenario is not correctly set up! There are two processors with "
+                                         f"the id={pid} could not be ")
 
-        return ParameterResult(par_id, df_first_last, self._name)
+            if not found:
+                raise ValueError(f"The Vadere scenario is not correctly set up! Processor id {pid} could not be found "
+                                 "in 'processors'")
+
+        return selected_procs
+
+    def _read_csv(self, req_qoi, filepath):
+        df = pd.read_csv(filepath, delimiter=" ", header=[0])
+        idx_keys = df.columns[:req_qoi.nr_indices]
+
+        return df.set_index(idx_keys.tolist())
 
 
-class CustomProcessor(QoIProcessor):
+    def _add_parid2idx(self, df, par_id):
+        # from https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex
+        return pd.concat([df], keys=[par_id], names=["par_id"])
 
-    def __init__(self, em: EnvironmentManager, proc_name: str, qoi_name: str):
-        super(CustomProcessor, self).__init__(em, proc_name, qoi_name)
+    def read_and_extract_qois(self, par_id, output_path):
+
+        read_data = dict()
+
+        for k in self.req_qois:
+            filepath = os.path.join(output_path, k.filename)
+            df_data = self._read_csv(k, filepath)
+            read_data[k.filename] = self._add_parid2idx(df_data, par_id)    # filename is identifier for QoI
+
+        return read_data
 
 
 if __name__ == "__main__":
-    pass
-    #AreaDensityVoronoiProcessor
+    a = QuantityOfInterest("evacuationTimes.txt", EnvironmentManager("corner"))
+
+    print(a.req_qois)
