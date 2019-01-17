@@ -36,24 +36,53 @@ class Query(object):
 
     def _run_vadere_simulation(self, scenario_fp, output_path):
         model_path = self._env_man.get_model_path()
-        subprocess.call(["java", "-jar", model_path, "suq", "-f", scenario_fp, "-o", output_path])
+        return subprocess.call(["java", "-jar", model_path, "suq", "-f", scenario_fp, "-o", output_path])
+
+    def _interpret_return_value(self, ret_val, par_id):
+        if ret_val == 0:
+            return True
+        elif ret_val == 1:
+            print(f"WARNING: Simulation with parameter setting {par_id} failed.")
+            return False
 
     def _single_query(self, kwargs):
-        output_path = self._env_man.get_output_path(kwargs["par_id"], create=True)
-        self._run_vadere_simulation(kwargs["scenario_path"], output_path)
-        result = self._qoi.read_and_extract_qois(kwargs["par_id"], output_path)
+        par_id = kwargs["par_id"]
+
+        output_path = self._env_man.get_output_path(par_id, create=True)
+        ret_val = self._run_vadere_simulation(kwargs["scenario_path"], output_path)
+        is_results = self._interpret_return_value(ret_val, par_id)
+
+        if is_results:
+            result = self._qoi.read_and_extract_qois(par_id, output_path)
+        else:
+            result = None
+
         return result  # because of the multi-processor, don't try to already add the results here to _results_df
 
     def _finalize_results(self, results: List[dict]):
-        filenames = results[0].keys()  # it is assumed that the the keys for all elements in results are the same!
 
-        final_results = dict()
+        filenames = None
+        for ires in results:
+            if ires is not None:
+                # it is assumed that the the keys for all elements in results are the same!
+                filenames = results[0].keys()
 
-        for f in filenames:
-            collected_data = [result_element[f] for result_element in results]
-            collected_data = pd.concat(collected_data, axis=0)
+        if filenames is None:
+            print("WARNING: All simulations failed, only 'None' results.")
+            final_results = None
+        else:
 
-            final_results[f] = collected_data
+            final_results = dict()
+
+            for f in filenames:
+
+                collected_data = list()
+
+                for ires in results:
+                    collected_data.append(ires[f])
+
+                collected_data = pd.concat(collected_data, axis=0)
+                final_results[f] = collected_data
 
         return final_results
 
@@ -63,6 +92,7 @@ class Query(object):
         results = list()
         for arg in query_list:
             results.append(self._single_query(arg))
+
         self.result = self._finalize_results(results)
 
     def _mp_query(self, query_list, njobs):
