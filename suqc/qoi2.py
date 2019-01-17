@@ -3,19 +3,14 @@
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
 import abc
-import os
-from enum import Enum
 
+import os
 
 import pandas as pd
 import numpy as np
 
-
 from suqc.utils.dict_utils import deep_dict_lookup
-
-from suqc.utils.general import cast_series_if_possible
 from suqc.configuration import EnvironmentManager
-from suqc.resultformat import ParameterResult
 
 # --------------------------------------------------
 # people who contributed code
@@ -24,24 +19,46 @@ __authors__ = "Daniel Lehmberg"
 __credits__ = ["n/a"]
 # --------------------------------------------------
 
- # TODO: see also vadere issue #199, to include this information in the scenario
-
-map_datakey2index = {
-    "TimeStepKey": "timeStep",
-    "TimeStepPedestrianIdOverlapKey": ["timeStep", "pedestrianId", "overlaüPedestrianId"],
-    "TimestepPedestrianIdKey": ["timeStep", "pedestrianId"],
-    "PedestrianIdKey": "pedestrianId",
-    "IdDataKey": "id",
-    "TimestepPositionKey": ["timeStep", "x", "y"],
-    "TimestepRowKey": ["timeStep", "row"],
-    "NoDataKey": None
-}
-
 
 class FileDataInfo(object):
 
+    # TODO: see also vadere issue #199, to include this information in the scenario
+    map_outputtype2index = {"IdOutputFile": 1,
+                            "LogEventOutputFile": 1,
+                            "NotDataKeyOutputFile": 0,
+                            "PedestrianIdOutputFile": 1,
+                            "TimestepOutputFile": 1,
+                            "TimestepPedestrianIdOutputFile": 2,
+                            "TimestepPedestrianIdOverlapOutputFile": 3,
+                            "TimestepPositionOutputFile": 3,
+                            "TimestepRowOutputFile": 2}
+
     def __init__(self, process_file, processors):
-        pass
+        self.filename = process_file["filename"]
+        self.output_key = process_file["type"].split(".")[-1]
+
+        self.processors = processors  # not really needed yet, but maybe in future.
+
+        try:
+            self.nr_indices = self.map_outputtype2index[self.output_key]
+        except KeyError:
+            raise KeyError(f"Outputtype={self.output_key} not present in mapping. May have to be inserted manually in "
+                           f"code. Check out Vadere Gitlab issue # 199.")
+
+    @DeprecationWarning
+    def _select_qoiname(self, processors):
+
+        full_name = set([p["type"] for p in processors])
+
+        if len(full_name) != 1:
+            raise ValueError("Only equal types are allowed")
+
+        # get the last identifier
+        # e.g. org.vadere.simulator.projects.dataprocessing.outputfile.TimestepPedestrianIdOutputFile
+        # to TimestepPedestrianIdOutputFile
+        datakey = full_name.pop().split(".")[-1]
+
+        return datakey
 
 
 class QuantityOfInterest(metaclass=abc.ABCMeta):
@@ -60,10 +77,6 @@ class QuantityOfInterest(metaclass=abc.ABCMeta):
         processsors = user_set_writers["processors"]
 
         self.req_qois = self._requested_qoi(requested_files, process_files, processsors)
-
-        # TODO: collect processors involved to each file and get index
-
-        pass
 
     def _requested_qoi(self, requested_files, process_files, processsors):
 
@@ -112,11 +125,25 @@ class QuantityOfInterest(metaclass=abc.ABCMeta):
 
         return selected_procs
 
-    def read_and_extract_qois(self):
-        pass
+    def _read_csv(self, req_qoi, filepath):
+        return pd.read_csv(filepath, index_col=np.arange(req_qoi.nr_indices), header=[0])
 
+    def _add_parid2idx(self, df, par_id):
+        # from https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex
+        return pd.concat([df], keys=[par_id], names=["par_id"])
 
+    def read_and_extract_qois(self, par_id, output_path):
 
+        read_data = dict()
+
+        for k in self.req_qois:
+            filepath = os.path.join(output_path, k.filename)
+            df_data = self._read_csv(k, filepath)
+            read_data[k.filename] = self._add_parid2idx(df_data, par_id)    # filename is identifier for QoI
+
+        return read_data
 
 if __name__ == "__main__":
-    QuantityOfInterest("evacuationTimes.txt", EnvironmentManager("corner"))
+    a = QuantityOfInterest("evacuationTimes.txt", EnvironmentManager("corner"))
+
+    print(a.req_qois)
