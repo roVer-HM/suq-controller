@@ -76,22 +76,6 @@ def remove_model(name):
               f"The model with {name} was removed from the config file.")
 
 
-@DeprecationWarning  # NOTE: currently there is only one container path allowed, therefore it should not get removed...
-def new_con_path(p):
-    config = get_suq_config()
-    assert p not in config["container_paths"]
-    assert os.path.exists(p) and isinstance(p, str)
-    config["container_paths"].append(p)
-    _store_config(config)
-
-
-@DeprecationWarning  # NOTE: currently there is only one container path allowed, therefore it should not get removed...
-def remove_container_path(p):
-    config = get_suq_config()
-    config["container_paths"].remove(p)
-    _store_config(config)
-
-
 def remove_environment(name, force=False):
     target_path = get_env_path(name)
     if force or user_query_yes_no(question=f"Are you sure you want to remove the current environment? Path: \n "
@@ -99,7 +83,7 @@ def remove_environment(name, force=False):
         try:
             rmtree(target_path)
         except FileNotFoundError:
-            print("INFO: Tried to remove environment {name}, but did not exist.")
+            print(f"INFO: Tried to remove environment {name}, but did not exist.")
         return True
     return False
 
