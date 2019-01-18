@@ -10,7 +10,6 @@ from copy import deepcopy
 from functools import reduce
 
 
-
 # --------------------------------------------------
 # people who contributed code
 __authors__ = "Daniel Lehmberg"
@@ -19,10 +18,7 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
-SYMBOL_KEY_CHAINING = "."  # TODO: possibly change to point "."?
-
-
-# TODO: insert more syntax to get address also list of JSON's
+SYMBOL_KEY_CHAINING = "."
 
 
 def _deep_dict_breadth_first(d: dict, key: str):
@@ -133,17 +129,16 @@ def _handle_subselection_keys(d, key, check_final_leaf, check_unique_key):
 
     keychain = re.split(pattern="[\[\]]", string=key)
 
-    assert len(keychain) == 3, "For now only one sub-selection supported in the key!"
+    assert len(keychain) == 3, "For now only one sub-selection supported in the key."
     keychain2array = keychain[0].rstrip(SYMBOL_KEY_CHAINING)  # remove trailing separator
 
-    if not keychain2array: # check for empty string
+    if not keychain2array:  # check for empty string
         raise KeyError(f"The key {key} is invalid, the uniquely identifying path to the list of jsons has to be given in"
                        f"front. This means the key is not allowed to start with a [ ] condition.")
 
-
     subjsons, path2array = _handle_chained_keys(d, keychain2array,
-                                           check_final_leaf,
-                                           check_unique_key)
+                                                check_final_leaf,
+                                                check_unique_key)
 
     # TODO: actually I need to guarantee that the array is full of dicts (json)
     assert isinstance(subjsons, list), "The path to sub-selection is no array."
@@ -315,7 +310,7 @@ if __name__ == "__main__":
     with open("New_SimpleHKHKJ.scenario", "r") as f:
         d2 = json.load(f)
 
-    val, path = deep_dict_lookup(d2, "dynamicElements.[attributes.id==-1].position.x")
+    val, path = deep_dict_lookup(d2, "dynamicElements.[attributes.id==-1]")
 
     print(val)
     print(path)
