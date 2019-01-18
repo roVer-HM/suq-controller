@@ -23,7 +23,7 @@ __credits__ = ["n/a"]
 # --------------------------------------------------
 
 
-class Query(object):
+class Request(object):
 
     def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QuantityOfInterest,
                  sc_change: ScenarioChanges=None):
@@ -71,7 +71,7 @@ class Query(object):
             print("WARNING: All simulations failed, only 'None' results.")
             final_results = None
         else:
-
+            # Successful runs are collected and concatenated into a single pd.DataFrame
             final_results = dict()
 
             for f in filenames:
@@ -129,10 +129,9 @@ if __name__ == "__main__":
     pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3], "speedDistributionMean": [1.2, 1.3]})
     q0 = QuantityOfInterest("evacuationTimes.txt", em)
 
-    q = Query(em, pv, q0).run(njobs=1)
+    q = Request(em, pv, q0).run(njobs=1)
 
     print(q)
-
 
     exit()
 

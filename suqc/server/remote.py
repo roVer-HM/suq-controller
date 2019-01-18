@@ -123,14 +123,14 @@ class ServerSimulation(object):
 
     @classmethod
     def _remote_run_env(cls, fp):
-        import suqc.query
+        import suqc.request
         import suqc.configuration
 
         simdef = ServerSimulation._remote_load_simdef(fp)
         env_man = suqc.configuration.EnvironmentManager(simdef.name)
 
         # njobs = -1 --> always use all available processors as this is the main reason to use the server
-        par, res = suqc.query.Query(env_man, simdef.par_var, simdef.qoi, simdef.sc).run(njobs=-1)
+        par, res = suqc.request.Request(env_man, simdef.par_var, simdef.qoi, simdef.sc).run(njobs=-1)
         ServerSimulation.store_pickle_results(env_man.env_path, par, res)
 
     @classmethod
