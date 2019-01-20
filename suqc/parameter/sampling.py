@@ -290,7 +290,6 @@ class BoxSamplingUlamMethod(ParameterVariation):
         eigvec = eigvec[:, idx]
         return eigval, eigvec
 
-
     def uniform_distribution_over_boxes_included(self, points: pd.DataFrame):
 
         boxes_included = points.groupby(level=0, axis=0).apply(lambda row: self._get_box(row.iloc[0, :]))
@@ -369,10 +368,6 @@ if __name__ == "__main__":
     par = BoxSamplingUlamMethod()
     par.create_grid(["dynamicElements.[id==1].position.x", "dynamicElements.[id==1].position.y", None],
                     lb=[0, 0, 0], rb=[20, 10, 0], nr_boxes=[20, 10, 0], nr_testf=[1, 1, 0])
-
-
-
-
 
     par.plot_states(initial_cond)
 

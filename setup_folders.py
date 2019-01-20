@@ -5,7 +5,6 @@ import json
 import shutil
 
 from suqc.paths import Paths as pa
-import suqc.configuration
 
 # --------------------------------------------------
 # people who contributed code
@@ -18,6 +17,8 @@ __credits__ = ["n/a"]
 # TODO: at the moment there is a silent full replacement of all files
 # TODO think of handling how to do this in future, cannot replace folder with important results
 # Option 1: have another folder, indicating the version...?
+# TODO: ask for Vadere src path and minimuc server config (make both values (the config file should be ignored!, so that changes are not tracked)
+
 
 pa.set_package_paths(True)
 
@@ -33,7 +34,7 @@ if True:  # TODO: later on make strategy if folder already exist...
     with open(os.path.join(".", "suqc", "suq_config.json"), "r") as f:
         config_file = json.loads(f.read())
 
-    config_file["container_paths"] = [pa.path_container_folder()]
+    config_file["container_paths"] = pa.path_container_folder()
 
     with open(os.path.join(pa.path_cfg_folder(), "suq_config.json"), "w") as f:
         json.dump(config_file, f, indent=4)

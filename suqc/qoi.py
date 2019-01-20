@@ -3,6 +3,7 @@
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
 import os
+import re
 
 import pandas as pd
 import numpy as np
@@ -20,7 +21,8 @@ __credits__ = ["n/a"]
 
 class FileDataInfo(object):
 
-    # TODO: see also vadere issue #199, to include this information in the scenario
+    # Implemented in Vadere merge request !38, this is only a fallback mode and requires manual updating if there are
+    # changes in Vadere. See also vadere issue #199 and #201.
     map_outputtype2index = {"IdOutputFile": 1,
                             "LogEventOutputFile": 1,
                             "NotDataKeyOutputFile": 0,
@@ -31,32 +33,21 @@ class FileDataInfo(object):
                             "TimestepPositionOutputFile": 3,
                             "TimestepRowOutputFile": 2}
 
+    printFallbackMsg = False
+
     def __init__(self, process_file, processors):
         self.filename = process_file["filename"]
         self.output_key = process_file["type"].split(".")[-1]
-
         self.processors = processors  # not really needed yet, but maybe in future.
 
         try:
-            self.nr_indices = self.map_outputtype2index[self.output_key]
+            self.nr_row_indices = self.map_outputtype2index[self.output_key]
         except KeyError:
-            raise KeyError(f"Outputtype={self.output_key} not present in mapping. May have to be inserted manually in "
-                           f"code. Check out Vadere Gitlab issue # 199.")
-
-    @DeprecationWarning
-    def _select_qoiname(self, processors):
-
-        full_name = set([p["type"] for p in processors])
-
-        if len(full_name) != 1:
-            raise ValueError("Only equal types are allowed")
-
-        # get the last identifier
-        # e.g. org.vadere.simulator.projects.dataprocessing.outputfile.TimestepPedestrianIdOutputFile
-        # to TimestepPedestrianIdOutputFile
-        datakey = full_name.pop().split(".")[-1]
-
-        return datakey
+            if not self.printFallbackMsg:
+                self.printFallbackMsg = True
+                print(f"WARNING: file type {self.output_key} was not found in list, this may require an update. Setting "
+                      f"number of index columns to 1.")
+            self.nr_row_indices = 1   # use simply first column as index
 
 
 class QuantityOfInterest(object):
@@ -68,9 +59,7 @@ class QuantityOfInterest(object):
         if isinstance(requested_files, str):
             requested_files = [requested_files]
 
-        basis = em.get_vadere_scenario_basis_file()
-
-        user_set_writers, _ = deep_dict_lookup(basis, "processWriters")
+        user_set_writers, _ = deep_dict_lookup(em.scenario_basis, "processWriters")
         process_files = user_set_writers["files"]
         processsors = user_set_writers["processors"]
 
@@ -86,9 +75,7 @@ class QuantityOfInterest(object):
             filename = pf["filename"]  # TODO: see issue #33
 
             if filename in requested_files:
-
                 sel_procs = self._select_corresp_processors(pf, processsors)
-
                 req_qois.append(FileDataInfo(process_file=pf, processors=sel_procs))
 
                 requested_files.remove(filename)  # -> processed, list should be empty when leaving function
@@ -123,12 +110,23 @@ class QuantityOfInterest(object):
 
         return selected_procs
 
-    def _read_csv(self, req_qoi, filepath):
-        df = pd.read_csv(filepath, delimiter=" ", header=[0])
-        idx_keys = df.columns[:req_qoi.nr_indices]
+    def _read_csv(self, req_qoi: FileDataInfo, filepath):
+        # make sure that Vadere writes
+        with open(filepath) as f:
+            first_line = f.readline()
+
+        try:
+            # Tries to use the meta-data line, extract the number of rows
+            nr_row_indices = re.search(r"ROW=(\d+)", first_line).group(1)
+            nr_row_indices = int(nr_row_indices)
+        except AttributeError or ValueError:  # AttributeError -> regex failed | ValueError -> converting to int failed
+            # Fallback mode, infer index from the hard-coded list.
+            nr_row_indices = req_qoi.nr_row_indices
+
+        df = pd.read_csv(filepath, delimiter=" ", header=[0], comment="#")
+        idx_keys = df.columns[:nr_row_indices]
 
         return df.set_index(idx_keys.tolist())
-
 
     def _add_parid2idx(self, df, par_id):
         # from https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex

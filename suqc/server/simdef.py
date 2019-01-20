@@ -21,8 +21,8 @@ class SimulationDefinition(object):
                  sc: ScenarioChanges=None):
 
         self.name = env_man.name
-        self.basis_file = env_man.get_vadere_scenario_basis_file()
-        self.model = env_man.get_cfg_value("model")
+        self.basis_file = env_man.scenario_basis
+        self.model = env_man.model
         self.par_var = par_var
         self.qoi = qoi
         self.sc = sc
