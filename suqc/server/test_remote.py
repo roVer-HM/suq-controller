@@ -5,7 +5,7 @@
 import unittest
 
 from suqc.server.remote import *
-from suqc.qoi import PedestrianEvacuationTimeProcessor
+from suqc.qoi import *
 
 # --------------------------------------------------
 # people who contributed code
@@ -18,11 +18,10 @@ __credits__ = ["n/a"]
 class TestRemote(unittest.TestCase):
 
     def test_small_corner_environment(self):
-        env_man = EnvironmentManager("corner")
-        par_var = FullGridSampling()
-        par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.3]})
+        env_man = EnvironmentManager("corner", )
+        par_var = FullGridSampling({"speedDistributionStandardDeviation": [0.0, 0.3]})
         scch = ScenarioChanges(apply_default=True)
-        qoi = PedestrianEvacuationTimeProcessor(env_man)
+        qoi = QuantityOfInterest("evacuationTimes.txt", env_man)
 
         with ServerConnection() as sc:
             server_sim = ServerSimulation(sc)

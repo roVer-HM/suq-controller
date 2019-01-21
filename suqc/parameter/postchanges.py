@@ -34,6 +34,7 @@ class ScenarioChanges(object):
         self.add_scenario_change(ChangeScenarioName())
         self.add_scenario_change(ChangeRealTimeSimTimeRatio())
         self.add_scenario_change(ChangeRandomNumber(par_id=True))
+        self.add_scenario_change(AlwaysEnableMetaData())
         self.add_scenario_change(ChangeDescription())
 
     def add_scenario_change(self, sc: 'PostScenarioChange'):
@@ -61,6 +62,14 @@ class PostScenarioChange(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_changes_dict(self, scenario, par_id, par_var):
         raise NotImplementedError("ABC method")
+
+
+class AlwaysEnableMetaData(PostScenarioChange):
+    def __init__(self):
+        super(AlwaysEnableMetaData, self).__init__(name="always_enable_meta_data")
+
+    def get_changes_dict(self, scenario, par_id, par_var):
+        return {"isWriteMetaData": True}
 
 
 class ChangeRealTimeSimTimeRatio(PostScenarioChange):

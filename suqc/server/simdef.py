@@ -5,7 +5,7 @@
 from suqc.configuration import EnvironmentManager
 from suqc.parameter.sampling import ParameterVariation
 from suqc.parameter.postchanges import ScenarioChanges
-from suqc.qoi import QoIProcessor
+from suqc.qoi import QuantityOfInterest
 
 # --------------------------------------------------
 # people who contributed code
@@ -17,12 +17,12 @@ __credits__ = ["n/a"]
 
 class SimulationDefinition(object):
 
-    def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor,
+    def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QuantityOfInterest,
                  sc: ScenarioChanges=None):
 
         self.name = env_man.name
-        self.basis_file = env_man.get_vadere_scenario_basis_file()
-        self.model = env_man.get_cfg_value("model")
+        self.basis_file = env_man.scenario_basis
+        self.model = env_man.model
         self.par_var = par_var
         self.qoi = qoi
         self.sc = sc

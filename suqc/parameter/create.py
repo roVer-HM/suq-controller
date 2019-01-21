@@ -26,7 +26,7 @@ class VadereScenarioCreation(object):
         self._par_var = par_var
         self._sc_change = sc_change
 
-        self._basis_scenario = self._env_man.get_vadere_scenario_basis_file()
+        self._basis_scenario = self._env_man.scenario_basis
         self._par_var.check_selected_keys(self._basis_scenario)
 
     def _vars_dict(self, pid, fp):
@@ -59,7 +59,7 @@ class VadereScenarioCreation(object):
 
     def _sp_creation(self):
         """Single process loop to create all requested scenarios."""
-        basis_scenario = self._env_man.get_vadere_scenario_basis_file()
+        basis_scenario = self._env_man.scenario_basis
         self._par_var.check_selected_keys(basis_scenario)
 
         vars_ = list()
@@ -75,7 +75,7 @@ class VadereScenarioCreation(object):
 
     def generate_vadere_scenarios(self, njobs):
 
-        target_path = self._env_man.get_scenario_variation_path()
+        target_path = self._env_man.get_env_outputfolder_path()
 
         remove_folder(target_path)
         create_folder(target_path)
