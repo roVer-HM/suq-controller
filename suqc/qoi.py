@@ -5,8 +5,9 @@
 import os
 import re
 
+from typing import *
+
 import pandas as pd
-import numpy as np
 
 from suqc.utils.dict_utils import deep_dict_lookup
 from suqc.configuration import EnvironmentManager
@@ -52,7 +53,7 @@ class FileDataInfo(object):
 
 class QuantityOfInterest(object):
 
-    def __init__(self, requested_files, em: EnvironmentManager):
+    def __init__(self, requested_files: Union[List[str], str], em: EnvironmentManager):
 
         assert isinstance(requested_files, (list, str))
 
