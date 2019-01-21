@@ -7,7 +7,7 @@ import abc
 import pandas as pd
 import numpy as np
 
-from typing import List
+from typing import *
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid, ParameterSampler
@@ -67,24 +67,26 @@ class ParameterVariation(metaclass=abc.ABCMeta):
             yield (i, dict(row))
 
 
+class UserDefinedSampling(ParameterVariation):
+
+    def __init__(self, points: List[dict]):
+        super(UserDefinedSampling, self).__init__()
+        self._add_dict_points(points)
+
+
 class FullGridSampling(ParameterVariation):
 
-    def __init__(self):
-        super(FullGridSampling, self).__init__()
-        self._added_grid = False
+    def __init__(self, grid: Union[dict, ParameterGrid]):
 
-    def _keys_of_paramgrid(self, grid: ParameterGrid):
-        return grid.param_grid[0].keys()
-
-    def add_dict_grid(self, d: dict):
-        return self.add_sklearn_grid(ParameterGrid(param_grid=d))
-
-    def add_sklearn_grid(self, grid: ParameterGrid):
-        if self._added_grid:
-            print("WARNING: Grid has already been added, can only add once.")
+        if isinstance(grid, dict):
+            self._add_sklearn_grid(ParameterGrid(param_grid=dict))
         else:
-            self._add_dict_points(points=list(grid))         # list creates all points described by the 'grid'
-        return self._points
+            self._add_sklearn_grid(grid)
+
+        super(FullGridSampling, self).__init__()
+
+    def _add_sklearn_grid(self, grid: ParameterGrid):
+        self._add_dict_points(points=list(grid))         # list creates all points described by the 'grid'
 
 
 class RandomSampling(ParameterVariation):
@@ -290,7 +292,6 @@ class BoxSamplingUlamMethod(ParameterVariation):
         eigvec = eigvec[:, idx]
         return eigval, eigvec
 
-
     def uniform_distribution_over_boxes_included(self, points: pd.DataFrame):
 
         boxes_included = points.groupby(level=0, axis=0).apply(lambda row: self._get_box(row.iloc[0, :]))
@@ -369,10 +370,6 @@ if __name__ == "__main__":
     par = BoxSamplingUlamMethod()
     par.create_grid(["dynamicElements.[id==1].position.x", "dynamicElements.[id==1].position.y", None],
                     lb=[0, 0, 0], rb=[20, 10, 0], nr_boxes=[20, 10, 0], nr_testf=[1, 1, 0])
-
-
-
-
 
     par.plot_states(initial_cond)
 

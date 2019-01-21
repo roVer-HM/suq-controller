@@ -10,7 +10,7 @@ from fabric import Connection
 
 from suqc.parameter.sampling import ParameterVariation, FullGridSampling, BoxSamplingUlamMethod, RandomSampling
 from suqc.parameter.postchanges import ScenarioChanges
-from suqc.qoi import QoIProcessor
+from suqc.qoi import QuantityOfInterest
 from suqc.configuration import EnvironmentManager, get_suq_config, store_server_config
 from suqc.server.simdef import SimulationDefinition
 
@@ -123,14 +123,14 @@ class ServerSimulation(object):
 
     @classmethod
     def _remote_run_env(cls, fp):
-        import suqc.query
+        import suqc.request
         import suqc.configuration
 
         simdef = ServerSimulation._remote_load_simdef(fp)
         env_man = suqc.configuration.EnvironmentManager(simdef.name)
 
         # njobs = -1 --> always use all available processors as this is the main reason to use the server
-        par, res = suqc.query.Query(env_man, simdef.par_var, simdef.qoi, simdef.sc).run(njobs=-1)
+        par, res = suqc.request.Request(env_man, simdef.par_var, simdef.qoi, simdef.sc).run(njobs=-1)
         ServerSimulation.store_pickle_results(env_man.env_path, par, res)
 
     @classmethod
@@ -172,7 +172,7 @@ class ServerSimulation(object):
             isinstance(df_res, pd.DataFrame)
         return df_par, df_res
 
-    def run(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QoIProcessor,
+    def run(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QuantityOfInterest,
             sc: ScenarioChanges=None):
 
         simdef = SimulationDefinition(env_man, par_var, qoi, sc)
@@ -191,16 +191,16 @@ class ServerSimulation(object):
 if __name__ == "__main__":
     from suqc.qoi import PedestrianEvacuationTimeProcessor
 
-    env_man = EnvironmentManager("corner")
-    par_var = FullGridSampling()
-    par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0]})
-    qoi = PedestrianEvacuationTimeProcessor(env_man)
-
-    with ServerConnection() as sc:
-        server_sim = ServerSimulation(sc)
-        result = server_sim.run(env_man, par_var, qoi)
-
-    print(result)
+    # env_man = EnvironmentManager("corner")
+    # par_var = FullGridSampling()
+    # par_var.add_dict_grid({"speedDistributionStandardDeviation": [0.0]})
+    #
+    #
+    # with ServerConnection() as sc:
+    #     server_sim = ServerSimulation(sc)
+    #     result = server_sim.run(env_man, par_var, qoi)
+    #
+    # print(result)
 
     # TODO Next steps:
     # TODO: Make a script to update the suqc automatically (fresh installation) --> problems with sudo and ssh
