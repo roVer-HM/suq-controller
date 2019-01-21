@@ -3,11 +3,11 @@
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
 import multiprocessing
+import hashlib
+import os
 
 import pandas as pd
 import numpy as np
-
-import os
 
 from suqc.qoi import QuantityOfInterest
 from suqc.configuration import EnvironmentManager
@@ -147,26 +147,26 @@ class Request(object):
         return self.par_var.points, self.result
 
 
-class QuickRequest(object):
+def QuickRequest(scenario_path: str, parameter_var: List[dict], qoi: Union[str, List[str]], model: str, njobs:int=1):
 
-    def __init__(self, scenario_path: str, parameter_var: List[dict], qoi: Union[str, List[str]], model: str):
+    assert os.path.exists(scenario_path) and scenario_path.endswith(".scenario"), \
+        "Filepath must exist and the file has to end with .scenario"
 
-        assert os.path.exists(scenario_path) and scenario_path.endswith(".scenario"), \
-            "Filepath must exist and the file has to end with .scenario"
-        import hashlib
+    # results are only returned, not saved, but output has to be saved, the removed again.
+    temporary_env_name = "_".join(["temporary", os.path.basename(scenario_path).replace(".scenario", ""),
+                                  hashlib.sha1(scenario_path.encode()).hexdigest()])
 
-        # results are only returned, not saved, but output has to be saved, the removed again.
-        temporary_env_name = os.path.basename(scenario_path) + hashlib.sha1(scenario_path)
+    env = EnvironmentManager.create_environment(
+        env_name=temporary_env_name, basis_scenario=scenario_path, model=model, replace=True)
 
+    par_var = UserDefinedSampling(parameter_var)
 
-        env = EnvironmentManager.create_environment(
-            env_name=temporary_env_name, basis_scenario=scenario_path, model=model, replace=False)
+    result = Request(env, par_var, qoi).run(njobs=3)
 
-        par_var = ParameterVariation.UserDefinedSampling(parameter_var)
+    # clear up, the results are not saved, only the result is of interest
+    env.remove_environment(name=temporary_env_name, force=True)
 
-        _qoi = QuantityOfInterest(qoi, env)
-
-        Request(env, par_var, _qoi)
+    return result
 
 
 

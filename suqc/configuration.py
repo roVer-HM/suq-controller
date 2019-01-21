@@ -145,7 +145,9 @@ class EnvironmentManager(object):
         target_path = cls.environment_path(env_name)
 
         if replace and os.path.exists(target_path):
-            if not cls.remove_environment(env_name):
+            if replace:
+                cls.remove_environment(env_name, force=True)
+            elif not cls.remove_environment(env_name):
                 print("Aborting to create a new scenario.")
                 return
 
@@ -175,7 +177,7 @@ class EnvironmentManager(object):
         cfg["suqc_state"] = get_current_suqc_state()
 
         with open(os.path.join(target_path, "suqc_commit_hash.json"), 'w') as outfile:
-            s = "\n".join(["commit hash at creation", get_current_suqc_state()])
+            s = "\n".join(["commit hash at creation", get_current_suqc_state()["git_hash"]])
             outfile.write(s)
 
         # Create the folder where the output is stored
