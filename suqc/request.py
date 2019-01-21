@@ -11,7 +11,7 @@ import os
 
 from suqc.qoi import QuantityOfInterest
 from suqc.configuration import EnvironmentManager
-from suqc.parameter.sampling import ParameterVariation, FullGridSampling, RandomSampling, BoxSamplingUlamMethod
+from suqc.parameter.sampling import *
 from suqc.parameter.postchanges import ScenarioChanges
 from suqc.parameter.create import VadereScenarioCreation
 
@@ -27,10 +27,16 @@ __credits__ = ["n/a"]
 
 class Request(object):
 
-    def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation, qoi: QuantityOfInterest,
-                 sc_change: ScenarioChanges=None):
+    def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation,
+                 qoi: Union[str, List[str], QuantityOfInterest], sc_change: ScenarioChanges=None):
+
         self._env_man = env_man
-        self._qoi = qoi
+
+        if isinstance(qoi, (str, list)):
+            self._qoi = QuantityOfInterest(requested_files=qoi, em=self._env_man)
+        else:  # type(qoi) == QuantityOfInterest
+            self._qoi = qoi
+
         self._sc_change = sc_change
 
         self.par_var = par_var
@@ -143,7 +149,7 @@ class Request(object):
 
 class QuickRequest(object):
 
-    def __init__(self, scenario_path: str, parameter_var: List[dict], qoi: List[str], model: str):
+    def __init__(self, scenario_path: str, parameter_var: List[dict], qoi: Union[str, List[str]], model: str):
 
         assert os.path.exists(scenario_path) and scenario_path.endswith(".scenario"), \
             "Filepath must exist and the file has to end with .scenario"
@@ -156,12 +162,12 @@ class QuickRequest(object):
         env = EnvironmentManager.create_environment(
             env_name=temporary_env_name, basis_scenario=scenario_path, model=model, replace=False)
 
-        par_var = ParameterVariation.individual()
+        par_var = ParameterVariation.UserDefinedSampling(parameter_var)
 
-        # TODO: provide an user specified way, not all parameters have to be changed all the time.
-        self._par_var = ParameterVariation(parameter_var)
+        _qoi = QuantityOfInterest(qoi, env)
 
-        QuantityOfInterest(qoi, self._em)
+        Request(env, par_var, _qoi)
+
 
 
 class SingleKeyRequest(object):
@@ -174,6 +180,12 @@ class SingleKeyRequest(object):
 
 
 if __name__ == "__main__":
+    QuickRequest(scenario_path="/home/daniel/REPOS/suq-controller/suqc/rimea_06_corner.scenario",
+                 parameter_var=[{"speedDistributionMean": 0.1}, {"speedDistributionMean": 0.2}, {"speedDistributionMean": 0.3}],
+                 qoi="tests.txt", model="vadere0_6")
+
+
+    exit()
 
     em = EnvironmentManager("corner", model="vadere0_6.jar")
     pv = FullGridSampling()
