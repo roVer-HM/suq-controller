@@ -10,6 +10,9 @@ log.out
 vadere_scenarios
 parid_lookup.csv
 
+# Vadere jar Models are *not* directly stored in the repo anymore via git lfs
+*.jar
+
 
 # pickle files
 *.p
