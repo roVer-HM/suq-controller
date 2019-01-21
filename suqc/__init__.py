@@ -15,7 +15,7 @@ from suqc.configuration import EnvironmentManager
 from suqc.parameter.sampling import *
 from suqc.parameter.postchanges import ScenarioChanges
 from suqc.qoi import *
-from suqc.request import Request
+from suqc.request import Request, QuickRequest, SingleKeyRequest
 from suqc.server.remote import ServerConnection, ServerSimulation
 
 __version__ = "0.1"

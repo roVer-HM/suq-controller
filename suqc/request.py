@@ -150,7 +150,7 @@ class Request(object):
 
 def QuickRequest(scenario_path: str, parameter_var: List[dict], qoi: Union[str, List[str]], model: str, njobs:int=1):
     """Removes all output again after it is collected from the Vadere output files. This method is best for interactive
-    retuests. """
+    retuests."""
 
     assert os.path.exists(scenario_path) and scenario_path.endswith(".scenario"), \
         "Filepath must exist and the file has to end with .scenario"
@@ -173,9 +173,10 @@ def QuickRequest(scenario_path: str, parameter_var: List[dict], qoi: Union[str, 
         EnvironmentManager.remove_environment(name=temporary_env_name, force=True)
 
 
-def SingleKeyRequest(scenario_path: str, key: str, values: np.ndarray, qoi: Union[str, List[str]], model: str):
+def SingleKeyRequest(scenario_path: str, key: str, values: np.ndarray, qoi: Union[str, List[str]],
+                     model: str, njobs:int=1):
     simple_grid = [{key: v} for v in values]
-    return QuickRequest(scenario_path, parameter_var=simple_grid, qoi=qoi, model=model)
+    return QuickRequest(scenario_path, parameter_var=simple_grid, qoi=qoi, model=model, njobs=njobs)
 
 
 if __name__ == "__main__":

@@ -103,7 +103,9 @@ class EnvironmentManager(object):
 
         print(f"INFO: Set environment path to {self.env_path}")
         if not os.path.exists(self.env_path):
-            raise FileNotFoundError(f"Environment {self.env_path} does not exist")
+            raise FileNotFoundError(f"Environment {self.env_path} does not exist. Use function "
+                                    f"'EnvironmentManager.create_environment' or "
+                                    f"'EnvironmentManager.create_if_not_exist'")
 
         # TODO: in future maybe infer also if it is the path to Vadere src (the inference can be completely impemented
         #  in the wrapper)
@@ -162,7 +164,7 @@ class EnvironmentManager(object):
         if isinstance(basis_scenario, str):  # assume that this is a path
 
             assert os.path.isfile(basis_scenario), "Filepath to .scenario does not exist"
-            assert basis_scenario.split(".")[-1] == "scenario", "File has to be a VADERE '*.scenario' file"
+            assert basis_scenario.split(".")[-1] == "scenario", "File has to be a Vadere '*.scenario' file"
 
             with open(basis_scenario, "r") as file:
                 basis_scenario = file.read()
