@@ -7,7 +7,7 @@ import abc
 import pandas as pd
 import numpy as np
 
-from typing import List
+from typing import *
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid, ParameterSampler
@@ -76,22 +76,17 @@ class UserDefinedSampling(ParameterVariation):
 
 class FullGridSampling(ParameterVariation):
 
-    def __init__(self):
-        super(FullGridSampling, self).__init__()
-        self._added_grid = False
+    def __init__(self, grid: Union[dict, ParameterGrid]):
 
-    def _keys_of_paramgrid(self, grid: ParameterGrid):
-        return grid.param_grid[0].keys()
-
-    def add_dict_grid(self, d: dict):
-        return self.add_sklearn_grid(ParameterGrid(param_grid=d))
-
-    def add_sklearn_grid(self, grid: ParameterGrid):
-        if self._added_grid:
-            print("WARNING: Grid has already been added, can only add once.")
+        if isinstance(grid, dict):
+            self._add_sklearn_grid(ParameterGrid(param_grid=dict))
         else:
-            self._add_dict_points(points=list(grid))         # list creates all points described by the 'grid'
-        return self._points
+            self._add_sklearn_grid(grid)
+
+        super(FullGridSampling, self).__init__()
+
+    def _add_sklearn_grid(self, grid: ParameterGrid):
+        self._add_dict_points(points=list(grid))         # list creates all points described by the 'grid'
 
 
 class RandomSampling(ParameterVariation):
