@@ -28,7 +28,7 @@ __credits__ = ["n/a"]
 class Request(object):
 
     def __init__(self, env_man: EnvironmentManager, par_var: ParameterVariation,
-                 qoi: Union[str, List[str], QuantityOfInterest], sc_change: ScenarioChanges=None):
+                 qoi: Union[str, List[str], QuantityOfInterest], sc_change: ScenarioChanges = None):
 
         self._env_man = env_man
 
@@ -76,7 +76,7 @@ class Request(object):
         for ires in results:
             if ires is not None:
                 # it is assumed that the the keys for all elements in results are the same!
-                filenames = list(results[0].keys())
+                filenames = list(ires.keys())
                 break
 
         if filenames is None:
@@ -91,12 +91,13 @@ class Request(object):
                 collected_data = list()
 
                 for ires in results:
-                    collected_data.append(ires[f])
+                    if ires is not None:
+                        collected_data.append(ires[f])
 
                 collected_data = pd.concat(collected_data, axis=0)
                 final_results[f] = collected_data
 
-        if len(filenames) == 1:
+        if len(filenames) == 1 and filenames is not None:
             # there is no need to have the key/value if only file was requested
             final_results = final_results[filenames[0]]
 
@@ -148,46 +149,51 @@ class Request(object):
 
 
 def QuickRequest(scenario_path: str, parameter_var: List[dict], qoi: Union[str, List[str]], model: str, njobs:int=1):
+    """Removes all output again after it is collected from the Vadere output files. This method is best for interactive
+    retuests. """
 
     assert os.path.exists(scenario_path) and scenario_path.endswith(".scenario"), \
         "Filepath must exist and the file has to end with .scenario"
 
     # results are only returned, not saved, but output has to be saved, the removed again.
     temporary_env_name = "_".join(["temporary", os.path.basename(scenario_path).replace(".scenario", ""),
-                                  hashlib.sha1(scenario_path.encode()).hexdigest()])
+                                   hashlib.sha1(scenario_path.encode()).hexdigest()])
 
-    env = EnvironmentManager.create_environment(
-        env_name=temporary_env_name, basis_scenario=scenario_path, model=model, replace=True)
+    try:
+        env = EnvironmentManager.create_environment(
+            env_name=temporary_env_name, basis_scenario=scenario_path, model=model, replace=True)
 
-    par_var = UserDefinedSampling(parameter_var)
+        par_var = UserDefinedSampling(parameter_var)
 
-    result = Request(env, par_var, qoi).run(njobs=3)
+        result_request = Request(env, par_var, qoi).run(njobs=njobs)
+        return result_request
 
-    # clear up, the results are not saved, only the result is of interest
-    env.remove_environment(name=temporary_env_name, force=True)
-
-    return result
-
+    finally:
+        # clear up: the results are not saved for QuickRequests
+        EnvironmentManager.remove_environment(name=temporary_env_name, force=True)
 
 
-class SingleKeyRequest(object):
-
-    def __init__(self, scenario_path: str, key: str, values: np.ndarray):
-        # Idea: only for one key, which is probably one of the most often required
-        # Return only a single DataFrame, join parameter lookup and results
-        # TODO
-        pass
+def SingleKeyRequest(scenario_path: str, key: str, values: np.ndarray, qoi: Union[str, List[str]], model: str):
+    simple_grid = [{key: v} for v in values]
+    return QuickRequest(scenario_path, parameter_var=simple_grid, qoi=qoi, model=model)
 
 
 if __name__ == "__main__":
-    QuickRequest(scenario_path="/home/daniel/REPOS/suq-controller/suqc/rimea_06_corner.scenario",
-                 parameter_var=[{"speedDistributionMean": 0.1}, {"speedDistributionMean": 0.2}, {"speedDistributionMean": 0.3}],
-                 qoi="tests.txt", model="vadere0_6")
+    # par, res = QuickRequest(scenario_path="/home/daniel/REPOS/suq-controller/suqc/rimea_13_stairs_long_nelder_mead.scenario",
+    #              parameter_var=[{"speedDistributionMean": 0.1}, {"speedDistributionMean": 0.2}, {"speedDistributionMean": 0.3}],
+    #              qoi="postvis.trajectories", model="vadere0_7rc.jar")
 
+    par, res = SingleKeyRequest(scenario_path="/home/daniel/REPOS/suq-controller/suqc/rimea_13_stairs_long_nelder_mead.scenario",
+                                key="speedDistributionMean", values=np.array([0.1, 0.2, 0.3]),
+                                qoi="postvis.trajectories",
+                                model="vadere0_7rc.jar")
+
+
+    print(res)
 
     exit()
 
-    em = EnvironmentManager("corner", model="vadere0_6.jar")
+    em = EnvironmentManager("corner", model="vadere0_7rc.jar")
     pv = FullGridSampling()
     pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3], "speedDistributionMean": [1.2, 1.3]})
     q0 = QuantityOfInterest("evacuationTimes.txt", em)

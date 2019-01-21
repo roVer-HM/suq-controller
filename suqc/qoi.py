@@ -71,7 +71,7 @@ class QuantityOfInterest(object):
 
         for pf in process_files:
 
-            # TODO: This has to exactly match, maybe make more robust to allow without
+            # TODO: This has to exactly match, maybe make more robust to allow without the file-ending
             filename = pf["filename"]  # TODO: see issue #33
 
             if filename in requested_files:
