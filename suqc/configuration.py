@@ -65,7 +65,7 @@ def default_models_path():
 
 class VadereConsoleWrapper(object):
 
-    def __init__(self, model_path: str, loglvl="OFF"):
+    def __init__(self, model_path: str, loglvl="ALL"):
         self.jar_path = model_path
         self.loglvl = loglvl
 

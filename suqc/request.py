@@ -122,7 +122,7 @@ class Request(object):
 
         idx = [q["par_id"] for q in query_list]
 
-        self.par_var.points.loc[idx, "req_times"] = req_times
+        self.par_var.points.loc[idx, "req_time"] = req_times
         self.result = self._finalize_results(data_results)
 
     def run(self, njobs: int = -1):
