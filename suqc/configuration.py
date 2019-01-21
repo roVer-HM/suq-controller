@@ -32,9 +32,11 @@ DEFAULT_SUQ_CONFIG = {"container_path": os.path.join(pa.path_src_folder(), "envs
                           "port": -1
                       }}
 
+
 def _store_config(d):
     with open(pa.path_suq_config_file(), "w") as outfile:
         json.dump(d, outfile, indent=4)
+
 
 def get_suq_config():
     if not os.path.exists(pa.path_suq_config_file()):
