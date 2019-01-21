@@ -300,7 +300,9 @@ def change_dict(d: dict, changes: dict):
 
         #Security check:
         check_val, _ = deep_dict_lookup(d, k)
-        assert check_val == new_val, "Something went wrong with setting the new value!"
+        assert check_val == new_val, f"Something went wrong with setting the new value! " \
+            f"Check val={check_val} vs. new_val={new_val}."
+
     return deepcopy(d)
 
 

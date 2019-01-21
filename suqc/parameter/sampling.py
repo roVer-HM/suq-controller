@@ -63,8 +63,20 @@ class ParameterVariation(metaclass=abc.ABCMeta):
         return self._points.shape[0]
 
     def par_iter(self):
+        # nan entries are not considered
         for i, row in self._points[ParameterVariation.MULTI_IDX_LEVEL0_PAR].iterrows():
-            yield (i, dict(row))
+
+            # TODO: this is not nice coding, however, there are some issues. See issue #40
+            ret = dict(row)
+            delete_keys = list()
+            for k, v in ret.items():
+                if np.isnan(v):
+                    delete_keys.append(k)
+
+            for dk in delete_keys:
+                del ret[dk]
+
+            yield (i, ret)
 
 
 class UserDefinedSampling(ParameterVariation):
@@ -361,9 +373,6 @@ class BoxSamplingUlamMethod(ParameterVariation):
             ax.set_title(f"step={sidx}")
         plt.tight_layout()
         plt.show()
-
-
-
 
 
 if __name__ == "__main__":
