@@ -143,32 +143,20 @@ class Request(object):
 
 class QuickRequest(object):
 
-    def __init__(self, scenario_path: str, parameter_var: dict, qoi: List[str]):
+    def __init__(self, scenario_path: str, parameter_var: List[dict], qoi: List[str], model: str):
 
         assert os.path.exists(scenario_path) and scenario_path.endswith(".scenario"), \
             "Filepath must exist and the file has to end with .scenario"
         import hashlib
 
-        # results are only returned, not saved
+        # results are only returned, not saved, but output has to be saved, the removed again.
         temporary_env_name = os.path.basename(scenario_path) + hashlib.sha1(scenario_path)
 
-        # TODO: how to easily select the current model?
-        #  either use path to jar_file or a string defining existing model
 
-        # TODO: think of ways to make this more simple + add a date when the model was added + allow direct compilation
+        env = EnvironmentManager.create_environment(
+            env_name=temporary_env_name, basis_scenario=scenario_path, model=model, replace=False)
 
-        # TODO: refactor the Vadere-model handling:
-        #  *) Create a VadereConsoleWrapper class
-        #      -> set either model name (+jar), i.e. models saved in the models folder
-        #      -> set a path to a jar
-        #      -> [FUTURE, if needed] set Vadere src parent folder to compile and get the latest.
-        #  *) remove the loopup in the config file
-        #  *) refactor configuration (no need to add/remove_model) -> by string the jar files in the models are looked
-        #  *) Add a path option vadere src code.
-
-        EnvironmentManager.create_environment(name=temporary_env_name, basis_scenario=scenario_path)
-
-        self._em = EnvironmentManager(name=temporary_env_name, model="vadere0_6")
+        par_var = ParameterVariation.individual()
 
         # TODO: provide an user specified way, not all parameters have to be changed all the time.
         self._par_var = ParameterVariation(parameter_var)

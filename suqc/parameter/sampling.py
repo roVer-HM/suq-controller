@@ -67,6 +67,13 @@ class ParameterVariation(metaclass=abc.ABCMeta):
             yield (i, dict(row))
 
 
+class UserDefinedSampling(ParameterVariation):
+
+    def __init__(self, points: List[dict]):
+        super(UserDefinedSampling, self).__init__()
+        self._add_dict_points(points)
+
+
 class FullGridSampling(ParameterVariation):
 
     def __init__(self):
