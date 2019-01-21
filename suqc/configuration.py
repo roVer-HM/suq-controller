@@ -67,9 +67,15 @@ def default_models_path():
 
 class VadereConsoleWrapper(object):
 
+    # Current log level choices, requires to manually add, if there are changes
+    ALLOWED_LOGLVL = ["OFF", "FATAL", "TOPOGRAPHY_ERROR", "TOPOGRAPHY_WARN", "INFO", "DEBUG", "ALL"]
+
     def __init__(self, model_path: str, loglvl="ALL"):
         self.jar_path = model_path
         self.loglvl = loglvl
+
+        assert self.loglvl in self.ALLOWED_LOGLVL, f"set loglvl={self.loglvl} not contained in allowed: " \
+            f"{self.ALLOWED_LOGLVL}"
 
         if not os.path.exists(self.jar_path):
             raise FileExistsError(f"Vadere console file {self.jar_path} does not exist.")
