@@ -65,14 +65,19 @@ def default_models_path():
 
 class VadereConsoleWrapper(object):
 
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str, loglvl="OFF"):
         self.jar_path = model_path
+        self.loglvl = loglvl
+
         if not os.path.exists(self.jar_path):
             raise FileExistsError(f"Vadere console file {self.jar_path} does not exist.")
 
     def run_simulation(self, scenario_fp, output_path):
         start = time.time()
-        ret_val = subprocess.call(["java", "-jar", self.jar_path, "suq", "-f", scenario_fp, "-o", output_path])
+        ret_val = subprocess.call(["java", "-jar",
+                                   self.jar_path, "--loglevel",
+                                   self.loglvl, "suq", "-f", scenario_fp,
+                                   "-o", output_path])
         return ret_val, time.time() - start
 
     @classmethod
@@ -177,7 +182,7 @@ class EnvironmentManager(object):
         cfg["suqc_state"] = get_current_suqc_state()
 
         with open(os.path.join(target_path, "suqc_commit_hash.json"), 'w') as outfile:
-            s = "\n".join(["commit hash at creation", get_current_suqc_state()["git_hash"]])
+            s = "\n".join(["commit hash at creation", cfg["suqc_state"]["git_hash"]])
             outfile.write(s)
 
         # Create the folder where the output is stored
