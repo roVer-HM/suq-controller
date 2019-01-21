@@ -148,7 +148,7 @@ class Request(object):
         return self.par_var.points, self.result
 
 
-def QuickRequest(scenario_path: str, parameter_var: List[dict], qoi: Union[str, List[str]], model: str, njobs:int=1):
+def quick_request(scenario_path: str, parameter_var: List[dict], qoi: Union[str, List[str]], model: str, njobs:int=1):
     """Removes all output again after it is collected from the Vadere output files. This method is best for interactive
     retuests."""
 
@@ -173,10 +173,10 @@ def QuickRequest(scenario_path: str, parameter_var: List[dict], qoi: Union[str, 
         EnvironmentManager.remove_environment(name=temporary_env_name, force=True)
 
 
-def SingleKeyRequest(scenario_path: str, key: str, values: np.ndarray, qoi: Union[str, List[str]],
-                     model: str, njobs:int=1):
+def single_key_request(scenario_path: str, key: str, values: np.ndarray, qoi: Union[str, List[str]],
+                       model: str, njobs:int=1):
     simple_grid = [{key: v} for v in values]
-    return QuickRequest(scenario_path, parameter_var=simple_grid, qoi=qoi, model=model, njobs=njobs)
+    return quick_request(scenario_path, parameter_var=simple_grid, qoi=qoi, model=model, njobs=njobs)
 
 
 if __name__ == "__main__":
@@ -184,10 +184,10 @@ if __name__ == "__main__":
     #              parameter_var=[{"speedDistributionMean": 0.1}, {"speedDistributionMean": 0.2}, {"speedDistributionMean": 0.3}],
     #              qoi="postvis.trajectories", model="vadere0_7rc.jar")
 
-    par, res = SingleKeyRequest(scenario_path="/home/daniel/REPOS/suq-controller/suqc/rimea_13_stairs_long_nelder_mead.scenario",
-                                key="speedDistributionMean", values=np.array([0.1, 0.2, 0.3]),
-                                qoi="postvis.trajectories",
-                                model="vadere0_7rc.jar")
+    par, res = single_key_request(scenario_path="/home/daniel/REPOS/suq-controller/suqc/rimea_13_stairs_long_nelder_mead.scenario",
+                                  key="speedDistributionMean", values=np.array([0.1, 0.2, 0.3]),
+                                  qoi="postvis.trajectories",
+                                  model="vadere0_7rc.jar")
 
 
     print(res)
