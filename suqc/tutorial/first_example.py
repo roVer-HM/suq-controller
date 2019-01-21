@@ -1,7 +1,5 @@
 #!/usr/bin/env python3 
 
-# TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
-
 import numpy as np
 import os
 import urllib
