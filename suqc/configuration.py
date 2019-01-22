@@ -105,6 +105,8 @@ class VadereConsoleWrapper(object):
 
 class EnvironmentManager(object):
 
+    output_folder = "vadere_output"
+
     def __init__(self, env_name: str, model: Union[VadereConsoleWrapper, str]):
         self.name = env_name
         self.env_path = self.environment_path(self.name)
@@ -196,7 +198,7 @@ class EnvironmentManager(object):
             outfile.write(s)
 
         # Create the folder where the output is stored
-        os.mkdir(os.path.join(target_path, "vadere_output"))
+        os.mkdir(os.path.join(target_path, EnvironmentManager.output_folder))
 
         return cls(env_name, model)
 
@@ -234,7 +236,7 @@ class EnvironmentManager(object):
         return path
 
     def get_env_outputfolder_path(self):
-        rel_path = os.path.join(self.env_path, "vadere_scenarios")
+        rel_path = os.path.join(self.env_path, EnvironmentManager.output_folder)
         return os.path.abspath(rel_path)
 
     def get_par_id_output_path(self, par_id, create):
