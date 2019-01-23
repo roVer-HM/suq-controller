@@ -53,14 +53,14 @@ class FileDataInfo(object):
 
 class QuantityOfInterest(object):
 
-    def __init__(self, requested_files: Union[List[str], str], em: EnvironmentManager):
+    def __init__(self, requested_files: Union[List[str], str], basis_scenario: dict):
 
         assert isinstance(requested_files, (list, str))
 
         if isinstance(requested_files, str):
             requested_files = [requested_files]
 
-        user_set_writers, _ = deep_dict_lookup(em.scenario_basis, "processWriters")
+        user_set_writers, _ = deep_dict_lookup(basis_scenario, "processWriters")
         process_files = user_set_writers["files"]
         processsors = user_set_writers["processors"]
 

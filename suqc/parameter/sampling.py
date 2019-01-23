@@ -62,6 +62,9 @@ class ParameterVariation(metaclass=abc.ABCMeta):
     def nr_par_variations(self):
         return self._points.shape[0]
 
+    def to_dictlist(self):
+        return [i[1] for i in self.par_iter()]
+
     def par_iter(self):
         # nan entries are not considered
         for i, row in self._points[ParameterVariation.MULTI_IDX_LEVEL0_PAR].iterrows():
@@ -89,13 +92,12 @@ class UserDefinedSampling(ParameterVariation):
 class FullGridSampling(ParameterVariation):
 
     def __init__(self, grid: Union[dict, ParameterGrid]):
-
+        super(FullGridSampling, self).__init__()
+        
         if isinstance(grid, dict):
-            self._add_sklearn_grid(ParameterGrid(param_grid=dict))
+            self._add_sklearn_grid(ParameterGrid(param_grid=grid))
         else:
             self._add_sklearn_grid(grid)
-
-        super(FullGridSampling, self).__init__()
 
     def _add_sklearn_grid(self, grid: ParameterGrid):
         self._add_dict_points(points=list(grid))         # list creates all points described by the 'grid'

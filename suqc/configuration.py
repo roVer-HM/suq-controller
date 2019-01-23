@@ -71,7 +71,10 @@ class VadereConsoleWrapper(object):
     ALLOWED_LOGLVL = ["OFF", "FATAL", "TOPOGRAPHY_ERROR", "TOPOGRAPHY_WARN", "INFO", "DEBUG", "ALL"]
 
     def __init__(self, model_path: str, loglvl="ALL"):
-        self.jar_path = model_path
+
+        self.jar_path = os.path.abspath(model_path)
+        assert os.path.exists(self.jar_path)
+
         self.loglvl = loglvl
 
         assert self.loglvl in self.ALLOWED_LOGLVL, f"set loglvl={self.loglvl} not contained in allowed: " \
@@ -102,12 +105,25 @@ class VadereConsoleWrapper(object):
     def from_new_compiled_package(cls, src_path=None):
         pass  # TODO: use default src_path
 
+    @classmethod
+    def infer_model(cls, model):
+        if isinstance(model, str):
+            if os.path.exists(model):
+                return VadereConsoleWrapper.from_model_path(os.path.abspath(model))
+            else:
+                return VadereConsoleWrapper.from_default_models(model)
+        elif isinstance(model, VadereConsoleWrapper):
+            return model
+        else:
+            raise ValueError("Failed to infer the Vadere model.")
+
+
 
 class EnvironmentManager(object):
 
     output_folder = "vadere_output"
 
-    def __init__(self, env_name: str, model: Union[VadereConsoleWrapper, str]):
+    def __init__(self, env_name: str):
         self.name = env_name
         self.env_path = self.environment_path(self.name)
 
@@ -116,47 +132,39 @@ class EnvironmentManager(object):
             raise FileNotFoundError(f"Environment {self.env_path} does not exist. Use function "
                                     f"'EnvironmentManager.create_environment' or "
                                     f"'EnvironmentManager.create_if_not_exist'")
-
-        # TODO: in future maybe infer also if it is the path to Vadere src (the inference can be completely impemented
-        #  in the wrapper)
-        if isinstance(model, str):
-            if os.path.exists(model):
-                self.model = VadereConsoleWrapper.from_model_path(model)
-            else:
-                self.model = VadereConsoleWrapper.from_default_models(model)
-        else:
-            self.model = model
-
         self._scenario_basis = None
 
     @property
-    def scenario_basis(self):
+    def basis_scenario(self):
         if self._scenario_basis is None:
-            sc_files = glob.glob(os.path.join(self.env_path, "*.scenario"))
-            assert len(sc_files) == 1, "None or too many .scenario files found in environment."
+            path_basis_scenario = self.path_basis_scenario
 
-            with open(sc_files[0], "r") as f:
+            with open(path_basis_scenario, "r") as f:
                 basis_file = json.load(f)
             self._scenario_basis = basis_file
 
         return self._scenario_basis
 
+    @property
+    def path_basis_scenario(self):
+        sc_files = glob.glob(os.path.join(self.env_path, "*.scenario"))
+        assert len(sc_files) == 1, "None or too many .scenario files found in environment."
+        return sc_files[0]
+
     @classmethod
-    def create_if_not_exist(cls, env_name: str, basis_scenario: Union[str, dict],
-                           model: Union[VadereConsoleWrapper, str]):
+    def create_if_not_exist(cls, env_name: str, basis_scenario: Union[str, dict]):
         target_path = cls.environment_path(env_name)
         if os.path.exists(target_path):
-            existing = cls(env_name, model)
+            existing = cls(env_name)
 
             # TODO: maybe it is good to compare if the handled file is the same as the existing
             #exist_basis_file = existing.get_vadere_scenario_basis_file()
             return existing
         else:
-            return cls.create_environment(env_name, basis_scenario, model)
+            return cls.create_environment(env_name, basis_scenario)
 
     @classmethod
-    def create_environment(cls, env_name: str, basis_scenario: Union[str, dict],
-                           model: Union[VadereConsoleWrapper, str], replace: bool = False):
+    def create_environment(cls, env_name: str, basis_scenario: Union[str, dict], replace: bool = False):
 
         # Check if environment already exists
         target_path = cls.environment_path(env_name)
@@ -191,16 +199,17 @@ class EnvironmentManager(object):
         # Create and store the configuration file to the new folder
         cfg = dict()
 
-        cfg["suqc_state"] = get_current_suqc_state()
+        if not pa.is_package_paths():  # TODO it may be good to write the git hash / version number in the file
+            cfg["suqc_state"] = get_current_suqc_state()
 
-        with open(os.path.join(target_path, "suqc_commit_hash.json"), 'w') as outfile:
-            s = "\n".join(["commit hash at creation", cfg["suqc_state"]["git_hash"]])
-            outfile.write(s)
+            with open(os.path.join(target_path, "suqc_commit_hash.json"), 'w') as outfile:
+                s = "\n".join(["commit hash at creation", cfg["suqc_state"]["git_hash"]])
+                outfile.write(s)
 
         # Create the folder where the output is stored
         os.mkdir(os.path.join(target_path, EnvironmentManager.output_folder))
 
-        return cls(env_name, model)
+        return cls(env_name)
 
     @classmethod
     def remove_environment(cls, name, force=False):
