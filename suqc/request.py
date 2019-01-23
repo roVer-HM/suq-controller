@@ -12,7 +12,7 @@ from suqc.parameter.sampling import *
 from suqc.parameter.postchanges import ScenarioChanges
 from suqc.parameter.create import VadereScenarioCreation
 from suqc.utils.general import create_folder, check_parent_exists_folder_remove, njobs_check_and_set, str_timestamp
-from suqc.minimuc.remote import ServerRequest, ServerConnection
+from suqc.remote import ServerRequest, ServerConnection
 
 from typing import *
 
@@ -68,7 +68,7 @@ class Request(object):
         else:
             result = None
 
-        if self.qoi is not None and is_results:
+        if self.qoi is not None and not is_results:
             req_time = np.nan
 
         container_element["data"] = result

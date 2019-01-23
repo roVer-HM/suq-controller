@@ -17,7 +17,7 @@ __credits__ = ["n/a"]
 # TODO: at the moment there is a silent full replacement of all files
 # TODO think of handling how to do this in future, cannot replace folder with important results
 # Option 1: have another folder, indicating the version...?
-# TODO: ask for Vadere src path and minimuc server config (make both values (the config file should be ignored!, so that changes are not tracked)
+# TODO: ask for Vadere src path and minimuc server_deprecated config (make both values (the config file should be ignored!, so that changes are not tracked)
 
 
 pa.set_package_paths(True)

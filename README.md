@@ -110,7 +110,7 @@ q2 = suqc.AreaDensityVoronoiProcessor(em)
 r2 = suqc.Query(em, pv, q2).run(njobs=-1)
 print(r2)
 
-# To run a simulation on a server (ssh required!) :
+server_deprecated
 with suqc.ServerConnection() as sc:
     ss = suqc.ServerSimulation(sc)
     r3 = ss.run(env_man=em, par_var=pv, qoi=q2)
