@@ -8,7 +8,7 @@ from suqc.configuration import EnvironmentManager
 from suqc.parameter.sampling import ParameterVariation
 from suqc.parameter.postchanges import ScenarioChanges
 
-from suqc.utils.general import create_folder, remove_folder
+from suqc.utils.general import create_folder, remove_folder, njobs_check_and_set
 from suqc.utils.dict_utils import change_dict
 
 # --------------------------------------------------
@@ -26,11 +26,11 @@ class VadereScenarioCreation(object):
         self._par_var = par_var
         self._sc_change = sc_change
 
-        self._basis_scenario = self._env_man.scenario_basis
+        self._basis_scenario = self._env_man.basis_scenario
         self._par_var.check_selected_keys(self._basis_scenario)
 
-    def _vars_dict(self, pid, fp):
-        return {"par_id": pid, "scenario_path": fp}
+    def _vars_dict(self, pid, fp, op):
+        return {"par_id": pid, "scenario_path": fp, "output_path": op}
 
     def _create_new_vadere_scenario(self, scenario: dict, par_id: int, par_var: dict):
 
@@ -54,12 +54,15 @@ class VadereScenarioCreation(object):
         par_change = args[1]
 
         new_scenario = self._create_new_vadere_scenario(self._basis_scenario, par_id, par_change)
-        fp = self._save_vadere_scenario(par_id, new_scenario)
-        return self._vars_dict(par_id, fp)
+
+        output_path = self._env_man.get_par_id_output_path(par_id, create=False)
+        scenario_path = self._save_vadere_scenario(par_id, new_scenario)
+
+        return self._vars_dict(par_id, scenario_path, output_path)
 
     def _sp_creation(self):
         """Single process loop to create all requested scenarios."""
-        basis_scenario = self._env_man.scenario_basis
+        basis_scenario = self._env_man.basis_scenario
         self._par_var.check_selected_keys(basis_scenario)
 
         vars_ = list()
@@ -74,6 +77,8 @@ class VadereScenarioCreation(object):
         return vars_
 
     def generate_vadere_scenarios(self, njobs):
+
+        njobs = njobs_check_and_set(njobs=njobs, nr_tasks=self._par_var.points.shape[0])
 
         target_path = self._env_man.get_env_outputfolder_path()
 

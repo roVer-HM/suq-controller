@@ -22,3 +22,8 @@ parid_lookup.csv
 build
 dist
 suqc.egg-info
+
+
+# tutorial output
+suqc/tutorial/example_output
+suqc/tutorial/example_multirun_output

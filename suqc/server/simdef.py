@@ -21,7 +21,7 @@ class SimulationDefinition(object):
                  sc: ScenarioChanges=None):
 
         self.name = env_man.name
-        self.basis_file = env_man.scenario_basis
+        self.basis_file = env_man.basis_scenario
         self.model = env_man.model
         self.par_var = par_var
         self.qoi = qoi

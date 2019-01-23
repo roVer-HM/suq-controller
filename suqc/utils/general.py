@@ -7,6 +7,8 @@ import os
 import sys
 import shutil
 import subprocess
+import datetime
+import multiprocessing
 
 import suqc.paths
 
@@ -55,6 +57,59 @@ def create_folder(path, delete_if_exists=True):
     if delete_if_exists and os.path.exists(path):
         remove_folder(path)
     os.mkdir(path)
+
+def check_parent_exists_folder_remove(p, query: bool):
+    if p.endswith("/"):
+        p = p.rstrip("/")
+
+    # parent folder:
+    parent = os.path.dirname(p)
+
+    if not os.path.exists(parent) or not os.path.isdir(parent):
+        raise ValueError(f"Path {p} is not valid, because path {parent} is not a directory or does not exist.")
+
+    if os.path.exists(p):
+        if os.path.isfile(p):
+            raise ValueError(f"Path {p} is a file not a directory.")
+
+        if query and not user_query_yes_no(
+                f"The directory {p} does already exist. In the process it may get removed (which results in a loss of "
+                "data). Do you want to proceed?", default="no"):
+            print("Terminating...")
+            exit()
+
+    return True
+
+
+def njobs_check_and_set(njobs, nr_tasks):
+    avail_cpus = multiprocessing.cpu_count()
+
+    if njobs > nr_tasks:
+        print(f"WARNING: More jobs are requested (={nr_tasks}) than kernels are available (={avail_cpus})")
+        return njobs
+
+    if njobs == -1:  # this is adapted to scikit-learn way
+        njobs = min(avail_cpus, nr_tasks)
+        print(f"INFO: Available cpus: {avail_cpus}. Nr. of tasks {nr_tasks}. "
+              f"Setting to {njobs} processes.")
+        return njobs
+
+
+def str_timestamp():
+    return datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
+
+def parent_folder_clean(p):
+    # problem that is solved here:
+    # os.path.dirname(/home/user) = /home
+    # os.path.dirname(/home/user/) = /home/user
+    # so the trailing '/' has an effect, but it is often not consistent to denote directories with a trailing '/'
+
+    if p.endswith("/"):  # in case we want the parent folder of a directory
+        p = p.rstrip("/")
+
+    parent = os.path.dirname(p)
+    return parent + "/"  # better to indicate a folder with trailing '/'
 
 
 def remove_folder(path):
