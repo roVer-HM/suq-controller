@@ -1,5 +1,12 @@
 
-# IMPORTANT: it is recommended to contribute code and issues via the original repository. 
+# Contributing
+
+It is highly recommended to contribute (report bugs, code, ideas, etc.) in the original repository. If you want to update the suq controller with the current master run the following git command from Vadere's root source code path:
+
+```
+git subtree pull --prefix Tools/SUQController git@gitlab.lrz.de:vadere/suq-controller.git
+```
+
 
 ### WORK IN PROGRESS
 
