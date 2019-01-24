@@ -1,5 +1,3 @@
-import numpy as np
-import os
 import urllib
 
 from suqc import *

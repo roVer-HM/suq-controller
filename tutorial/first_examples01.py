@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-from suqc.tutorial.imports import *
+from tutorial.imports import *
 
 # --------------------------------------------------
 # people who contributed code

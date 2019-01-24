@@ -68,52 +68,6 @@ During the run of `setup_folders.py` two folders are created at the user's home 
    2. `suqc_envs` is a container and consists of environments that are set up. 
 
 
-##### Set a new VADERE model
+#### Introduction
 
-It is possible to set multiple models and container paths in the suq-controller. 
-
-```
-import suqc.configuration as cfg
-cfg.add_new_model(name="vadere_v0.1", path="PATH_TO_JAR_FILE")
-```
-The argument `name` is the identifier of which model should be used to simulate when a query is issued (see below). 
-To set a new VADERE model a path to a .jar file has to be given. The file is copied into `$HOME/.suqc/models". 
-
-##### Example
-
-In the setup file `setup_folders.py` an example environment is copyied in `$HOME/suqc_envs/corner". This environment
-consists of a VADERE basis file. Script to run:
-
-```python
-import suqc
-
-# Set up the environment to make queries
-em = suqc.EnvironmentManager("corner")
-
-# Initiate an object to define the parameters to query
-pv = suqc.FullGridSampling()
-
-# Define a grid to run the simulation, here: vary the standard distribution from 0 to 0.3 in 0.1 intervals
-pv.add_dict_grid({"speedDistributionStandardDeviation": [0.0, 0.1, 0.2, 0.3]})
-
-# Define a quantity of interest that we are interested in
-q1 = suqc.PedestrianEvacuationTimeProcessor(em)
-
-# Initiate and run (i.e. simulate) the query. Here, only a single processor is used
-r1 = suqc.Query(em, pv, q1).run(njobs=1)
-print(r1)
-
-# Define another, time dependent, quantity of interest 
-q2 = suqc.AreaDensityVoronoiProcessor(em)
-
-# Initiate and run (i.e. simulate) the query. Here, all available processors are used to run the simulations in parallel
-r2 = suqc.Query(em, pv, q2).run(njobs=-1)
-print(r2)
-
-server_deprecated
-with suqc.ServerConnection() as sc:
-    ss = suqc.ServerSimulation(sc)
-    r3 = ss.run(env_man=em, par_var=pv, qoi=q2)
-
-print(r3)
-```
+See [SRC_PATH]/tutorial

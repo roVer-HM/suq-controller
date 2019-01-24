@@ -16,7 +16,6 @@ from suqc.parameter.sampling import *
 from suqc.parameter.postchanges import ScenarioChanges
 from suqc.qoi import *
 from suqc.request import *
-from suqc.server.remote import ServerConnection, ServerSimulation
 
 
 __version__ = "1.0rc1"

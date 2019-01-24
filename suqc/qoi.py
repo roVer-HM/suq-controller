@@ -53,7 +53,7 @@ class FileDataInfo(object):
 
 class QuantityOfInterest(object):
 
-    def __init__(self, requested_files: Union[List[str], str], basis_scenario: dict):
+    def __init__(self, basis_scenario: dict, requested_files: Union[List[str], str]):
 
         assert isinstance(requested_files, (list, str))
 

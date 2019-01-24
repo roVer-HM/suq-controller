@@ -8,14 +8,11 @@ import subprocess
 import time
 import os
 
-from shutil import copyfile, rmtree
+from shutil import rmtree
 from typing import *
-
-import pandas as pd
 
 from suqc.paths import Paths as pa
 from suqc.utils.general import user_query_yes_no, get_current_suqc_state, create_folder
-from suqc.utils.dict_utils import deep_dict_lookup
 
 # --------------------------------------------------
 # people who contributed code
@@ -26,7 +23,7 @@ __credits__ = ["n/a"]
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {"container_path": os.path.join(pa.path_src_folder(), "envs"),
-                      "server": {
+                      "server_deprecated": {
                           "host": "",
                           "user": "",
                           "port": -1
@@ -52,9 +49,9 @@ def get_suq_config():
 
 def store_server_config(host: str, user: str, port: int):
     cfg = get_suq_config()
-    cfg["server"]["host"] = host
-    cfg["server"]["user"] = user
-    cfg["server"]["port"] = port
+    cfg["server_deprecated"]["host"] = host
+    cfg["server_deprecated"]["user"] = user
+    cfg["server_deprecated"]["port"] = port
     _store_config(cfg)
 
 

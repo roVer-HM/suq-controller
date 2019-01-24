@@ -25,5 +25,5 @@ suqc.egg-info
 
 
 # tutorial output
-suqc/tutorial/example_output
-suqc/tutorial/example_multirun_output
+/tutorial/example_output/
+/tutorial/example_multirun_output/

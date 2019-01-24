@@ -173,7 +173,7 @@ class FullVaryScenario(Request, ServerRequest):
         self.model = model
 
         if isinstance(qoi, (str, list)):
-            self.qoi = QuantityOfInterest(requested_files=qoi, basis_scenario=self.env_man.basis_scenario)
+            self.qoi = QuantityOfInterest(basis_scenario=self.env_man.basis_scenario, requested_files=qoi)
         else:
             self.qoi = qoi
 
@@ -429,11 +429,10 @@ class SingleScenarioOutput(Request, ServerRequest):
 
         if qoi is not None:  # TODO: write "Infer QoI" function
             if isinstance(qoi, (str, list)):
-
                 with open(path_scenario, "r") as f:
                     basis_scenario = json.load(f)
 
-                qoi = QuantityOfInterest(requested_files=qoi, basis_scenario=basis_scenario)
+                qoi = QuantityOfInterest(basis_scenario=basis_scenario, requested_files=qoi)
             else:
                 raise ValueError("Invalid format of Quantity of Interest")
 
