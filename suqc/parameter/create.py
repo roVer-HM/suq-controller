@@ -4,7 +4,7 @@
 
 import multiprocessing
 
-from suqc.configuration import EnvironmentManager
+from suqc.environment import EnvironmentManager
 from suqc.parameter.sampling import ParameterVariation
 from suqc.parameter.postchanges import ScenarioChanges
 
@@ -78,7 +78,7 @@ class VadereScenarioCreation(object):
 
     def generate_vadere_scenarios(self, njobs):
 
-        njobs = njobs_check_and_set(njobs=njobs, nr_tasks=self._par_var.points.shape[0])
+        njobs = njobs_check_and_set(njobs=njobs, ntasks=self._par_var.points.shape[0])
 
         target_path = self._env_man.get_env_outputfolder_path()
 

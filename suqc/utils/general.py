@@ -10,7 +10,8 @@ import subprocess
 import datetime
 import multiprocessing
 
-import suqc.paths
+from suqc.configuration import SuqcConfig
+import suqc
 
 import pandas as pd
 from typing import Union
@@ -25,7 +26,7 @@ __credits__ = ["n/a"]
 
 def get_current_suqc_state():
     # message only for developer, -- if the installed package is running
-    if not suqc.paths.Paths.is_package_paths():
+    if not SuqcConfig.is_package_paths():
         GIT_COMMIT_HASH = subprocess.check_output(["git", "rev-parse", "HEAD"])
         GIT_COMMIT_HASH = GIT_COMMIT_HASH.decode().strip()
 
@@ -58,6 +59,7 @@ def create_folder(path, delete_if_exists=True):
         remove_folder(path)
     os.mkdir(path)
 
+
 def check_parent_exists_folder_remove(p, query: bool):
     if p.endswith("/"):
         p = p.rstrip("/")
@@ -81,17 +83,22 @@ def check_parent_exists_folder_remove(p, query: bool):
     return True
 
 
-def njobs_check_and_set(njobs, nr_tasks):
-    avail_cpus = multiprocessing.cpu_count()
+def njobs_check_and_set(njobs, ntasks):
+    nkernels = multiprocessing.cpu_count()
 
-    if njobs > nr_tasks:
-        print(f"WARNING: More jobs are requested (={nr_tasks}) than kernels are available (={avail_cpus})")
+    if njobs > ntasks:
+        print(f"WARNING: More jobs are requested (={njobs}) than tasks to carry out (={ntasks}). "
+              f"Setting njobs={ntasks}.")
+        return ntasks
+
+    if njobs > nkernels:
+        print(f"WARNING: More jobs (={njobs}) requested than CPU kernels available (={nkernels}). ")
         return njobs
 
     if njobs == -1:  # this is adapted to scikit-learn way
-        njobs = min(avail_cpus, nr_tasks)
-        print(f"INFO: Available cpus: {avail_cpus}. Nr. of tasks {nr_tasks}. "
-              f"Setting to {njobs} processes.")
+        njobs = min(nkernels, ntasks)
+        print(f"INFO: Available cpus: {nkernels}. Nr. of tasks {ntasks}. "
+              f"Setting to njobs={njobs}.")
         return njobs
 
 

@@ -7,12 +7,13 @@ import shutil
 import multiprocessing
 
 from suqc.qoi import QuantityOfInterest
-from suqc.configuration import VadereConsoleWrapper
+from suqc.environment import VadereConsoleWrapper
 from suqc.parameter.sampling import *
 from suqc.parameter.postchanges import ScenarioChanges
 from suqc.parameter.create import VadereScenarioCreation
 from suqc.utils.general import create_folder, check_parent_exists_folder_remove, njobs_check_and_set, str_timestamp
 from suqc.remote import ServerRequest, ServerConnection
+from suqc.configuration import SuqcConfig
 
 from typing import *
 
@@ -146,7 +147,7 @@ class Request(object):
             "njobs has to be an integer and cannot be zero or smaller than -1"
 
         nr_simulations = len(self.container)  # nr of rows = nr of parameter settings = #simulations
-        njobs = njobs_check_and_set(njobs=njobs, nr_tasks=nr_simulations)
+        njobs = njobs_check_and_set(njobs=njobs, ntasks=nr_simulations)
 
         if njobs == 1:
             self._sp_query()
@@ -299,7 +300,7 @@ class QuickVaryScenario(FullVaryScenario, ServerRequest):
 
             self.server.con.run(s)
 
-            local_pickle_path = os.path.join(EnvironmentManager.get_container_path(), "result.p")
+            local_pickle_path = os.path.join(SuqcConfig.path_container_folder(), "result.p")
             res = self._transfer_pickle_remote2local(remote_pickle_res_path, local_pickle_path)
 
             self._remove_remote_folder()

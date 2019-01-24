@@ -9,7 +9,8 @@ import abc
 
 from fabric import Connection
 
-from suqc.configuration import get_suq_config, store_server_config, EnvironmentManager, VadereConsoleWrapper
+from suqc.configuration import SuqcConfig
+from suqc.environment import  EnvironmentManager, VadereConsoleWrapper
 from suqc.utils.general import create_folder, parent_folder_clean, str_timestamp
 
 # --------------------------------------------------
@@ -42,24 +43,21 @@ class ServerConnection(object):
         print("INFO: Server connection closed.")
 
     def get_server_config(self):
-        server_cfg = get_suq_config()["server"]
+
+        server_cfg = SuqcConfig.load_cfg_file()["server"]
+
         if not server_cfg["host"] or not server_cfg["user"] or server_cfg["port"] <= 0:
-            host = input("Enter the host server_deprecated name:")
-            user = input("Enter the user name:")
-            port = int(input("Enter the port number (int):"))
-            store_server_config(host, user, port)
+            host = input("Enter host name:")
+            user = input("Enter user name:")
+            port = int(input("Enter port number (int):"))
+            SuqcConfig.store_server_config(host, user, port)
+            server_cfg = SuqcConfig.load_cfg_file()["server"]
         else:
             host, user, port = server_cfg["host"], server_cfg["user"], server_cfg["port"]
         print(f"INFO: Try to connect to ssh -p {port} {user}@{host} ")
         return server_cfg
 
     def _connect_server(self):
-        #import getpass  # TODO: does not work reall with sudo
-        #if self._sudo:
-        #     from fabric import Config
-        #     sudo_pass = getpass.unix_getpass("What's your sudo password?")
-        #     config = Config(overrides={'sudo': {'password': sudo_pass}})
-        #else:
         config = None
         server_cfg = self.get_server_config()
 
@@ -70,13 +68,6 @@ class ServerConnection(object):
 
         version = self.read_terminal_stdout(ServerConnection.READ_VERSION)
         print(f"INFO: Connection established. Detected suqc version {version} on server side.")
-
-    @NotImplementedError  # TODO: still problems with sudo with local <-> remote...
-    def remove_folder(self, rem_folder, use_sudo=False):
-        if use_sudo:
-            self.con.sudo(f"rm -r {rem_folder}")
-        else:
-            self.con.run(f"rm -r {rem_folder}")
 
     def read_terminal_stdout(self, s: str) -> str:
         r = self._con.run(s)
@@ -171,7 +162,7 @@ class ServerRequest(object):
         return local_filepath
 
     def _transfer_pickle_local2remote(self, **kwargs):
-        local_pickle_filepath = os.path.join(EnvironmentManager.get_container_path(), "arguments.p")  # TODO: maybe better to add the Timstamp, to not have any clashes!
+        local_pickle_filepath = os.path.join(SuqcConfig.path_container_folder(), "arguments.p")  # TODO: maybe better to add the Timstamp, to not have any clashes!
         with open(local_pickle_filepath, "wb") as file:
             pickle.dump(kwargs, file)
 

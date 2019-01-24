@@ -10,9 +10,9 @@ import numpy as np
 from typing import *
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
-from sklearn.model_selection import ParameterGrid, ParameterSampler
+from sklearn.model_selection import ParameterGrid
 
-from suqc.configuration import EnvironmentManager
+from suqc.environment import EnvironmentManager
 from suqc.utils.dict_utils import *
 
 # --------------------------------------------------
@@ -353,7 +353,6 @@ class BoxSamplingUlamMethod(ParameterVariation):
 
         import matplotlib.pyplot as plt
         # This import registers the 3D projection, but is otherwise unused.
-        from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
         fig = plt.figure(figsize=(8, 3))
 

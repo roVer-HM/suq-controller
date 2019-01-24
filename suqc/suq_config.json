@@ -1,10 +1,8 @@
 {
-    "container_path": "./suqc_envs",
-    "default_model_path": "./models",
     "default_vadere_src_path": "TODO",
     "server": {
-      "host": "minimuc.cs.hm.edu",
-      "user": "dlehmberg",
-      "port": 5022
+        "host": "minimuc.cs.hm.edu",
+        "user": "dlehmberg",
+        "port": 5022
     }
 }
