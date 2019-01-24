@@ -10,7 +10,7 @@ from typing import *
 import pandas as pd
 
 from suqc.utils.dict_utils import deep_dict_lookup
-from suqc.configuration import EnvironmentManager
+from suqc.environment import EnvironmentManager
 
 # --------------------------------------------------
 # people who contributed code

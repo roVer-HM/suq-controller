@@ -2,17 +2,10 @@
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
 
-import json
-import glob
-import subprocess
-import time
 import os
-
-from shutil import rmtree
-from typing import *
-
-from suqc.paths import Paths as pa
-from suqc.utils.general import user_query_yes_no, get_current_suqc_state, create_folder
+import json
+import os.path as p
+import pathlib
 
 # --------------------------------------------------
 # people who contributed code
@@ -21,254 +14,128 @@ __authors__ = "Daniel Lehmberg"
 __credits__ = ["n/a"]
 # --------------------------------------------------
 
+
 # configuration of the suq-controller
-DEFAULT_SUQ_CONFIG = {"container_path": os.path.join(pa.path_src_folder(), "envs"),
-                      "server_deprecated": {
+DEFAULT_SUQ_CONFIG = {"default_vadere_src_path": "TODO",   # TODO Feature: compile Vadere before using the jar file
+                      "server": {
                           "host": "",
                           "user": "",
                           "port": -1
                       }}
 
 
-def _store_config(d):
-    with open(pa.path_suq_config_file(), "w") as outfile:
-        json.dump(d, outfile, indent=4)
+def check_setup(_paths_class):
+
+    if not os.path.exists(_paths_class.path_cfg_folder()) and _paths_class.is_package_paths():
+        print(f"INFO: Setting up configuration folder {_paths_class.path_cfg_folder()}")
+        os.mkdir(
+            _paths_class.path_cfg_folder())  # the next two checks will fail automatically too, because the folder is empty
+
+    if not os.path.exists(_paths_class.path_models_folder()):
+        print(f"INFO: Setting up default model lookup folder {_paths_class.path_models_folder()}")
+        os.mkdir(_paths_class.path_models_folder())
+
+    if not os.path.exists(_paths_class.path_suq_config_file()):
+        print(f"INFO: Setting up default configuration file located at {_paths_class.path_suq_config_file()}")
+        _paths_class.store_config(DEFAULT_SUQ_CONFIG)
+
+    if not os.path.exists(_paths_class.path_container_folder()):
+        print(f"INFO: Setting up the default container path (which will store output of simulation runs). "
+              f"Location {_paths_class.path_container_folder()}")
+        os.mkdir(_paths_class.path_container_folder())
+
+    return _paths_class
 
 
-def get_suq_config():
-    if not os.path.exists(pa.path_suq_config_file()):
-        with open(pa.path_suq_config_file(), "w") as f:
-            json.dump(DEFAULT_SUQ_CONFIG, f, indent=4)
-        print(f"WARNING: Config did not exist. Writing default configuration to \n {pa.path_suq_config_file()} \n")
-        return DEFAULT_SUQ_CONFIG
-    else:
-        with open(pa.path_suq_config_file(), "r") as f:
-            config_file = f.read()
-        return json.loads(config_file)
+# class annotation -> everythime the clsas is used, it will be checked if the folders are correctly configured
+@check_setup
+class SuqcConfig(object):
 
+    NAME_PACKAGE = "suqc"
+    NAME_SUQ_CONFIG_FILE = "suq_config.json"
+    NAME_MODELS_FOLDER = "models"
+    NAME_CON_FOLDER = "suqc_envs"
+    NAME_PACKAGE_FILE = "PACKAGE.txt"
 
-def store_server_config(host: str, user: str, port: int):
-    cfg = get_suq_config()
-    cfg["server_deprecated"]["host"] = host
-    cfg["server_deprecated"]["user"] = user
-    cfg["server_deprecated"]["port"] = port
-    _store_config(cfg)
-
-
-def default_models_path():
-    path = pa.path_models_folder()
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Model {path} not found.")
-    return path
-
-
-class VadereConsoleWrapper(object):
-
-    # Current log level choices, requires to manually add, if there are changes
-    ALLOWED_LOGLVL = ["OFF", "FATAL", "TOPOGRAPHY_ERROR", "TOPOGRAPHY_WARN", "INFO", "DEBUG", "ALL"]
-
-    def __init__(self, model_path: str, loglvl="ALL"):
-
-        self.jar_path = os.path.abspath(model_path)
-        assert os.path.exists(self.jar_path)
-
-        self.loglvl = loglvl
-
-        assert self.loglvl in self.ALLOWED_LOGLVL, f"set loglvl={self.loglvl} not contained in allowed: " \
-            f"{self.ALLOWED_LOGLVL}"
-
-        if not os.path.exists(self.jar_path):
-            raise FileExistsError(f"Vadere console file {self.jar_path} does not exist.")
-
-    def run_simulation(self, scenario_fp, output_path):
-        start = time.time()
-        ret_val = subprocess.call(["java", "-jar",
-                                   self.jar_path, "--loglevel",
-                                   self.loglvl, "suq", "-f", scenario_fp,
-                                   "-o", output_path])
-        return ret_val, time.time() - start
+    IS_PACKAGE: bool = None
 
     @classmethod
-    def from_default_models(cls, model):
-        if not model.endswith(".jar"):
-            model = ".".join([model, "jar"])
-        return cls(os.path.join(default_models_path(), model))
-
-    @classmethod
-    def from_model_path(cls, model_path):
-        return cls(model_path)
-
-    @classmethod
-    def from_new_compiled_package(cls, src_path=None):
-        pass  # TODO: use default src_path
-
-    @classmethod
-    def infer_model(cls, model):
-        if isinstance(model, str):
-            if os.path.exists(model):
-                return VadereConsoleWrapper.from_model_path(os.path.abspath(model))
-            else:
-                return VadereConsoleWrapper.from_default_models(model)
-        elif isinstance(model, VadereConsoleWrapper):
-            return model
+    def is_package_paths(cls):
+        if cls.IS_PACKAGE is None:
+            return os.path.exists(cls.path_package_indicator_file())
         else:
-            raise ValueError("Failed to infer the Vadere model.")
-
-
-
-class EnvironmentManager(object):
-
-    output_folder = "vadere_output"
-
-    def __init__(self, env_name: str):
-        self.name = env_name
-        self.env_path = self.environment_path(self.name)
-
-        print(f"INFO: Set environment path to {self.env_path}")
-        if not os.path.exists(self.env_path):
-            raise FileNotFoundError(f"Environment {self.env_path} does not exist. Use function "
-                                    f"'EnvironmentManager.create_environment' or "
-                                    f"'EnvironmentManager.create_if_not_exist'")
-        self._scenario_basis = None
-
-    @property
-    def basis_scenario(self):
-        if self._scenario_basis is None:
-            path_basis_scenario = self.path_basis_scenario
-
-            with open(path_basis_scenario, "r") as f:
-                basis_file = json.load(f)
-            self._scenario_basis = basis_file
-
-        return self._scenario_basis
-
-    @property
-    def path_basis_scenario(self):
-        sc_files = glob.glob(os.path.join(self.env_path, "*.scenario"))
-        assert len(sc_files) == 1, "None or too many .scenario files found in environment."
-        return sc_files[0]
+            return SuqcConfig.IS_PACKAGE
 
     @classmethod
-    def create_if_not_exist(cls, env_name: str, basis_scenario: Union[str, dict]):
-        target_path = cls.environment_path(env_name)
-        if os.path.exists(target_path):
-            existing = cls(env_name)
+    def set_package_paths(cls, package: bool):
+        SuqcConfig.IS_PACKAGE = package
 
-            # TODO: maybe it is good to compare if the handled file is the same as the existing
-            #exist_basis_file = existing.get_vadere_scenario_basis_file()
-            return existing
+    @classmethod
+    def _name_cfg_folder(cls):
+        if cls.is_package_paths():
+            return ".suqc"
         else:
-            return cls.create_environment(env_name, basis_scenario)
+            raise RuntimeError("This should not be called when IS_PACKAGE=False.")
 
     @classmethod
-    def create_environment(cls, env_name: str, basis_scenario: Union[str, dict], replace: bool = False):
-
-        # Check if environment already exists
-        target_path = cls.environment_path(env_name)
-
-        if replace and os.path.exists(target_path):
-            if replace:
-                cls.remove_environment(env_name, force=True)
-            elif not cls.remove_environment(env_name):
-                print("Aborting to create a new scenario.")
-                return
-
-        # Create new environment folder
-        os.mkdir(target_path)
-
-        if isinstance(basis_scenario, str):  # assume that this is a path
-
-            assert os.path.isfile(basis_scenario), "Filepath to .scenario does not exist"
-            assert basis_scenario.split(".")[-1] == "scenario", "File has to be a Vadere '*.scenario' file"
-
-            with open(basis_scenario, "r") as file:
-                basis_scenario = file.read()
-
-        basis_fp = os.path.join(target_path, f"BASIS_{env_name}.scenario")
-
-        # FILL IN THE STANDARD FILES IN THE NEW SCENARIO:
-        with open(basis_fp, "w") as file:
-            if isinstance(basis_scenario, dict):
-                json.dump(basis_scenario, file, indent=4)
-            else:
-                file.write(basis_scenario)
-
-        # Create and store the configuration file to the new folder
-        cfg = dict()
-
-        if not pa.is_package_paths():  # TODO it may be good to write the git hash / version number in the file
-            cfg["suqc_state"] = get_current_suqc_state()
-
-            with open(os.path.join(target_path, "suqc_commit_hash.json"), 'w') as outfile:
-                s = "\n".join(["commit hash at creation", cfg["suqc_state"]["git_hash"]])
-                outfile.write(s)
-
-        # Create the folder where the output is stored
-        os.mkdir(os.path.join(target_path, EnvironmentManager.output_folder))
-
-        return cls(env_name)
+    def path_usrhome_folder(cls):
+        return pathlib.Path.home()
 
     @classmethod
-    def remove_environment(cls, name, force=False):
-        target_path = cls.environment_path(name)
-        if force or user_query_yes_no(question=f"Are you sure you want to remove the current environment? Path: \n "
-        f"{target_path}"):
-            try:
-                rmtree(target_path)
-            except FileNotFoundError:
-                print(f"INFO: Tried to remove environment {name}, but did not exist.")
-            return True
-        return False
+    def path_src_folder(cls):
+        return p.abspath(p.join(p.realpath(__file__), os.pardir))
 
-    @staticmethod
-    def environment_path(name):
-        path = os.path.join(EnvironmentManager.get_container_path(), name)
-        return path
+    @classmethod
+    def path_package_indicator_file(cls):
+        return p.join(cls.path_src_folder(), cls.NAME_PACKAGE_FILE)
 
-    @staticmethod
-    def get_container_path():
-
-        if not pa.is_package_paths():
-            rel_path = pa.path_src_folder()
+    @classmethod
+    def path_cfg_folder(cls):
+        if cls.is_package_paths():
+            return p.join(cls.path_usrhome_folder(), cls._name_cfg_folder())
         else:
-            rel_path = ""
+            return cls.path_src_folder()
 
-        path = get_suq_config()["container_path"]
+    @classmethod
+    def path_suq_config_file(cls):
+        if cls.is_package_paths():
+            return p.join(cls.path_cfg_folder(), cls.NAME_SUQ_CONFIG_FILE)
+        else:
+            return p.join(cls.path_src_folder(), cls.NAME_SUQ_CONFIG_FILE)
 
-        path = os.path.abspath(os.path.join(rel_path, path))
-        assert os.path.exists(
-            path), f"The path {path} does not exist. Please run the command setup_folders.py given in " \
-            f"the software repository"
-        return path
+    @classmethod
+    def load_cfg_file(cls):
+        with open(cls.path_suq_config_file(), "r") as f:
+            cfg = json.load(f)
+        return cfg
 
-    def get_env_outputfolder_path(self):
-        rel_path = os.path.join(self.env_path, EnvironmentManager.output_folder)
-        return os.path.abspath(rel_path)
+    @classmethod
+    def path_models_folder(cls):
+        if cls.is_package_paths():
+            return p.join(cls.path_cfg_folder(), cls.NAME_MODELS_FOLDER)
+        else:
+            return p.join(cls.path_src_folder(), cls.NAME_MODELS_FOLDER)
 
-    def get_par_id_output_path(self, par_id, create):
-        scenario_filename = self._scenario_variation_filename(par_id=par_id)
-        scenario_filename = scenario_filename.replace(".scenario", "")
-        output_path = os.path.join(self.get_env_outputfolder_path(), "".join([scenario_filename, "_output"]))
-        if create:
-            create_folder(output_path)
-        return output_path
+    @classmethod
+    def path_container_folder(cls):
+        if cls.is_package_paths():
+            return p.join(cls.path_usrhome_folder(), cls.NAME_CON_FOLDER)
+        else:
+            return p.join(cls.path_src_folder(), cls.NAME_CON_FOLDER)
 
-    def _scenario_variation_filename(self, par_id):
-        return "".join([str(par_id).zfill(10), ".scenario"])
+    @classmethod
+    def store_config(cls, cfg):
+        with open(cls.path_suq_config_file(), "w") as outfile:
+            json.dump(cfg, outfile, indent=4)
 
-    def scenario_variation_path(self, par_id):
-        return os.path.join(self.get_env_outputfolder_path(), self._scenario_variation_filename(par_id))
+    @classmethod
+    def store_server_config(cls, host: str, user: str, port: int):
+        cfg_file = cls.load_cfg_file()
+        cfg_file["server"]["host"] = host
+        cfg_file["server"]["user"] = user
+        cfg_file["server"]["port"] = port
+        cls.store_config(cfg_file)
 
-    def save_scenario_variation(self, par_id, content):
-        fp = self.scenario_variation_path(par_id)
-        assert not os.path.exists(fp), f"File {fp} already exists!"
-
-        with open(fp, "w") as outfile:
-            json.dump(content, outfile, indent=4)
-        return fp
 
 if __name__ == "__main__":
-    pass
-    #create_environment_from_file(name="fp_operator", filepath=
-    #"/home/daniel/REPOS/vadere_projects/vadere/VadereModelTests/TestOSM/scenarios/New_Simple_FP.scenario",
-    #                             model="vadere")
+    print(SuqcConfig)
