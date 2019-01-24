@@ -1,8 +1,0 @@
-{
-    "default_vadere_src_path": "TODO",
-    "server": {
-        "host": "minimuc.cs.hm.edu",
-        "user": "dlehmberg",
-        "port": 5022
-    }
-}
