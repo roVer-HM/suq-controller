@@ -1,5 +1,4 @@
 import urllib
-import os
 
 from suqc import *
 
