@@ -23,6 +23,9 @@ update_server.sh
 *.p
 
 
+# Ignore virtual environment
+venv
+
 # folders / files when packaging
 build
 dist
