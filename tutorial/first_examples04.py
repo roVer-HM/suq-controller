@@ -1,6 +1,9 @@
 #!/usr/bin/env python3 
 
-from tutorial.imports import *
+import os, sys
+# This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
+sys.path.append(os.path.abspath("."))
+sys.path.append(os.path.abspath(".."))
 
 run_local = True
 
