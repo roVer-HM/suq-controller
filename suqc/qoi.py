@@ -26,7 +26,7 @@ class FileDataInfo(object):
     # changes in Vadere. See also vadere issue #199 and #201.
     map_outputtype2index = {"IdOutputFile": 1,
                             "LogEventOutputFile": 1,
-                            "NotDataKeyOutputFile": 0,
+                            "NoDataKeyOutputFile": 0,
                             "PedestrianIdOutputFile": 1,
                             "TimestepOutputFile": 1,
                             "TimestepPedestrianIdOutputFile": 2,
