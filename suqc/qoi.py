@@ -125,9 +125,12 @@ class QuantityOfInterest(object):
             nr_row_indices = req_qoi.nr_row_indices
 
         df = pd.read_csv(filepath, delimiter=" ", header=[0], comment="#")
-        idx_keys = df.columns[:nr_row_indices]
 
-        return df.set_index(idx_keys.tolist())
+        if req_qoi.output_key.__eq__("NoDataKeyOutputFile"):
+            return df
+        else:
+            idx_keys = df.columns[:nr_row_indices]
+            return df.set_index(idx_keys.tolist())
 
     def _add_parid2idx(self, df, par_id):
         # from https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex
