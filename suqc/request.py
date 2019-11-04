@@ -1,30 +1,18 @@
 #!/usr/bin/env python3
 
-# TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
-
-import os
-import json
-import shutil
 import multiprocessing
+import os
+import shutil
 
-from suqc.qoi import QuantityOfInterest
-from suqc.environment import VadereConsoleWrapper
-from suqc.parameter.sampling import *
-from suqc.parameter.postchanges import ScenarioChanges
-from suqc.parameter.create import VadereScenarioCreation
-from suqc.utils.general import create_folder, check_parent_exists_folder_remove, njobs_check_and_set, str_timestamp, \
-    parent_folder_clean
-from suqc.remote import ServerRequest, ServerConnection
 from suqc.configuration import SuqcConfig
-
-from typing import *
-
-# --------------------------------------------------
-# people who contributed code
-__authors__ = "Daniel Lehmberg"
-# people who made suggestions or reported bugs but didn't contribute code
-__credits__ = ["n/a"]
-# --------------------------------------------------
+from suqc.environment import VadereConsoleWrapper
+from suqc.parameter.create import VadereScenarioCreation
+from suqc.parameter.postchanges import ScenarioChanges
+from suqc.parameter.sampling import *
+from suqc.qoi import QuantityOfInterest
+from suqc.remote import ServerConnection, ServerRequest
+from suqc.utils.general import (
+    check_parent_exists_folder_remove, create_folder, njobs_check_and_set, parent_folder_clean, str_timestamp)
 
 
 class Request(object):
@@ -292,13 +280,15 @@ class QuickVaryScenario(FullVaryScenario, ServerRequest):
             remote_scenario_path = self._transfer_local2remote(self.scenario_path)
             remote_model_path = self._transfer_model_local2remote(self.model)
 
-            pickle_content = {"sp": remote_scenario_path, "par_var": self.par_var.to_dictlist(), "qoi": self.qoi, "model": remote_model_path}
+            pickle_content = {"sp": remote_scenario_path, "par_var": self.par_var.to_dictlist(), "qoi": self.qoi,
+                              "model": remote_model_path}
 
             # TODO: duplicated code!
             remote_pickle_arg_path = self._transfer_pickle_local2remote(**pickle_content)
             remote_pickle_res_path = self._default_result_pickle_path_remote()
 
-            s = f"""python3 -c 'import suqc; suqc.QuickVaryScenario._remote_run("{remote_pickle_arg_path}", "{remote_pickle_res_path}", "{self.remote_env_name}", {njobs})'"""
+            s = f"""python3 -c 'import suqc; suqc.QuickVaryScenario._remote_run("{remote_pickle_arg_path}", 
+            "{remote_pickle_res_path}", "{self.remote_env_name}", {njobs})'"""
 
             self.server.con.run(s)
             local_pickle_path = self._default_result_pickle_path_local(SuqcConfig.path_container_folder())
@@ -350,7 +340,8 @@ class SingleKeyVaryScenario(QuickVaryScenario, ServerRequest):
             remote_pickle_arg_path = self._transfer_pickle_local2remote(**pickle_content)
             remote_pickle_res_path = self._default_result_pickle_path_remote()
 
-            s = f"""python3 -c 'import suqc; suqc.SingleKeyVaryScenario._remote_run("{remote_pickle_arg_path}", "{remote_pickle_res_path}", "{self.remote_env_name}", {njobs})'"""
+            s = f"""python3 -c 'import suqc; suqc.SingleKeyVaryScenario._remote_run("{remote_pickle_arg_path}", 
+            "{remote_pickle_res_path}", "{self.remote_env_name}", {njobs})'"""
             self.server.con.run(s)
 
             local_pickle_path = self._default_result_pickle_path_local(self.tmp_folder_path)
@@ -407,7 +398,8 @@ class MultiScenarioOutput(Request, ServerRequest):
             # TODO provide the default pickle paths in a function
             remote_pickle_res_path = self._default_result_pickle_path_remote()
 
-            s = f"""python3 -c 'import suqc; suqc.MultiScenarioOutput._remote_run("{self.remote_folder_path}", "{self.remote_output_folder()}", "{remote_model_path}", "{remote_pickle_res_path}", {njobs})'"""
+            s = f"""python3 -c 'import suqc; suqc.MultiScenarioOutput._remote_run("{self.remote_folder_path}", 
+            "{self.remote_output_folder()}", "{remote_model_path}", "{remote_pickle_res_path}", {njobs})'"""
             self.server.con.run(s)
 
             # TODO: duplicated code!
@@ -481,7 +473,8 @@ class SingleScenarioOutput(Request, ServerRequest):
         return res
 
     @classmethod
-    def _remote_run(cls, remote_scenario_path, remote_output_folder, remote_model_path, remote_pickle_arg_path, remote_pickle_res_path):
+    def _remote_run(cls, remote_scenario_path, remote_output_folder, remote_model_path, remote_pickle_arg_path,
+                    remote_pickle_res_path):
 
         if remote_pickle_arg_path is not None and os.path.exists(remote_pickle_arg_path):
             kwargs = cls.open_arg_pickle(remote_pickle_arg_path)
@@ -505,10 +498,12 @@ class SingleScenarioOutput(Request, ServerRequest):
                 pickle_content = {"qoi": self.qoi}
                 remote_pickle_arg_path = self._transfer_pickle_local2remote(**pickle_content)
                 remote_pickle_res_path = self._default_result_pickle_path_remote()
-                s = f"""python3 -c 'import suqc; suqc.SingleScenarioOutput._remote_run("{remote_scenario_path}", "{self.remote_output_folder()}", "{remote_model_path}", "{remote_pickle_arg_path}", "{remote_pickle_res_path}")'"""
+                s = f"""python3 -c 'import suqc; suqc.SingleScenarioOutput._remote_run("{remote_scenario_path}", 
+                "{self.remote_output_folder()}", "{remote_model_path}", "{remote_pickle_arg_path}", "{remote_pickle_res_path}")'"""
             else:
                 remote_pickle_res_path = None
-                s = f"""python3 -c 'import suqc; suqc.SingleScenarioOutput._remote_run("{remote_scenario_path}", "{self.remote_output_folder()}", "{remote_model_path}", None, None)'"""
+                s = f"""python3 -c 'import suqc; suqc.SingleScenarioOutput._remote_run("{remote_scenario_path}", 
+                "{self.remote_output_folder()}", "{remote_model_path}", None, None)'"""
 
             self.server.con.run(s)
 
