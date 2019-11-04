@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
-
 import json
 import glob
 import subprocess
@@ -14,12 +12,6 @@ from typing import *
 from suqc.configuration import SuqcConfig
 from suqc.utils.general import user_query_yes_no, get_current_suqc_state, create_folder
 
-# --------------------------------------------------
-# people who contributed code
-__authors__ = "Daniel Lehmberg"
-# people who made suggestions or reported bugs but didn't contribute code
-__credits__ = ["n/a"]
-# --------------------------------------------------
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {"default_vadere_src_path": "TODO",   # TODO Feature: compile Vadere before using the jar file

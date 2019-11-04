@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
 
-# TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
-
 import os
 import json
 import os.path as p
 import pathlib
-
-# --------------------------------------------------
-# people who contributed code
-__authors__ = "Daniel Lehmberg"
-# people who made suggestions or reported bugs but didn't contribute code
-__credits__ = ["n/a"]
-# --------------------------------------------------
 
 
 # configuration of the suq-controller

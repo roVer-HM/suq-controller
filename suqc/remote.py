@@ -10,15 +10,8 @@ import zipfile
 from fabric import Connection
 
 from suqc.configuration import SuqcConfig
-from suqc.environment import  EnvironmentManager, VadereConsoleWrapper
+from suqc.environment import EnvironmentManager, VadereConsoleWrapper
 from suqc.utils.general import create_folder, parent_folder_clean, str_timestamp
-
-# --------------------------------------------------
-# people who contributed code
-__authors__ = "Daniel Lehmberg"
-# people who made suggestions or reported bugs but didn't contribute code
-__credits__ = ["n/a"]
-# --------------------------------------------------
 
 
 class ServerConnection(object):
