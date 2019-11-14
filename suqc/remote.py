@@ -17,7 +17,8 @@ class ServerConnection(object):
 
     READ_VERSION_CMD = "python3 -c 'import suqc; print(suqc.__version__)'"
 
-    def __init__(self):
+    def __init__(self, remote_environment_path):
+        self.remote_environment_path = remote_environment_path
         self._con = None
 
     @property
@@ -31,8 +32,13 @@ class ServerConnection(object):
         return self
 
     def __exit__(self, type, value, traceback):
+        self._remove_remote_environment()
         self.connection.close()
         print("INFO: Server connection closed.")
+
+    def _remove_remote_environment(self):
+        s = f"""rm -r {self.remote_environment_path}"""
+        self.connection.run(s)
 
     def read_server_config(self):
 
@@ -81,15 +87,10 @@ class ServerRequest(object):
 
     def setup_environment(self, server_connection):
         self.server = server_connection
-
-        # NOTE: do NOT use os.path because the remote is linux, but if local is windows wrong slashes are used
-        # NOTE: do NOT epxand tiles "~" as this is mostly not supported!
-
-        self.remote_env_name = "_".join(["output", str_timestamp()])
-        self.remote_folder_path = self._join_linux_path(["suqc_envs", self.remote_env_name], True)
-
+        # this creates the remote folder given the paths previously set
+        # The reason why they are not set here is that the ServerConnection has to make sure to remote
+        # the environment again in the __exit__ function
         self._generate_remote_folder()
-
         self.is_setup = True
 
     @classmethod
@@ -127,6 +128,15 @@ class ServerRequest(object):
 
     def _default_result_pickle_path_local(self, suitable_path):
         return os.path.join(suitable_path, "result.p")
+
+    def _default_remote_environment_setter(self):
+        # NOTE: nothing is created yet, these are just the planned paths!
+        # This should only be called once
+        assert self.remote_env_name is None
+        assert self.remote_folder_path is None
+        self.remote_env_name = "_".join(["output", str_timestamp()])
+        self.remote_folder_path = self._join_linux_path(["suqc_envs", self.remote_env_name], True)
+
 
     def _remote_input_folder(self):
         # input data is directly written to the remote folder
@@ -186,10 +196,6 @@ class ServerRequest(object):
             result_zip.extractall(path=path_output)
 
         os.remove(local_compressed_file)
-
-    def _remove_remote_folder(self):
-        s = f"""rm -r {self.remote_folder_path}"""
-        self.server.connection.run(s)
 
     @staticmethod
     def _add_directory(dir_path, zipobj, prefix=""):
@@ -253,11 +259,13 @@ class ServerRequest(object):
                           class_name,
                           transfer_output):
 
-        with ServerConnection() as sc:
+        self._default_remote_environment_setter()
+
+        with ServerConnection(self.remote_folder_path) as sc:
             self.setup_environment(sc)
 
             # put model_path in list of files to transfer:
-            remote_model_path = self._transfer_local2remote(local_model_obj)
+            remote_model_path = self._transfer_local2remote(local_model_obj.jar_path)
             local_model_obj.jar_file = remote_model_path  # update the path for the remote server
 
             for key, filepath in local_transfer_files.items():
