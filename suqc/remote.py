@@ -10,7 +10,6 @@ import pandas as pd
 from fabric import Connection
 
 from suqc.configuration import SuqcConfig
-from suqc.environment import VadereConsoleWrapper
 from suqc.utils.general import create_folder, str_timestamp
 
 
