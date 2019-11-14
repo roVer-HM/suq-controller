@@ -1,22 +1,9 @@
 #!/usr/bin/env python3
 
-# TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
-
 import numbers  # required to check for numeric types
-
-from typing import List
-
 from copy import deepcopy
 from functools import reduce
-
-
-# --------------------------------------------------
-# people who contributed code
-__authors__ = "Daniel Lehmberg"
-# people who made suggestions or reported bugs but didn't contribute code
-__credits__ = ["n/a"]
-# --------------------------------------------------
-
+from typing import List
 
 SYMBOL_KEY_CHAINING = "."
 
