@@ -231,11 +231,13 @@ class ServerRequest(object):
 
     def _attach_pickle_file_with_paths(self,
                                        local_pickle_content,
+                                       local_model_obj,
                                        remote_pickle_arg_path,
                                        remote_pickle_res_path,
                                        remote_env_name,
                                        remote_model_path):
 
+        local_pickle_content["model"] = local_model_obj
         local_pickle_content["remote_pickle_arg_path"] = remote_pickle_arg_path
         local_pickle_content["remote_pickle_res_path"] = remote_pickle_res_path
         local_pickle_content["remote_env_name"] = remote_env_name
@@ -247,7 +249,7 @@ class ServerRequest(object):
                           local_env_man,
                           local_pickle_content,
                           local_transfer_files,
-                          local_model_path,
+                          local_model_obj,
                           class_name,
                           transfer_output):
 
@@ -255,8 +257,8 @@ class ServerRequest(object):
             self.setup_environment(sc)
 
             # put model_path in list of files to transfer:
-            assert local_model_path.endswith(".jar")
-            remote_model_path = self._transfer_local2remote(local_model_path)
+            remote_model_path = self._transfer_local2remote(local_model_obj)
+            local_model_obj.jar_file = remote_model_path  # update the path for the remote server
 
             for key, filepath in local_transfer_files.items():
                 assert os.path.exists(filepath)
@@ -266,6 +268,7 @@ class ServerRequest(object):
             remote_pickle_res_path = self._default_result_pickle_path_remote()
 
             local_pickle_content = self._attach_pickle_file_with_paths(local_pickle_content=local_pickle_content,
+                                                                       local_model_obj=local_model_obj,
                                                                        remote_pickle_arg_path=remote_pickle_arg_path,
                                                                        remote_pickle_res_path=remote_pickle_res_path,
                                                                        remote_env_name=self.remote_env_name,

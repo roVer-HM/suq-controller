@@ -202,7 +202,7 @@ class VariationBase(Request, ServerRequest):
 
         setup = cls(env_man=env_man,
                     parameter_variation=kwargs["parameter_variation"],
-                    model=kwargs["remote_model_path"],
+                    model=kwargs["model"],
                     qoi=kwargs["qoi"])
 
         res = setup.run(kwargs["njobs"])
@@ -219,11 +219,10 @@ class VariationBase(Request, ServerRequest):
         remote_result = super(VariationBase, self)._remote_ssh_logic(local_env_man=self.env_man,
                                                                      local_pickle_content=pickle_content,
                                                                      local_transfer_files=local_transfer_files,
-                                                                     local_model_path=self.model.jar_path,
+                                                                     local_model_obj=self.model,
                                                                      class_name="VariationBase",
                                                                      transfer_output=not self.remove_output)
         return remote_result
-
 
 
 class SampleVariation(VariationBase, ServerRequest):
@@ -349,7 +348,7 @@ class FolderExistScenarios(Request, ServerRequest):
 
         kwargs = cls.open_arg_pickle(remote_pickle_arg_path)
 
-        setup = cls(path_scenario_folder=kwargs["remote_folder_path"], model=kwargs["remote_model_path"],
+        setup = cls(path_scenario_folder=kwargs["remote_folder_path"], model=kwargs["model"],
                     output_folder=kwargs["remote_env_name"], handle_existing="write_in")
         res = setup.run(kwargs["njobs"])
         cls.dump_result_pickle(res, kwargs["remote_pickle_res_path"])
@@ -365,7 +364,7 @@ class FolderExistScenarios(Request, ServerRequest):
         self._remote_ssh_logic(local_env_man=self.env_man,
                                local_pickle_content=local_pickle_content,
                                local_transfer_files=local_transfer_files,
-                               local_model_path=self.model.jar_path,
+                               local_model_obj=self.model,
                                class_name="FolderExistScenarios",
                                transfer_output=True)
 
@@ -453,7 +452,7 @@ class SingleExistScenario(Request, ServerRequest):
 
         setup = cls(path_scenario=kwargs["path_scenario"],
                     qoi=kwargs["qoi"],
-                    model=kwargs["remote_model_path"],
+                    model=kwargs["model"],
                     scenario_runs=kwargs["scenario_runs"],
                     output_path=None,
                     output_folder=kwargs["remote_env_name"],
@@ -470,7 +469,7 @@ class SingleExistScenario(Request, ServerRequest):
         self._remote_ssh_logic(local_env_man=self.env_man,
                                local_pickle_content=local_pickle_content,
                                local_transfer_files=local_transfer_files,
-                               local_model_path=self.model.jar_path,
+                               local_model_obj=self.model,
                                class_name="SingleExistScenario",
                                transfer_output=True)
 
