@@ -47,9 +47,9 @@ class VadereScenarioCreation(object):
         """Set up a new scenario and return info of parameter id and location."""
         parameter_id = args[0]  # TODO: this would kind of reduce this ugly code
         run_id = args[1]
-        post_change = args[2]
+        parameter_variation = args[2]
 
-        new_scenario = self._create_new_vadere_scenario(self._basis_scenario, parameter_id, run_id, post_change)
+        new_scenario = self._create_new_vadere_scenario(self._basis_scenario, parameter_id, run_id, parameter_variation)
 
         output_folder = self._env_man.get_variation_output_folder(parameter_id, run_id)
         scenario_path = self._save_vadere_scenario(parameter_id, run_id, new_scenario)
