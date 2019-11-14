@@ -5,6 +5,7 @@ import os
 import pickle
 import zipfile
 
+import numpy as np
 import pandas as pd
 from fabric import Connection
 
@@ -62,7 +63,7 @@ class ServerConnection(object):
         version = self.read_terminal_stdout(ServerConnection.READ_VERSION_CMD)
         print(f"INFO: Connection established. Detected suqc version {version} on server "
               f"({server_cfg['host']}:{server_cfg['port']}) side.")
-        print(f"INFO: pandas version {pd.__version__} on server.")
+        print(f"INFO: pandas=={pd.__version__} and numpy=={np.__version__} on server.")
 
     def read_terminal_stdout(self, s: str) -> str:
         r = self._con.run(s)
