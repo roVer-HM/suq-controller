@@ -1,6 +1,7 @@
 .idea 
 __pycache__
 *.pyc
+.mypy_cache/
 
 *.csv
 
@@ -18,7 +19,7 @@ suqc/suqc_envs/
 *.jar
 
 # Configuration files (generated when importing the project)
-suq_config.json
+suq_controller.conf
 update_server.sh
 
 
