@@ -36,7 +36,7 @@ class VadereConsoleWrapper(object):
     # Current log level choices, requires to manually add, if there are changes
     ALLOWED_LOGLVL = ["OFF", "FATAL", "TOPOGRAPHY_ERROR", "TOPOGRAPHY_WARN", "INFO", "DEBUG", "ALL"]
 
-    def __init__(self, model_path: str, loglvl="ALL"):
+    def __init__(self, model_path: str, loglvl="INFO"):
 
         self.jar_path = os.path.abspath(model_path)
         assert os.path.exists(self.jar_path)
