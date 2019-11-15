@@ -26,6 +26,7 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
                           qoi="density.txt",
                           model=path2model,
                           scenario_runs=1,
+                          post_changes=PostScenarioChangesBase(apply_default=True),
                           output_path=None,
                           output_folder=None,
                           remove_output=False)
