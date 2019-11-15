@@ -19,7 +19,6 @@ class PostScenarioChangesBase(object):
     def _defaults(self):
         self.add_scenario_change(ChangeScenarioName())
         self.add_scenario_change(ChangeRealTimeSimTimeRatio())
-        self.add_scenario_change(ChangeRandomNumber(par_id=True))
         self.add_scenario_change(AlwaysEnableMetaData())
         self.add_scenario_change(ChangeDescription())
 
@@ -33,7 +32,10 @@ class PostScenarioChangesBase(object):
     def _collect_changes(self, scenario, parameter_id, run_id, parameter_variation):
         changes = {}
         for chn in self._apply_scenario_changes.values():
-            changes.update(chn.get_changes_dict(scenario, parameter_id, parameter_variation))
+            changes.update(chn.get_changes_dict(scenario=scenario,
+                                                parameter_id=parameter_id,
+                                                run_id=run_id,
+                                                parameter_variation=parameter_variation))
         return changes
 
     def change_scenario(self, scenario, parameter_id, run_id, parameter_variation):
@@ -72,13 +74,13 @@ class ChangeRandomNumber(PostScenarioChange):
     KEY_SEED = "fixedSeed"
     KEY_SIM_SEED = "simulationSeed"
 
-    def __init__(self, fixed=False, randint=False, par_id=False):
-        assert fixed + randint + par_id == 1, "Exactly one parameter has to be set to true"
+    def __init__(self, fixed=False, randint=False, par_and_run_id=False):
+        assert fixed + randint + par_and_run_id == 1, "Exactly one parameter has to be set to true"
         self._isfixed = fixed
         self._fixed_randnr = None
 
         self._israndint = randint
-        self._isparid = par_id
+        self._is_id_based = par_and_run_id
 
         super(ChangeRandomNumber, self).__init__(name="random_number")
 
@@ -95,7 +97,7 @@ class ChangeRandomNumber(PostScenarioChange):
             # 4294967295 = max unsigned 32 bit integer
             rnr = np.random.randint(0, 4294967295)
         else:  # --> self._isparid
-            rnr = parameter_id
+            rnr = (parameter_id * 1E6 + run_id)  # the 1E6 is required to not have
 
         return {ChangeRandomNumber.KEY_FIXED: True,
                 ChangeRandomNumber.KEY_SEED: rnr,
@@ -111,7 +113,7 @@ class ChangeScenarioName(PostScenarioChange):
 
     def get_changes_dict(self, scenario, parameter_id, run_id, parameter_variation):
         existing = scenario[ChangeScenarioName.KEY_NAME]
-        add_name = f"par_id={parameter_id}"
+        add_name = f"id{parameter_id}-run{run_id}"
         return {ChangeScenarioName.KEY_NAME: "_".join([existing, add_name])}
 
 

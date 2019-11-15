@@ -86,6 +86,7 @@ class ServerConnection(object):
         r = self._con.run(s)
         return r.stdout.rstrip()  # rstrip -> remove trailing whitespaces and new lines
 
+
 class ServerRequest(object):
 
     zip_filename = "output.zip"
@@ -208,36 +209,27 @@ class ServerRequest(object):
         os.remove(local_compressed_file)
 
     @staticmethod
-    def _add_directory(dir_path, zipobj, prefix=""):
-
-        full_arc_dir = ""
-
-        for folder_name, subfolders, filenames in os.walk(dir_path):
-            arcdir = os.path.join(prefix, os.path.basename(folder_name))
-            full_arc_dir = os.path.join(full_arc_dir, arcdir)
-            for filename in filenames:
-                # create complete filepath of file in directory
-                filepath = os.path.join(folder_name, filename)
-                # Add file to zip
-                zipobj.write(filepath, arcname=os.path.join(full_arc_dir, filename))
-
-    @staticmethod
-    def zip_environment(env_path):
-
-        zip_path = os.path.join(env_path, ServerRequest.zip_filename)
-        zipobj = zipfile.ZipFile(zip_path, 'w')
+    def recursive_zipping(current_path, arcname_prefix="", zipobj=None):
 
         exclude_file_endings = ["p", "jar", "zip"]  # pickle and jar files are excluded
 
-        for filename in os.listdir(env_path):
-            filepath = os.path.join(env_path, filename)
+        for filename in os.listdir(current_path):
+            filepath = os.path.join(current_path, filename)
 
             if os.path.isdir(filepath):
-                ServerRequest._add_directory(filepath, zipobj)
+                ServerRequest.recursive_zipping(current_path=filepath,
+                                                arcname_prefix=os.path.join(arcname_prefix, filename),
+                                                zipobj=zipobj)
             else:
                 file_ending = filename.split(".")[-1]
                 if file_ending not in exclude_file_endings:
-                    zipobj.write(filepath, arcname=filename)
+                    zipobj.write(filepath, arcname=os.path.join(arcname_prefix, filename))
+
+    @staticmethod
+    def zip_environment(env_path):
+        zip_path = os.path.join(env_path, ServerRequest.zip_filename)
+        zipobj = zipfile.ZipFile(zip_path, 'w')
+        ServerRequest.recursive_zipping(current_path=env_path, arcname_prefix="", zipobj=zipobj)
         zipobj.close()
 
     @classmethod
@@ -311,4 +303,4 @@ class ServerRequest(object):
             return remote_result
 
 if __name__ == "__main__":
-    ServerRequest.zip_environment("/home/daniel/Code/suq-controller/tutorial/example_output")
+    ServerRequest.zip_environment("/home/daniel/Code/suq-controller/tutorial/testfolder")

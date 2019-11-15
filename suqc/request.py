@@ -168,7 +168,6 @@ class VariationBase(Request, ServerRequest):
                  njobs: int = 1,
                  remove_output=False):
 
-        self.njobs = njobs
         self.parameter_variation = parameter_variation
         self.env_man = env_man
         self.post_changes = post_changes
@@ -204,7 +203,10 @@ class VariationBase(Request, ServerRequest):
         setup = cls(env_man=env_man,
                     parameter_variation=kwargs["parameter_variation"],
                     model=kwargs["model"],
-                    qoi=kwargs["qoi"])
+                    qoi=kwargs["qoi"],
+                    post_changes=kwargs["post_changes"],
+                    njobs=kwargs["njobs"],
+                    remove_output=False)  # the output for remote will be removed after all is transferred
 
         res = setup.run(kwargs["njobs"])
         cls.dump_result_pickle(res, kwargs["remote_pickle_res_path"])
@@ -250,6 +252,8 @@ class DictVariation(VariationBase, ServerRequest):
                  qoi: Union[str, List[str]],
                  model: Union[str, VadereConsoleWrapper],
                  scenario_runs=1,
+                 post_changes=PostScenarioChangesBase(apply_default=True),
+                 njobs_create_scenarios=1,
                  output_path=None,
                  output_folder=None,
                  remove_output=False,
@@ -275,10 +279,8 @@ class DictVariation(VariationBase, ServerRequest):
         parameter_variation = UserDefinedSampling(parameter_dict_list)
         parameter_variation = parameter_variation.multiply_scenario_runs(scenario_runs=scenario_runs)
 
-        # TODO: check if also njobs>1 make sense?
-        # There is no need to have more than 1 processor, for user defined input.
         super(DictVariation, self).__init__(env_man=env, parameter_variation=parameter_variation, model=model, qoi=qoi,
-                                            post_changes=None, njobs=1)
+                                            post_changes=post_changes, njobs=njobs_create_scenarios)
 
     def _remove_output(self):
         if self.env_path is not None:
@@ -300,6 +302,7 @@ class SingleKeyVariation(DictVariation, ServerRequest):
                  qoi: Union[str, List[str]],
                  model: str,
                  scenario_runs=1,
+                 post_changes=PostScenarioChangesBase(apply_default=True),
                  output_path=None,
                  output_folder=None,
                  remove_output=False,
@@ -309,9 +312,14 @@ class SingleKeyVariation(DictVariation, ServerRequest):
         self.values = values
 
         simple_grid = [{key: v} for v in values]
-        super(SingleKeyVariation, self).__init__(scenario_path=scenario_path, parameter_dict_list=simple_grid, qoi=qoi,
-                                                 model=model, scenario_runs=scenario_runs,
-                                                 output_folder=output_folder, output_path=output_path,
+        super(SingleKeyVariation, self).__init__(scenario_path=scenario_path,
+                                                 parameter_dict_list=simple_grid,
+                                                 qoi=qoi,
+                                                 model=model,
+                                                 scenario_runs=scenario_runs,
+                                                 post_changes=post_changes,
+                                                 output_folder=output_folder,
+                                                 output_path=output_path,
                                                  remove_output=remove_output,
                                                  env_remote=env_remote)
 
