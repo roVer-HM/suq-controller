@@ -30,10 +30,10 @@ class PostScenarioChangesBase(object):
             raise KeyError(f"Scenario change with {sc.name} is already present.")
         self._apply_scenario_changes[sc.name] = sc
 
-    def _collect_changes(self, scenario, par_id, par_var):
+    def _collect_changes(self, scenario, parameter_id, run_id, parameter_variation):
         changes = {}
         for chn in self._apply_scenario_changes.values():
-            changes.update(chn.get_changes_dict(scenario, par_id, par_var))
+            changes.update(chn.get_changes_dict(scenario, parameter_id, parameter_variation))
         return changes
 
     def change_scenario(self, scenario, parameter_id, run_id, parameter_variation):

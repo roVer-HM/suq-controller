@@ -184,7 +184,8 @@ class VariationBase(Request, ServerRequest):
         request_item_list = scenario_creation.generate_vadere_scenarios(njobs)
 
         super(VariationBase, self).__init__(request_item_list, self.model, self.qoi)
-
+        ServerRequest.__init__(self)
+        
     def run(self, njobs: int = 1):
         qoi_result_df, meta_info = super(VariationBase, self).run(njobs)
 
@@ -342,6 +343,7 @@ class FolderExistScenarios(Request, ServerRequest):
                 request_item_list.append(request_item)
 
         super(FolderExistScenarios, self).__init__(request_item_list, model, qoi=None)
+        ServerRequest.__init__(self)
 
     @classmethod
     def _remote_run(cls, remote_pickle_arg_path):
@@ -421,6 +423,7 @@ class SingleExistScenario(Request, ServerRequest):
         request_item_list = self._generate_request_list(scenario_name=scenario_name, path_scenario=path_scenario)
 
         super(SingleExistScenario, self).__init__(request_item_list, model, qoi)
+        ServerRequest.__init__(self)
 
     def _generate_request_list(self, scenario_name, path_scenario):
 

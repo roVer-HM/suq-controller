@@ -1,5 +1,5 @@
 matplotlib==2.2.3
-setuptools==39.1.0
+setuptools>=39.1.0
 fabric==2.4.0
 pandas>=0.24.0,<0.26
 numpy>=1.17.0,<1.18

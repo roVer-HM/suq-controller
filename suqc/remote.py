@@ -15,7 +15,9 @@ from suqc.utils.general import create_folder, str_timestamp
 
 class ServerConnection(object):
 
-    READ_VERSION_CMD = "python3 -c 'import suqc; print(suqc.__version__)'"
+    READ_SUQC_VERSION = "python3 -c 'import suqc; print(suqc.__version__)'"
+    READ_NUMPY_VERSION = "python3 -c 'import numpy; print(numpy.__version__)'"
+    READ_PANDAS_VERSION = "python3 -c 'import pandas; print(pandas.__version__)'"
 
     def __init__(self, remote_environment_path):
         self.remote_environment_path = remote_environment_path
@@ -41,7 +43,6 @@ class ServerConnection(object):
         self.connection.run(s)
 
     def read_server_config(self):
-
         server_cfg = SuqcConfig.load_cfg_file()["server"]
 
         if not server_cfg["host"] or not server_cfg["user"] or server_cfg["port"] <= 0:
@@ -65,15 +66,25 @@ class ServerConnection(object):
                                            port=server_cfg["port"],
                                            config=None)
 
-        version = self.read_terminal_stdout(ServerConnection.READ_VERSION_CMD)
-        print(f"INFO: Connection established. Detected suqc version {version} on server "
+        suqc_version = self.read_terminal_stdout(ServerConnection.READ_SUQC_VERSION)
+
+        # Only important dependencies for remote issues (e.g. pickle pandas.DataFrame)
+        numpy_version = self.read_terminal_stdout(ServerConnection.READ_NUMPY_VERSION)
+        pandas_version = self.read_terminal_stdout(ServerConnection.READ_PANDAS_VERSION)
+
+        if numpy_version != str(np.__version__) or pandas_version != str(pd.__version__):
+            print("WARNING: local and remote version of dependencies do not match. "
+                  "This can result in incompatbility issues \n"
+                  f"(local) numpy=={np.__version__} vs. (remote) numpy=={numpy_version} \n"
+                  f"(local) pandas={pd.__version__} vs. (remote) numpy=={pandas_version}")
+
+        print(f"INFO: Connection established. Detected suqc=={suqc_version} on server. With dependency "
+              f"numpy=={numpy_version}, pandas={pandas_version} "
               f"({server_cfg['host']}:{server_cfg['port']}) side.")
-        print(f"INFO: pandas=={pd.__version__} and numpy=={np.__version__} on server.")
 
     def read_terminal_stdout(self, s: str) -> str:
         r = self._con.run(s)
         return r.stdout.rstrip()  # rstrip -> remove trailing whitespaces and new lines
-
 
 class ServerRequest(object):
 
@@ -136,7 +147,6 @@ class ServerRequest(object):
         assert self.remote_folder_path is None
         self.remote_env_name = "_".join(["output", str_timestamp()])
         self.remote_folder_path = self._join_linux_path(["suqc_envs", self.remote_env_name], True)
-
 
     def _remote_input_folder(self):
         # input data is directly written to the remote folder
@@ -266,7 +276,7 @@ class ServerRequest(object):
 
             # put model_path in list of files to transfer:
             remote_model_path = self._transfer_local2remote(local_model_obj.jar_path)
-            local_model_obj.jar_file = remote_model_path  # update the path for the remote server
+            local_model_obj.jar_path = remote_model_path  # update the path for the remote server
 
             for key, filepath in local_transfer_files.items():
                 assert os.path.exists(filepath)
@@ -298,7 +308,6 @@ class ServerRequest(object):
                 zipped_file_local = self._transfer_compressed_output_remote2local(local_env_man.env_path)
                 self._uncompress_file2target(zipped_file_local, local_env_man.env_path)
 
-            self._remove_remote_folder()
             return remote_result
 
 if __name__ == "__main__":

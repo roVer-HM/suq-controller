@@ -7,8 +7,7 @@ sys.path.append(os.path.abspath(".."))
 
 from tutorial.imports import *
 
-
-run_local = True
+run_local = False
 
 # NOTE: If running this script twice, there is an user input required. Because an "output folder" already exists from
 # the first run, this output folder gets replaced with the next run. Therefore, the old output is removed.

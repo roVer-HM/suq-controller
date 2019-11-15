@@ -9,7 +9,7 @@ from tutorial.imports import *
 sys.path.append(os.path.abspath("."))   # in case tutorial is called from the root directory
 sys.path.append(os.path.abspath(".."))  # in tutorial directly
 
-run_local = False
+run_local = True
 
 ###############################################################################################################
 # Usecase: One parameter in the scenario is changed, for every independent the data is collected and returned.
@@ -25,7 +25,7 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
                                values=np.linspace(0.7, 1.5, 3),  # -> values to set for the parameter
                                qoi="density.txt",  # -> output file name to collect
                                model=path2model,  # -> path to Vadere console jar file to use for simulation
-                               scenario_runs=2,  # TODO: docu
+                               scenario_runs=1,  # TODO: docu
                                output_path=os.path.abspath("."),
                                output_folder="testfolder",  # TODO: docu
                                remove_output=False  # TODO: docu
