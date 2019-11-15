@@ -26,7 +26,7 @@ setup(
     license="LGPL",
     url="www.vadere.org",
     packages=find_packages(),
-    # install_requires=requirements,
+    install_requires=requirements,
     data_files=[('suqc', ["suqc/PACKAGE.txt"])]
 )
 
