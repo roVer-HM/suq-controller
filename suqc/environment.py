@@ -41,7 +41,7 @@ class VadereConsoleWrapper(object):
         self.jar_path = os.path.abspath(model_path)
         assert os.path.exists(self.jar_path)
 
-        self.loglvl = loglvl
+        self.loglvl = loglvl.upper()
 
         assert self.loglvl in self.ALLOWED_LOGLVL, f"set loglvl={self.loglvl} not contained in allowed: " \
             f"{self.ALLOWED_LOGLVL}"
@@ -151,19 +151,20 @@ class EnvironmentManager(object):
     @classmethod
     def create_new_environment(cls, base_path=None, env_name=None, handle_existing="ask_user_replace"):
 
-        output_folder_path = cls.output_folder_path(base_path, env_name)
+        base_path, env_name = cls.handle_path_and_env_input(base_path, env_name)
 
         # TODO: Refactor, make handle_existing an Enum
         assert handle_existing in ["ask_user_replace", "force_replace", "write_in_if_exist_else_create", "write_in"]
 
-        abort = False
+        # set to True if env already exists, and it shouldn't be overwritten
+        about_creating_env = False
         env_man = None
 
-        env_exists = os.path.exists(output_folder_path)
+        env_exists = os.path.exists(cls.output_folder_path(base_path, env_name))
 
         if handle_existing == "ask_user_replace" and env_exists:
             if not cls.remove_environment(base_path, env_name):
-                abort = True
+                about_creating_env = True
         elif handle_existing == "force_replace" and env_exists:
             if env_exists:
                 cls.remove_environment(base_path, env_name, force=True)
@@ -174,12 +175,12 @@ class EnvironmentManager(object):
             if env_exists:
                 env_man = cls(base_path=base_path, env_name=env_name)
 
-        if abort:
+        if about_creating_env:
             raise ValueError("Could not create new environment.")
 
         if env_man is None:
             # Create new environment folder
-            os.mkdir(output_folder_path)
+            os.mkdir(cls.output_folder_path(base_path, env_name))
             env_man = cls(base_path=base_path, env_name=env_name)
 
         return env_man

@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(".."))
 
 from tutorial.imports import *
 
-run_local = False
+run_local = True
 
 # NOTE: If running this script twice, there is an user input required. Because an "output folder" already exists from
 # the first run, this output folder gets replaced with the next run. Therefore, the old output is removed.
@@ -21,7 +21,7 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
                                 model=path2model,
                                 scenario_runs=2,
                                 output_path=path2tutorial,
-                                output_folder="example_output")
+                                output_folder=None)
 
     if run_local:
         res = setup.run()  # provides only njobs=1 for single scenario
@@ -29,6 +29,8 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
         res = setup.remote()
 
     print(res)
+
+    exit()
 
     ###############################################################################################################
     # Usecase: Provide a folder with more than .scenario file and an output folder. All scenarios are simulated, also
