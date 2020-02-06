@@ -1,22 +1,11 @@
 #!/usr/bin/env python3
 
-# TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
-
 import numbers  # required to check for numeric types
-
-from typing import List
-
 from copy import deepcopy
 from functools import reduce
+from typing import List
 
-
-# --------------------------------------------------
-# people who contributed code
-__authors__ = "Daniel Lehmberg"
-# people who made suggestions or reported bugs but didn't contribute code
-__credits__ = ["n/a"]
-# --------------------------------------------------
-
+import numpy as np
 
 SYMBOL_KEY_CHAINING = "."
 
@@ -260,6 +249,21 @@ def set_dict_value_keylist(d: dict, path: list, last_key: str, value):
     return d
 
 
+def _avoid_numpy_types(new_value):
+
+    # see explanation: https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python
+    # and issue: #75
+
+    if isinstance(new_value, np.integer):
+        new_value = int(new_value)
+    elif isinstance(new_value, np.floating):
+        new_value = float(new_value)
+    elif isinstance(new_value, np.ndarray):
+        new_value = new_value.tolist()
+
+    return new_value
+
+
 def change_value(d: dict, path: list, last_key: str, exist_val, new_value):
 
     if isinstance(exist_val, dict):
@@ -270,6 +274,8 @@ def change_value(d: dict, path: list, last_key: str, exist_val, new_value):
 
         # check for numerical types (casting between float and integer)
         if isinstance(exist_val, numbers.Number) and isinstance(new_value, numbers.Number):
+
+            new_value = _avoid_numpy_types(new_value)
 
             # ignore cases, in case there are wrappers around the float (such as from float <-> np.float64)
             if isinstance(exist_val, float) and isinstance(new_value, float) or \
@@ -292,13 +298,13 @@ def change_value(d: dict, path: list, last_key: str, exist_val, new_value):
 
 def change_dict(d: dict, changes: dict):
     for k, new_val in changes.items():
-        exist_val, p = deep_dict_lookup(d, k)
-        path, last_key = p[:-1], p[-1]
+        exist_val, fullkeypath = deep_dict_lookup(d, k)
+        path, last_key = fullkeypath[:-1], fullkeypath[-1]
 
         # exist val is given for sanity checks (e.g. not replace a string with an integer)
         d = change_value(d, path, last_key, exist_val, new_val)
 
-        #Security check:
+        # Security check:
         check_val, _ = deep_dict_lookup(d, k)
         assert check_val == new_val, f"Something went wrong with setting the new value! " \
             f"Check val={check_val} vs. new_val={new_val}."

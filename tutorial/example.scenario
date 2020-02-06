@@ -1,7 +1,7 @@
 {
   "name" : "basic_2_density_pso",
   "description" : "",
-  "release" : "0.7",
+  "release" : "1.5",
   "processWriters" : {
     "files" : [ {
       "type" : "org.vadere.simulator.projects.dataprocessing.outputfile.TimestepPedestrianIdOutputFile",
@@ -19,23 +19,6 @@
     }, {
       "type" : "org.vadere.simulator.projects.dataprocessing.processor.PedestrianPositionProcessor",
       "id" : 2
-    }, {
-      "type" : "org.vadere.simulator.projects.dataprocessing.processor.PedestrianOverlapProcessor",
-      "id" : 3
-    }, {
-      "type" : "org.vadere.simulator.projects.dataprocessing.processor.MaxOverlapProcessor",
-      "id" : 4,
-      "attributesType" : "org.vadere.state.attributes.processor.AttributesMaxOverlapProcessor",
-      "attributes" : {
-        "pedestrianOverlapProcessorId" : 3
-      }
-    }, {
-      "type" : "org.vadere.simulator.projects.dataprocessing.processor.NumberOverlapsProcessor",
-      "id" : 5,
-      "attributesType" : "org.vadere.state.attributes.processor.AttributesNumberOverlapsProcessor",
-      "attributes" : {
-        "pedestrianOverlapProcessorId" : 3
-      }
     } ],
     "isTimestamped" : true,
     "isWriteMetaData" : false
@@ -48,6 +31,8 @@
         "potentialFieldResolution" : 0.1,
         "obstacleGridPenalty" : 0.1,
         "targetAttractionStrength" : 1.0,
+        "cacheType" : "NO_CACHE",
+        "cacheDir" : "",
         "timeCostAttributes" : {
           "standardDeviation" : 0.7,
           "type" : "UNIT",
@@ -57,25 +42,27 @@
           "pedestrianWeight" : 3.5,
           "queueWidthLoading" : 1.0,
           "pedestrianDynamicWeight" : 6.0,
-          "loadingType" : "CONSTANT"
+          "loadingType" : "CONSTANT",
+          "width" : 0.2,
+          "height" : 1.0
         }
       },
       "org.vadere.state.attributes.models.AttributesOSM" : {
         "stepCircleResolution" : 18,
         "numberOfCircles" : 1,
+        "optimizationType" : "NELDER_MEAD",
         "varyStepDirection" : false,
+        "movementType" : "ARBITRARY",
         "stepLengthIntercept" : 0.4625,
         "stepLengthSlopeSpeed" : 0.2345,
         "stepLengthSD" : 0.036,
         "movementThreshold" : 0.0,
         "minStepLength" : 0.4625,
+        "minimumStepLength" : false,
         "maxStepDuration" : 1.7976931348623157E308,
-        "optimizationType" : "NELDER_MEAD",
-        "movementType" : "ARBITRARY",
         "dynamicStepLength" : false,
         "updateType" : "EVENT_DRIVEN",
         "seeSmallWalls" : false,
-        "minimumStepLength" : false,
         "targetPotentialModel" : "org.vadere.simulator.models.potential.fields.PotentialFieldTargetGrid",
         "pedestrianPotentialModel" : "org.vadere.simulator.models.potential.PotentialFieldPedestrianCompactSoftshell",
         "obstaclePotentialModel" : "org.vadere.simulator.models.potential.PotentialFieldObstacleCompactSoftshell",
@@ -102,7 +89,8 @@
       "digitsPerCoordinate" : 2,
       "useFixedSeed" : true,
       "fixedSeed" : 1,
-      "simulationSeed" : 1
+      "simulationSeed" : 1,
+      "usePsychologyLayer" : false
     },
     "topography" : {
       "attributes" : {
@@ -113,7 +101,8 @@
           "height" : 12.0
         },
         "boundingBoxWidth" : 0.5,
-        "bounded" : true
+        "bounded" : true,
+        "referenceCoordinateSystem" : null
       },
       "obstacles" : [ {
         "shape" : {
@@ -132,7 +121,7 @@
             "y" : 12.0
           } ]
         },
-        "id" : -1
+        "id" : 3
       }, {
         "shape" : {
           "type" : "POLYGON",
@@ -150,8 +139,9 @@
             "y" : 0.0
           } ]
         },
-        "id" : -1
+        "id" : 4
       } ],
+      "measurementAreas" : [ ],
       "stairs" : [ ],
       "targets" : [ {
         "id" : 1,
@@ -171,8 +161,10 @@
         "startingWithRedLight" : false,
         "nextSpeed" : -1.0
       } ],
+      "targetChangers" : [ ],
+      "absorbingAreas" : [ ],
       "sources" : [ {
-        "id" : -1,
+        "id" : 2,
         "shape" : {
           "x" : 1.0,
           "y" : 1.0,
@@ -200,11 +192,15 @@
         "speedDistributionStandardDeviation" : 0.26,
         "minimumSpeed" : 0.5,
         "maximumSpeed" : 2.2,
-        "acceleration" : 2.0
+        "acceleration" : 2.0,
+        "footstepHistorySize" : 4,
+        "searchRadius" : 1.0,
+        "angleCalculationType" : "USE_CENTER",
+        "targetOrientationAngleThreshold" : 45.0
       },
       "teleporter" : null,
       "attributesCar" : null
     },
-    "eventInfos" : [ ]
+    "stimulusInfos" : [ ]
   }
 }
