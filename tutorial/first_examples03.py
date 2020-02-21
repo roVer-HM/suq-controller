@@ -30,8 +30,6 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     print(res)
 
-    exit()
-
     ###############################################################################################################
     # Usecase: Provide a folder with more than .scenario file and an output folder. All scenarios are simulated, also
     # in parallel). Here it is not possible to hand in a quantity of interest, because there is no guarantee that
