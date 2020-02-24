@@ -30,8 +30,6 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     print(res)
 
-    exit()
-
     ###############################################################################################################
     # Usecase: Provide a folder with more than .scenario file and an output folder. All scenarios are simulated, also
     # in parallel). Here it is not possible to hand in a quantity of interest, because there is no guarantee that
@@ -40,11 +38,12 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     setup = FolderExistScenarios(path_scenario_folder=path2tutorial,
                                  model=path2model,
+                                 scenario_runs=2,
                                  output_path=path2tutorial,
                                  output_folder="example_multirun_output")
 
     if run_local:
-        res = setup.run(2)
+        res = setup.run(1)
     else:
         res = setup.remote(1)
 

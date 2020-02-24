@@ -326,9 +326,11 @@ class SingleKeyVariation(DictVariation, ServerRequest):
 
 class FolderExistScenarios(Request, ServerRequest):
 
-    def __init__(self, path_scenario_folder, model, output_path=None, output_folder=None,
+    def __init__(self, path_scenario_folder, model, scenario_runs=1, output_path=None,
+                 output_folder=None,
                  handle_existing="ask_user_replace"):
 
+        self.scenario_runs = scenario_runs
         assert os.path.exists(path_scenario_folder)
         self.path_scenario_folder = path_scenario_folder
 
@@ -343,14 +345,14 @@ class FolderExistScenarios(Request, ServerRequest):
             if file_base_name.endswith(".scenario"):
                 scenario_name = file_base_name.replace(".scenario", "")
 
-                request_item = RequestItem(parameter_id=scenario_name,
-                                           run_id=0,
-                                           scenario_path=os.path.join(path_scenario_folder, filename),
-                                           base_path=self.env_man.env_path,
-                                           output_folder="_".join([scenario_name, "output"]))
-                request_item_list.append(request_item)
+                request_item = self._generate_request_items(
+                    scenario_name=scenario_name, filename=filename)
 
-        super(FolderExistScenarios, self).__init__(request_item_list, model, qoi=None)
+                request_item_list += request_item
+
+        super(FolderExistScenarios, self).__init__(request_item_list=request_item_list,
+                                                   model=model,
+                                                   qoi=None)
         ServerRequest.__init__(self)
 
     @classmethod
@@ -362,6 +364,23 @@ class FolderExistScenarios(Request, ServerRequest):
                     output_folder=kwargs["remote_env_name"], handle_existing="write_in")
         res = setup.run(kwargs["njobs"])
         cls.dump_result_pickle(res, kwargs["remote_pickle_res_path"])
+
+    def _generate_request_items(self, scenario_name, filename):
+
+        # generate request item for each scenario run
+        scenario_request_items = list()
+        for run in range(self.scenario_runs):
+
+            item = RequestItem(parameter_id=scenario_name,
+                               run_id=run,
+                               scenario_path=os.path.join(self.path_scenario_folder, filename),
+                               base_path=self.env_man.env_path,
+                               output_folder="_".join([scenario_name, "output",
+                                                       "" if self.scenario_runs == 1
+                                                       else str(run)]))
+
+            scenario_request_items.append(item)
+        return scenario_request_items
 
     def remote(self, njobs=1):
 
