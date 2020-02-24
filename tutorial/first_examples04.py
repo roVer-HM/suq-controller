@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(".."))
 
 from tutorial.imports import *
 
-run_local = False
+run_local = True
 
 
 if __name__ == "__main__":  # main required by Windows to run in parallel
@@ -31,7 +31,7 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
     # sampling. For example, changing the random seed, etc.
 
     setup = VariationBase(env_man=env_man, parameter_variation=par_var,
-                          qoi="density.txt", model="vadere0_7rc.jar", njobs=1)
+                          qoi="density.txt", model="vadere1_4.jar", njobs=1)
 
     if run_local:
         par_lookup, data = setup.run(1)

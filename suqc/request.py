@@ -5,13 +5,12 @@ import multiprocessing
 import os
 import shutil
 
-from suqc.configuration import SuqcConfig
 from suqc.environment import VadereConsoleWrapper
 from suqc.parameter.create import VadereScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
 from suqc.qoi import QuantityOfInterest
-from suqc.remote import ServerConnection, ServerRequest
+from suqc.remote import ServerRequest
 from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
 
 
@@ -33,9 +32,6 @@ class RequestItem(object):
         self.required_time = required_time
         self.return_code = return_code
 
-    def add_run_info(self):
-        pass
-
 
 class Request(object):
 
@@ -46,11 +42,12 @@ class Request(object):
                  qoi: Union[QuantityOfInterest, None]):
 
         if len(request_item_list) == 0:
-            raise ValueError("Request list has no entries.")
+            raise ValueError("request_item_list has no entries.")
 
         self.model = VadereConsoleWrapper.infer_model(model)
         self.request_item_list = request_item_list
-        self.qoi = qoi  # Can be None, if this is the case, no data will be written
+        # Can be None, if this is the case, no output data will be parsed to pd.DataFrame
+        self.qoi = qoi
 
         # Return values as pd.DataFrame from all runs (they cannot be included directly by the runs,
         # because Python's mulitprocessing is not shared memory due to the GIL (i.e. different/independent processes
@@ -61,20 +58,35 @@ class Request(object):
     def _interpret_return_value(self, ret_val, par_id):
         if ret_val == 0:
             return True
-        else:  # ret_val == 1:
+        else:  # ret_val != 0
             print(f"WARNING: Simulation with parameter setting {par_id} failed.")
             return False
 
-    def _single_request(self, request_item: RequestItem) -> Tuple[dict, np.float64]:
+    def _single_request(self, request_item: RequestItem) -> RequestItem:
 
         self._create_output_path(request_item.output_path)
 
-        return_code, required_time = self.model.run_simulation(request_item.scenario_path, request_item.output_path)
+        return_code, required_time, output_on_error = \
+            self.model.run_simulation(request_item.scenario_path, request_item.output_path)
+
         is_results = self._interpret_return_value(return_code, request_item.parameter_id)
 
         if is_results and self.qoi is not None:
             result = self.qoi.read_and_extract_qois(par_id=request_item.parameter_id, run_id=request_item.run_id,
                                                     output_path=request_item.output_path)
+        elif not is_results and self.qoi is not None:
+            # something went wrong during run
+            assert output_on_error is not None
+
+            filename_stdout = "stdout_on_error.txt"
+            filename_stderr = "stderr_on_error.txt"
+            self._write_console_output(output_on_error["stdout"],
+                                       request_item.output_path,
+                                       filename_stdout)
+            self._write_console_output(output_on_error["stderr"],
+                                       request_item.output_path,
+                                       filename_stderr)
+            result = None
         else:
             result = None
 
@@ -91,6 +103,13 @@ class Request(object):
         create_folder(output_path, delete_if_exists=True)
         return output_path
 
+    def _write_console_output(self, msg, output_path, filename):
+        _file = os.path.abspath(os.path.join(output_path, filename))
+
+        if msg is not None:
+            with open(_file, "wb") as out:
+                out.write(msg)
+
     def _compile_qoi(self):
 
         qoi_results = [item_.qoi_result for item_ in self.request_item_list]
@@ -104,7 +123,8 @@ class Request(object):
                 break
 
         if filenames is None:
-            print("WARNING: All simulations failed, only 'None' results.")
+            print("WARNING: All simulations failed, only 'None' results. Look in the "
+                  "output folder for error messages.")
             final_results = None
         else:
             # Successful runs are collected and are concatenated into a single pd.DataFrame below
@@ -174,6 +194,10 @@ class VariationBase(Request, ServerRequest):
         self.model = model
         self.remove_output = remove_output
 
+        if qoi is None and remove_output:
+            raise ValueError("it does not make sense: not collecting a qoi (qoi=None and "
+                             "not keeping the output (remove_output=False).")
+
         if isinstance(qoi, (str, list)):
             self.qoi = QuantityOfInterest(basis_scenario=self.env_man.basis_scenario, requested_files=qoi)
         else:
@@ -184,13 +208,20 @@ class VariationBase(Request, ServerRequest):
 
         super(VariationBase, self).__init__(request_item_list, self.model, self.qoi)
         ServerRequest.__init__(self)
-        
+
+    def _remove_output(self):
+        if self.env_man.env_path is not None:
+            shutil.rmtree(self.env_man.env_path)
+
     def run(self, njobs: int = 1):
         qoi_result_df, meta_info = super(VariationBase, self).run(njobs)
 
         # add another level to distinguish the columns with the parameter lookup
         meta_info.columns = pd.MultiIndex.from_arrays([["MetaInfo"] * meta_info.shape[1], meta_info.columns])
         lookup_df = pd.concat([self.parameter_variation.points, meta_info], axis=1)
+
+        if self.remove_output:
+            self._remove_output()
 
         return lookup_df, qoi_result_df
 
@@ -228,6 +259,7 @@ class VariationBase(Request, ServerRequest):
         return remote_result
 
 
+@DeprecationWarning
 class SampleVariation(VariationBase, ServerRequest):
 
     def __init__(self,
@@ -279,28 +311,22 @@ class DictVariation(VariationBase, ServerRequest):
         parameter_variation = UserDefinedSampling(parameter_dict_list)
         parameter_variation = parameter_variation.multiply_scenario_runs(scenario_runs=scenario_runs)
 
-        super(DictVariation, self).__init__(env_man=env, parameter_variation=parameter_variation, model=model, qoi=qoi,
-                                            post_changes=post_changes, njobs=njobs_create_scenarios)
-
-    def _remove_output(self):
-        if self.env_path is not None:
-            shutil.rmtree(self.env_path)
-
-    def run(self, njobs: int = 1):
-        res = super(DictVariation, self).run(njobs)
-
-        if self.remove_output:
-            self._remove_output()
-
-        return res
+        super(DictVariation, self).__init__(env_man=env,
+                                            parameter_variation=parameter_variation,
+                                            model=model,
+                                            qoi=qoi,
+                                            post_changes=post_changes,
+                                            njobs=njobs_create_scenarios,
+                                            remove_output=remove_output)
 
 
 class SingleKeyVariation(DictVariation, ServerRequest):
 
     def __init__(self, scenario_path: str,
-                 key: str, values: np.ndarray,
+                 key: str,
+                 values: np.ndarray,
                  qoi: Union[str, List[str]],
-                 model: str,
+                 model: Union[str, VadereConsoleWrapper],
                  scenario_runs=1,
                  post_changes=PostScenarioChangesBase(apply_default=True),
                  output_path=None,
@@ -415,8 +441,11 @@ class ProjectOutput(FolderExistScenarios):
         parent_path = parent_folder_clean(project_path)
 
         # This is by Vaderes convention:
-        scenarios_path = os.path.join(parent_path, "scenarios")
-        super(ProjectOutput, self).__init__(scenarios_path, model, output_path=parent_path, output_folder="output")
+        path_scenario_folder = os.path.join(parent_path, "scenarios")
+        super(ProjectOutput, self).__init__(path_scenario_folder=path_scenario_folder,
+                                            model=model,
+                                            output_path=parent_path,
+                                            output_folder="output")
 
 
 class SingleExistScenario(Request, ServerRequest):
@@ -449,7 +478,9 @@ class SingleExistScenario(Request, ServerRequest):
 
         request_item_list = self._generate_request_list(scenario_name=scenario_name, path_scenario=path_scenario)
 
-        super(SingleExistScenario, self).__init__(request_item_list, model, qoi)
+        super(SingleExistScenario, self).__init__(request_item_list=request_item_list,
+                                                  model=model,
+                                                  qoi=qoi)
         ServerRequest.__init__(self)
 
     def _generate_request_list(self, scenario_name, path_scenario):

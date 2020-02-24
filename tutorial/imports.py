@@ -2,7 +2,6 @@ import urllib.request
 
 from suqc import *
 
-
 vadere_filename = "vadere1_4.jar"
 download_link = f"https://syncandshare.lrz.de/dl/fiSwg2d6GXkB1vzGB6XwhvTA/{vadere_filename}"
 
@@ -16,5 +15,3 @@ if not os.path.exists(path2model):
     # downloads file if it does not exist in this folder
     urllib.request.urlretrieve(download_link, path2model)
     print(f"Download of {vadere_filename} finished. The model (jar file) is located in tutorial folder.")
-
-

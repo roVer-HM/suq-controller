@@ -22,12 +22,12 @@ class PostScenarioChangesBase(object):
         self.add_scenario_change(AlwaysEnableMetaData())
         self.add_scenario_change(ChangeDescription())
 
-    def add_scenario_change(self, sc: 'PostScenarioChange'):
+    def add_scenario_change(self, scenario_change: 'PostScenarioChange'):
         # ABCScenarioChange in '' to support forward reference,
         # see https://www.python.org/dev/peps/pep-0484/#forward-references
-        if sc.name in self._apply_scenario_changes.keys():
-            raise KeyError(f"Scenario change with {sc.name} is already present.")
-        self._apply_scenario_changes[sc.name] = sc
+        if scenario_change.name in self._apply_scenario_changes.keys():
+            raise KeyError(f"Scenario change with {scenario_change.name} is already present.")
+        self._apply_scenario_changes[scenario_change.name] = scenario_change
 
     def _collect_changes(self, scenario, parameter_id, run_id, parameter_variation):
         changes = {}

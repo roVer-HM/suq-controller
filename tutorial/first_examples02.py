@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(".."))
 
 from tutorial.imports import *
 
-run_local = False
+run_local = True
 
 
 ###############################################################################################################
