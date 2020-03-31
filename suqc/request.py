@@ -11,8 +11,7 @@ from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
 from suqc.qoi import QuantityOfInterest
 from suqc.remote import ServerRequest
-from suqc.utils.general import (create_folder, njobs_check_and_set,
-                                parent_folder_clean)
+from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
 
 
 class RequestItem(object):

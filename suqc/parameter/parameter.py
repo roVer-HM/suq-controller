@@ -1,8 +1,8 @@
 from pyDOE import lhs
 
-class LatinHyperCubeSampling:
 
-    def __init__(self, parameters, number_of_samples = 10 ):
+class LatinHyperCubeSampling:
+    def __init__(self, parameters, number_of_samples=10):
         self.parameters = parameters
         self.number_of_samples = number_of_samples
 
@@ -18,14 +18,12 @@ class LatinHyperCubeSampling:
             if check == 0:
                 sample.update(parameter.to_dict())
             else:
-                simulator =  parameter.get_simulator()
+                simulator = parameter.get_simulator()
                 sample[simulator].update(parameter.to_dict())
 
         return sample
 
-
-
-    def get_dictionary(self, number_of_samples = None):
+    def get_dictionary(self, number_of_samples=None):
 
         if number_of_samples is not None:
             self.number_of_samples = number_of_samples
@@ -34,24 +32,23 @@ class LatinHyperCubeSampling:
         par_var = []
 
         for sample in lhs_mapped:
-            pars = self.get_single_sample( sample )
+            pars = self.get_single_sample(sample)
             par_var.append(pars)
 
         return par_var
-
 
     def __get_sampling_vals(self):
 
         lhs_without_ranges = lhs(len(self.parameters), self.number_of_samples)
         lhs_mapped = lhs_without_ranges.copy()
 
-        for ind in range(0,len(self.parameters)):
+        for ind in range(0, len(self.parameters)):
 
             parameter = self.parameters[ind]
             interval = parameter.get_interval()
             lower_bound = parameter.get_lower_bound()
 
-            lhs_mapped[:,ind] =  lower_bound + lhs_mapped[:,ind]*interval
+            lhs_mapped[:, ind] = lower_bound + lhs_mapped[:, ind] * interval
 
         return lhs_mapped
 
@@ -60,7 +57,7 @@ class LatinHyperCubeSampling:
         simulators = list()
 
         for parameter in self.parameters:
-            sim =  parameter.get_simulator()
+            sim = parameter.get_simulator()
             if sim is not None:
                 simulators.append(sim)
 
@@ -69,11 +66,10 @@ class LatinHyperCubeSampling:
         if len(simulators) > 0:
             pars = dict()
             for simulator in simulators:
-                pars.update( {simulator: {} })
+                pars.update({simulator: {}})
         else:
             pars = {}
         return pars
-
 
 
 class Parameter:
@@ -81,7 +77,7 @@ class Parameter:
     def from_dict(cls, par_dict):
         pass
 
-    def __init__(self, name, unit = None, simulator = None, value = None, range = None ):
+    def __init__(self, name, unit=None, simulator=None, value=None, range=None):
         self.name = name
         self.value = value
         self.unit = unit
@@ -113,7 +109,6 @@ class Parameter:
 
     def to_dict(self):
         if self.unit is None:
-            return {self.name : self.value}
+            return {self.name: self.value}
         else:
             return {self.name: (self.value, self.unit)}
-
