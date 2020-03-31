@@ -1,55 +1,70 @@
 #!/usr/bin/env python3
 
-import json
 import glob
+import json
+import os
 import subprocess
 import time
-import os
-
 from shutil import rmtree
 from typing import *
 
 from suqc.configuration import SuqcConfig
-from suqc.utils.general import user_query_yes_no, get_current_suqc_state, str_timestamp
-
+from suqc.utils.general import (get_current_suqc_state, str_timestamp,
+                                user_query_yes_no)
 
 # configuration of the suq-controller
-DEFAULT_SUQ_CONFIG = {"default_vadere_src_path": "TODO",
-                      "server": {
-                          "host": "",
-                          "user": "",
-                          "port": -1
-                      }}
+DEFAULT_SUQ_CONFIG = {
+    "default_vadere_src_path": "TODO",
+    "server": {"host": "", "user": "", "port": -1},
+}
 
 
 class VadereConsoleWrapper(object):
 
     # Current log level choices, requires to manually add, if there are changes
-    ALLOWED_LOGLVL = ["OFF", "FATAL", "TOPOGRAPHY_ERROR", "TOPOGRAPHY_WARN", "INFO", "DEBUG", "ALL"]
+    ALLOWED_LOGLVL = [
+        "OFF",
+        "FATAL",
+        "TOPOGRAPHY_ERROR",
+        "TOPOGRAPHY_WARN",
+        "INFO",
+        "DEBUG",
+        "ALL",
+    ]
 
-    def __init__(self, model_path: str, loglvl="INFO", jvm_flags: Optional[List] =
-    None, timeout_sec=None):
+    def __init__(
+        self,
+        model_path: str,
+        loglvl="INFO",
+        jvm_flags: Optional[List] = None,
+        timeout_sec=None,
+    ):
 
         self.jar_path = os.path.abspath(model_path)
 
         if not os.path.exists(self.jar_path):
             raise FileNotFoundError(
-                f"Vadere console .jar file {self.jar_path} does not exist.")
+                f"Vadere console .jar file {self.jar_path} does not exist."
+            )
 
         loglvl = loglvl.upper()
         if loglvl not in self.ALLOWED_LOGLVL:
-            raise ValueError(f"set loglvl={loglvl} not contained "
-                             f"in allowed: {self.ALLOWED_LOGLVL}")
+            raise ValueError(
+                f"set loglvl={loglvl} not contained "
+                f"in allowed: {self.ALLOWED_LOGLVL}"
+            )
 
         if jvm_flags is not None and not isinstance(jvm_flags, list):
             raise TypeError(
-                f"jvm_flags are required to be a list. Got: {type(jvm_flags)}")
+                f"jvm_flags are required to be a list. Got: {type(jvm_flags)}"
+            )
 
         if timeout_sec is None:
-            pass # do nothing, no timeout
+            pass  # do nothing, no timeout
         elif not isinstance(timeout_sec, int) or timeout_sec <= 0:
-            raise TypeError("vadere_run_timeout_sec must be of type int and positive "
-                            "value")
+            raise TypeError(
+                "vadere_run_timeout_sec must be of type int and positive " "value"
+            )
 
         self.loglvl = loglvl
         # Additional Java Virtual Machine options / flags
@@ -69,9 +84,9 @@ class VadereConsoleWrapper(object):
         output_subprocess = dict()
 
         try:
-            subprocess.check_output(subprocess_cmd,
-                                    timeout=self.timeout_sec,
-                                    stderr=subprocess.PIPE)
+            subprocess.check_output(
+                subprocess_cmd, timeout=self.timeout_sec, stderr=subprocess.PIPE
+            )
             process_duration = time.time() - start
 
             # if return_code != 0 a subprocess.CalledProcessError is raised
@@ -121,7 +136,9 @@ class EnvironmentManager(object):
 
     def __init__(self, base_path, env_name: str):
 
-        self.base_path, self.env_name = self.handle_path_and_env_input(base_path, env_name)
+        self.base_path, self.env_name = self.handle_path_and_env_input(
+            base_path, env_name
+        )
 
         self.env_name = env_name
         self.env_path = self.output_folder_path(self.base_path, self.env_name)
@@ -135,8 +152,10 @@ class EnvironmentManager(object):
 
         print(f"INFO: Set environment path to {self.env_path}")
         if not os.path.exists(self.env_path):
-            raise FileNotFoundError(f"Environment {self.env_path} does not exist. Use function "
-                                    f"'EnvironmentManager.create_new_environment'")
+            raise FileNotFoundError(
+                f"Environment {self.env_path} does not exist. Use function "
+                f"'EnvironmentManager.create_new_environment'"
+            )
         self._scenario_basis = None
 
     @property
@@ -152,11 +171,15 @@ class EnvironmentManager(object):
 
     @property
     def path_basis_scenario(self):
-        sc_files = glob.glob(os.path.join(self.env_path, f"*{self.VADERE_SCENARIO_FILE_TYPE}"))
+        sc_files = glob.glob(
+            os.path.join(self.env_path, f"*{self.VADERE_SCENARIO_FILE_TYPE}")
+        )
 
         if len(sc_files) != 1:
-            raise RuntimeError(f"None or too many '{self.VADERE_SCENARIO_FILE_TYPE}' files "
-                               "found in environment.")
+            raise RuntimeError(
+                f"None or too many '{self.VADERE_SCENARIO_FILE_TYPE}' files "
+                "found in environment."
+            )
         return sc_files[0]
 
     @classmethod
@@ -171,12 +194,19 @@ class EnvironmentManager(object):
         cls(base_path=base_path, env_name=env_name)
 
     @classmethod
-    def create_new_environment(cls, base_path=None, env_name=None, handle_existing="ask_user_replace"):
+    def create_new_environment(
+        cls, base_path=None, env_name=None, handle_existing="ask_user_replace"
+    ):
 
         base_path, env_name = cls.handle_path_and_env_input(base_path, env_name)
 
         # TODO: Refactor, make handle_existing an Enum
-        assert handle_existing in ["ask_user_replace", "force_replace", "write_in_if_exist_else_create", "write_in"]
+        assert handle_existing in [
+            "ask_user_replace",
+            "force_replace",
+            "write_in_if_exist_else_create",
+            "write_in",
+        ]
 
         # set to True if env already exists, and it shouldn't be overwritten
         about_creating_env = False
@@ -191,7 +221,9 @@ class EnvironmentManager(object):
             if env_exists:
                 cls.remove_environment(base_path, env_name, force=True)
         elif handle_existing == "write_in":
-            assert env_exists, f"base_path={base_path} env_name={env_name} does not exist"
+            assert (
+                env_exists
+            ), f"base_path={base_path} env_name={env_name} does not exist"
             env_man = cls(base_path=base_path, env_name=env_name)
         elif handle_existing == "write_in_if_exist_else_create":
             if env_exists:
@@ -207,13 +239,19 @@ class EnvironmentManager(object):
 
         return env_man
 
-
     @classmethod
-    def create_variation_env(cls, basis_scenario: Union[str, dict], base_path=None, env_name=None,
-                             handle_existing="ask_user_replace"):
+    def create_variation_env(
+        cls,
+        basis_scenario: Union[str, dict],
+        base_path=None,
+        env_name=None,
+        handle_existing="ask_user_replace",
+    ):
 
         # Check if environment already exists
-        env_man = cls.create_new_environment(base_path=base_path, env_name=env_name, handle_existing=handle_existing)
+        env_man = cls.create_new_environment(
+            base_path=base_path, env_name=env_name, handle_existing=handle_existing
+        )
         path_output_folder = env_man.env_path
 
         # Add basis scenario used for the variation (i.e. sampling)
@@ -221,15 +259,18 @@ class EnvironmentManager(object):
             if not os.path.isfile(basis_scenario):
                 raise FileExistsError("Filepath to .scenario does not exist")
             elif basis_scenario.split(".")[-1] != cls.VADERE_SCENARIO_FILE_TYPE[1:]:
-                raise ValueError("basis_scenario has to be a Vadere '*"
-                                 f"{cls.VADERE_SCENARIO_FILE_TYPE}' file")
+                raise ValueError(
+                    "basis_scenario has to be a Vadere '*"
+                    f"{cls.VADERE_SCENARIO_FILE_TYPE}' file"
+                )
 
             with open(basis_scenario, "r") as file:
                 basis_scenario = file.read()
 
         # add prefix to scenario file:
-        basis_fp = os.path.join(path_output_folder,
-                                f"{cls.PREFIX_BASIS_SCENARIO}{env_name}.scenario")
+        basis_fp = os.path.join(
+            path_output_folder, f"{cls.PREFIX_BASIS_SCENARIO}{env_name}.scenario"
+        )
 
         # FILL IN THE STANDARD FILES IN THE NEW SCENARIO:
         with open(basis_fp, "w") as file:
@@ -245,12 +286,18 @@ class EnvironmentManager(object):
         if not SuqcConfig.is_package_paths():
             cfg["suqc_state"] = get_current_suqc_state()
 
-            with open(os.path.join(path_output_folder, "suqc_commit_hash.json"), 'w') as outfile:
-                s = "\n".join(["commit hash at creation", cfg["suqc_state"]["git_hash"]])
+            with open(
+                os.path.join(path_output_folder, "suqc_commit_hash.json"), "w"
+            ) as outfile:
+                s = "\n".join(
+                    ["commit hash at creation", cfg["suqc_state"]["git_hash"]]
+                )
                 outfile.write(s)
 
         # Create the folder where all output is stored
-        os.mkdir(os.path.join(path_output_folder, EnvironmentManager.vadere_output_folder))
+        os.mkdir(
+            os.path.join(path_output_folder, EnvironmentManager.vadere_output_folder)
+        )
 
         return cls(base_path, env_name)
 
@@ -258,8 +305,10 @@ class EnvironmentManager(object):
     def remove_environment(cls, base_path, name, force=False):
         target_path = cls.output_folder_path(base_path, name)
 
-        if force or user_query_yes_no(question=f"Are you sure you want to remove the current environment? Path: \n "
-        f"{target_path}"):
+        if force or user_query_yes_no(
+            question=f"Are you sure you want to remove the current environment? Path: \n "
+            f"{target_path}"
+        ):
             try:
                 rmtree(target_path)
             except FileNotFoundError:
@@ -279,7 +328,9 @@ class EnvironmentManager(object):
 
     @staticmethod
     def output_folder_path(base_path, env_name):
-        base_path, env_name = EnvironmentManager.handle_path_and_env_input(base_path, env_name)
+        base_path, env_name = EnvironmentManager.handle_path_and_env_input(
+            base_path, env_name
+        )
         assert os.path.isdir(base_path)
         output_folder_path = os.path.join(base_path, env_name)
         return output_folder_path
@@ -289,9 +340,15 @@ class EnvironmentManager(object):
         return os.path.abspath(rel_path)
 
     def get_variation_output_folder(self, parameter_id, run_id):
-        scenario_filename = self._scenario_variation_filename(parameter_id=parameter_id, run_id=run_id)
-        scenario_filename = scenario_filename.replace(self.VADERE_SCENARIO_FILE_TYPE, "")
-        return os.path.join(self.get_env_outputfolder_path(), "".join([scenario_filename, "_output"]))
+        scenario_filename = self._scenario_variation_filename(
+            parameter_id=parameter_id, run_id=run_id
+        )
+        scenario_filename = scenario_filename.replace(
+            self.VADERE_SCENARIO_FILE_TYPE, ""
+        )
+        return os.path.join(
+            self.get_env_outputfolder_path(), "".join([scenario_filename, "_output"])
+        )
 
     def _scenario_variation_filename(self, parameter_id, run_id):
         digits_parameter_id = str(parameter_id).zfill(self.nr_digits_variation)
@@ -301,11 +358,16 @@ class EnvironmentManager(object):
         return "".join([numbered_scenario_name, self.VADERE_SCENARIO_FILE_TYPE])
 
     def scenario_variation_path(self, par_id, run_id):
-        return os.path.join(self.get_env_outputfolder_path(), self._scenario_variation_filename(par_id, run_id))
+        return os.path.join(
+            self.get_env_outputfolder_path(),
+            self._scenario_variation_filename(par_id, run_id),
+        )
 
     def save_scenario_variation(self, par_id, run_id, content):
         scenario_path = self.scenario_variation_path(par_id, run_id)
-        assert not os.path.exists(scenario_path), f"File {scenario_path} already exists!"
+        assert not os.path.exists(
+            scenario_path
+        ), f"File {scenario_path} already exists!"
 
         with open(scenario_path, "w") as outfile:
             json.dump(content, outfile, indent=4)
