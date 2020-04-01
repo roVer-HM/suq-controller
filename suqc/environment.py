@@ -9,14 +9,18 @@ from shutil import rmtree
 from typing import *
 
 from suqc.configuration import SuqcConfig
+from suqc.utils.general import user_query_yes_no, get_current_suqc_state, str_timestamp
+
 from suqc.utils.general import (get_current_suqc_state, str_timestamp,
                                 user_query_yes_no)
 
 # configuration of the suq-controller
-DEFAULT_SUQ_CONFIG = {
-    "default_vadere_src_path": "TODO",
-    "server": {"host": "", "user": "", "port": -1},
-}
+DEFAULT_SUQ_CONFIG = {"default_vadere_src_path": "TODO",
+                      "server": {
+                          "host": "",
+                          "user": "",
+                          "port": -1
+                      }}
 
 
 class VadereConsoleWrapper(object):

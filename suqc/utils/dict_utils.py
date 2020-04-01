@@ -314,10 +314,10 @@ def change_value(d: dict, path: list, last_key: str, exist_val, new_value):
 
             # pass cases, where numpy floating point wrappers were removed
             if (
-                isinstance(exist_val, float)
-                and isinstance(new_value, float)
-                or isinstance(exist_val, int)
-                and isinstance(new_value, int)
+                (isinstance(exist_val, float)
+                and isinstance(new_value, float))
+                or (isinstance(exist_val, int)
+                and isinstance(new_value, int))
             ):
                 pass  # all good now
             else:  # print warning in cases where e.g. the existing value is an int and the new value is a float
@@ -354,6 +354,10 @@ def change_dict(json_dict: dict, changes: dict):
         json_dict = change_value(json_dict, path2key, final_key, exist_val, new_val)
 
         # Security check:
+        check_val, _ = deep_dict_lookup(json_dict, key_chain)
+        assert check_val == new_val, f"Something went wrong with setting a new value " \
+                                     f"in the scenario! " \
+                                     f"Check val={check_val} vs. new_val={new_val}."
         check_val, _ = deep_dict_lookup(json_dict, key_chain)
         assert check_val == new_val, (
             f"Something went wrong with setting a new value "

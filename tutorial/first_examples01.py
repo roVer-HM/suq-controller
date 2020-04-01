@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports.
@@ -58,3 +57,4 @@ if __name__ == "__main__":  # mainly required by Windows to run in parallel
 
     print("COLLECTED DATA:")
     print(data)
+
