@@ -11,8 +11,53 @@ from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
 from suqc.qoi import QuantityOfInterest
 from suqc.remote import ServerRequest
-from suqc.utils.general import (create_folder, njobs_check_and_set,
-                                parent_folder_clean)
+from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
+
+
+def read_from_existing_output(env_path, qoi_filename, extract_ids=True):
+
+    read_data = []
+
+    id_counter = 0
+
+    for root, dirs, files in os.walk(env_path):
+        for file in files:
+            if file == qoi_filename:
+
+                filepath = os.path.join(root, file)
+                parentfolder = os.path.basename(os.path.dirname(filepath))
+
+                df_data = pd.read_csv(filepath, delimiter=" ", header=[0], comment="#")
+
+                if extract_ids:
+                    run_data = [int(i) for i in parentfolder.split("_") if i.isdigit()]
+
+                    if (
+                        all(isinstance(item, int) == True for item in run_data)
+                        and len(run_data) == 2
+                    ):
+                        parameter_id, run_id = run_data
+                    else:
+                        raise ValueError("Failed to extract parameter- and run id.")
+
+                    index = pd.MultiIndex.from_arrays(
+                        [
+                            np.ones(df_data.shape[0], dtype=np.int64) * parameter_id,
+                            np.ones(df_data.shape[0], dtype=np.int64) * run_id,
+                        ]
+                    )
+                else:
+                    index = pd.Index(
+                        np.ones(df_data.shape[0], dtype=np.int64) * id_counter
+                    )
+                    id_counter += 1
+
+                df_data.index = index
+                read_data.append(df_data)
+
+    read_data = pd.concat(read_data, axis=0)
+
+    return read_data
 
 
 class RequestItem(object):
@@ -253,6 +298,10 @@ class VariationBase(Request, ServerRequest):
             [["MetaInfo"] * meta_info.shape[1], meta_info.columns]
         )
         lookup_df = pd.concat([self.parameter_variation.points, meta_info], axis=1)
+
+        savepath_lookup_df = os.path.join(self.env_man.env_path, "metainfo.csv")
+
+        lookup_df.to_csv(savepath_lookup_df)
 
         if self.remove_output:
             self._remove_output()
