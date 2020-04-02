@@ -26,15 +26,23 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
         {"speedDistributionMean": 1.3, "maximumSpeed": 4.0, "acceleration": 3.0},
     ]
 
-    setup = DictVariation(
-        scenario_path=path2scenario,
+    par_var = [ {"vadere": {"speedDistributionMean": 1.0, "maximumSpeed": 3.0}, "omnet": {"para1" : 2.3}},
+        {"vadere": {"speedDistributionMean": 2.0, "maximumSpeed": 1.0}, "omnet": {"para1" : 1.3}},
+    ]
+
+    path2ini = "/home/christina/repos/suq-controller/tutorial/simple_detoure/omnetpp.ini"
+
+
+    setup = CoupledDictVariation(
+        ini_path = path2ini,
+        scenario_name = "example.scenario",
         parameter_dict_list=par_var,
         qoi="density.txt",
         model=path2model,
         scenario_runs=1,
         post_changes=PostScenarioChangesBase(apply_default=True),
-        output_path=None,
-        output_folder=None,
+        output_path=path2tutorial,
+        output_folder="here_we_go",
         remove_output=False,
     )
 

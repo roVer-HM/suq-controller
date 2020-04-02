@@ -5,8 +5,8 @@ import multiprocessing
 import os
 import shutil
 
-from suqc.environment import VadereConsoleWrapper
-from suqc.parameter.create import VadereScenarioCreation
+from suqc.environment import VadereConsoleWrapper, CoupledEnvironmentManager
+from suqc.parameter.create import VadereScenarioCreation, CoupledScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
 from suqc.qoi import QuantityOfInterest
@@ -278,13 +278,17 @@ class VariationBase(Request, ServerRequest):
         else:
             self.qoi = qoi
 
+        request_item_list = self.scenario_creation(njobs)
+
+        super(VariationBase, self).__init__(request_item_list, self.model, self.qoi)
+        ServerRequest.__init__(self)
+
+    def scenario_creation(self, njobs):
         scenario_creation = VadereScenarioCreation(
             self.env_man, self.parameter_variation, self.post_changes
         )
         request_item_list = scenario_creation.generate_vadere_scenarios(njobs)
-
-        super(VariationBase, self).__init__(request_item_list, self.model, self.qoi)
-        ServerRequest.__init__(self)
+        return request_item_list
 
     def _remove_output(self):
         if self.env_man.env_path is not None:
@@ -364,6 +368,87 @@ class SampleVariation(VariationBase, ServerRequest):
     ):
         # TODO
         pass
+
+
+class CoupledDictVariation(VariationBase, ServerRequest):
+
+    def __init__(
+            self,
+            ini_path: str,
+            scenario_name: str, # relative to ini_path
+            parameter_dict_list: List[dict],
+            qoi: Union[str, List[str]],
+            model: Union[str, VadereConsoleWrapper],
+            scenario_runs=1,
+            post_changes=PostScenarioChangesBase(apply_default=True),
+            njobs_create_scenarios=1,
+            output_path=None,
+            output_folder=None,
+            remove_output=False,
+            env_remote=None,
+    ):
+
+        scenario_path = self._get_scenario_path(ini_path, scenario_name)
+
+        self.scenario_path = scenario_path
+        self.remove_output = remove_output
+
+        assert os.path.exists(ini_path) and ini_path.endswith(
+            ".ini"
+        ), "Filepath must exist and the file has to end with .ini"
+
+        assert os.path.exists(scenario_path) and scenario_path.endswith(
+            ".scenario"
+        ), "Filepath must exist and the file has to end with .scenario"
+
+        if env_remote is None:
+            env = CoupledEnvironmentManager.create_variation_env(
+                basis_scenario=self.scenario_path,
+                base_path=output_path,
+                env_name=output_folder,
+                handle_existing="ask_user_replace",
+            )
+            self.env_path = env.env_path
+        else:
+            self.env_path = env_remote.env_path
+            self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
+            env = env_remote
+
+        parameter_variation = UserDefinedSampling(parameter_dict_list)
+        parameter_variation = parameter_variation.multiply_scenario_runs(
+            scenario_runs=scenario_runs
+        )
+
+        super().__init__(
+            env_man=env,
+            parameter_variation=parameter_variation,
+            model=model,
+            qoi=qoi,
+            post_changes=post_changes,
+            njobs=njobs_create_scenarios,
+            remove_output=remove_output,
+        )
+
+    def _get_scenario_path(self, ini_path, scenario_name):
+
+        ini_folder = os.path.dirname(ini_path)
+        scenario_rel_path = "vadere/scenarios"
+        scenario_path = os.path.join(ini_folder, scenario_rel_path)
+        scenario_path = os.path.join(scenario_path, scenario_name)
+        return scenario_path
+
+    def scenario_creation(self, njobs):
+        parameter_variation = self.parameter_variation
+
+        if parameter_variation.check_multiple_simulators() is False:
+            raise Exception("Dataframe must contain parameters of multiple simulators.")
+
+        scenario_creation = CoupledScenarioCreation(
+            self.env_man, parameter_variation, self.post_changes
+        )
+        request_item_list = scenario_creation.generate_vadere_scenarios(njobs)
+
+        return request_item_list
 
 
 class DictVariation(VariationBase, ServerRequest):

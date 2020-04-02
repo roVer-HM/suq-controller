@@ -54,12 +54,55 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         # NOTE: it may be required to generalize 'points' definition, at the moment it is assumed to be a list(grid),
         # where 'grid' is a ParameterGrid of scikit-learn
 
-        df = pd.concat([self._points, pd.DataFrame(points)], ignore_index=True, axis=0)
+        # df = pd.concat([self._points, pd.DataFrame(points)], ignore_index=True, axis=0)
+        # df.index.name = ParameterVariationBase.ROW_IDX_NAME_ID
+        #
+        # df.columns = pd.MultiIndex.from_product(
+        #     [[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR], df.columns]
+        # )
+        #
+        #
+        #
+        dictionary = points[0]
+        check_nested = any(isinstance(i, dict) for i in dictionary.values())
+
+        if check_nested:
+            print("Dictionary is nested")
+
+            keys = dictionary.keys()
+            df = pd.DataFrame()
+
+            for key in keys:
+                print(key)
+
+                df_single = list()
+                for point in points:
+                    data = point[key]
+                    df_single.append(data)
+
+                df_single = pd.DataFrame(df_single)
+                df_single.columns = pd.MultiIndex.from_product([[key], df_single.columns])
+                df = pd.concat([df, df_single], axis=1)
+
+            cols = df.columns.values
+
+        else:
+            print("Dictionary is not nested nested")
+
+            df = pd.concat([self._points, pd.DataFrame(points)], ignore_index=True, axis=0)
+            cols = [tuple([parameter]) for parameter in df.columns.values]
+
+        # add 'Parameter' on top
+        for ii in range(len(cols)):
+            col = list(cols[ii])
+            col.insert(0, ParameterVariationBase.MULTI_IDX_LEVEL0_PAR)
+            cols[ii] = tuple(col)
+
+        df.columns = pd.MultiIndex.from_tuples(cols)
+
         df.index.name = ParameterVariationBase.ROW_IDX_NAME_ID
 
-        df.columns = pd.MultiIndex.from_product(
-            [[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR], df.columns]
-        )
+
         self._points = df
 
     def _add_df_points(self, points: pd.DataFrame):
@@ -98,6 +141,20 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
                 del parameter_variation[dk]
 
             yield (par_id, run_id, parameter_variation)
+
+    def check_multiple_simulators(self):
+
+        df =  self.points
+        number_of_levels = len(df.columns.levels)
+
+        check = None
+
+        if number_of_levels == 2:
+            check = False
+        if number_of_levels == 3:
+            check = True
+
+        return check
 
 
 class UserDefinedSampling(ParameterVariationBase):

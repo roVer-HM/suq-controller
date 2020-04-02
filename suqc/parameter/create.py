@@ -4,7 +4,7 @@ import multiprocessing
 import warnings
 
 import suqc.request  # no "from suqc.request import ..." works because of circular imports
-from suqc.environment import EnvironmentManager
+from suqc.environment import EnvironmentManager, AbstractEnvironmentManager
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import ParameterVariationBase
 from suqc.utils.dict_utils import change_dict, deep_dict_lookup
@@ -14,10 +14,10 @@ from suqc.utils.general import (create_folder, njobs_check_and_set,
 
 class VadereScenarioCreation(object):
     def __init__(
-        self,
-        env_man: EnvironmentManager,
-        parameter_variation: ParameterVariationBase,
-        post_change: PostScenarioChangesBase = None,
+            self,
+            env_man: AbstractEnvironmentManager,
+            parameter_variation: ParameterVariationBase,
+            post_change: PostScenarioChangesBase = None,
     ):
 
         self._env_man = env_man
@@ -28,7 +28,7 @@ class VadereScenarioCreation(object):
         self._parameter_variation.check_selected_keys(self._basis_scenario)
 
     def _create_new_vadere_scenario(
-        self, scenario: dict, parameter_id: int, run_id: int, parameter_variation: dict
+            self, scenario: dict, parameter_id: int, run_id: int, parameter_variation: dict
     ):
 
         par_var_scenario = change_dict(scenario, changes=parameter_variation)
@@ -70,7 +70,7 @@ class VadereScenarioCreation(object):
         return fp
 
     def _create_scenario(
-        self, args
+            self, args
     ):  # TODO: how do multiple arguments work for pool.map functions? (see below)
         """Set up a new scenario and return info of parameter id and location."""
         parameter_id = args[0]  # TODO: this would kind of reduce this ugly code
@@ -139,3 +139,19 @@ class VadereScenarioCreation(object):
             request_item_list = self._mp_creation(njobs)
 
         return request_item_list
+
+
+class CoupledScenarioCreation(VadereScenarioCreation):
+
+    def __init__(self, env_man: AbstractEnvironmentManager, parameter_variation: ParameterVariationBase,
+                 post_change: PostScenarioChangesBase = None):
+        
+        # omnet specific files
+        
+        self.create_additional_files()
+
+        super().__init__( env_man, parameter_variation, post_change)
+
+    def create_additional_files(self):
+        pass
+        
