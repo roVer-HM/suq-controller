@@ -434,7 +434,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         print("property call basis ini")
         if self._ini_basis is None:
             path_basis_scenario = self.path_ini
-            ini_file = OppConfigFileBase.from_path(ini_path = path_basis_scenario, config = "final")
+            ini_file = OppConfigFileBase.from_path(ini_path = path_basis_scenario, config = "final", cfg_type=OppConfigType.EXT_DEL_LOCAL)
             self._ini_basis = ini_file
         return self._ini_basis
 
@@ -670,20 +670,21 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         return "".join([numbered_scenario_name, self.VADERE_SCENARIO_FILE_TYPE])
 
-    def scenario_variation_path(self, par_id, run_id):
+    def scenario_variation_path(self, par_id, run_id, simulator = None ):
+
+        if simulator is None:
+            subdirs = "vadere/scenarios"
+            original_name_scenario = os.path.basename(self.path_basis_scenario)
+        else:
+            subdirs = ""
+            original_name_scenario = "omnetpp.ini"
+
 
         sim_name = f"coupled_sim_run_{par_id}_{run_id}"
         sim_path = os.path.join(self.get_env_outputfolder_path(), sim_name)
-        sim_path = os.path.join(sim_path, "vadere/scenarios")
+        sim_path = os.path.join(sim_path, subdirs)
 
-        assert not os.path.exists(
-            sim_path
-        ), f"File {sim_path} already exists!"
-
-        os.makedirs(sim_path)
-        print("Directory '%s' created" % sim_path)
-
-        original_name_scenario = os.path.basename(self.path_basis_scenario)
+        os.makedirs(sim_path, exist_ok=True)
 
         scenario_variation_path = os.path.join(sim_path,original_name_scenario)
 

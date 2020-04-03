@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import multiprocessing
+import os
 import warnings
 
 import suqc.request  # no "from suqc.request import ..." works because of circular imports
 from suqc.environment import EnvironmentManager, AbstractEnvironmentManager
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import ParameterVariationBase
-from suqc.utils.dict_utils import change_dict, deep_dict_lookup
+from suqc.utils.dict_utils import change_dict, deep_dict_lookup, change_dict_ini
 from suqc.utils.general import create_folder, njobs_check_and_set, remove_folder
 
 
@@ -19,6 +20,7 @@ class VadereScenarioCreation(object):
             post_change: PostScenarioChangesBase = None,
     ):
 
+
         self._env_man = env_man
         self._parameter_variation = parameter_variation
         self._post_changes = post_change
@@ -28,6 +30,8 @@ class VadereScenarioCreation(object):
 
     def _sampling_check_selected_keys(self):
         self._parameter_variation.check_selected_keys(self._basis_scenario)
+
+
 
     def _create_new_vadere_scenario(
             self, scenario: dict, parameter_id: int, run_id: int, parameter_variation: dict
@@ -150,18 +154,40 @@ class CoupledScenarioCreation(VadereScenarioCreation):
 
         self._basis_ini = env_man.basis_ini
 
-
         super().__init__( env_man, parameter_variation, post_change)
 
+    def _sp_creation(self):
+        """Single process loop to create all requested scenarios."""
+
+        request_item_list = list()
+        for par_id, run_id, par_change in self._parameter_variation.par_iter(simulator="vadere"):
+
+            request_item_list.append(
+                self._create_scenario([par_id, run_id, par_change])
+            )
+
+        self._create_new_omnet_scenario()
+
+        return request_item_list
+
+
     def _sampling_check_selected_keys(self):
-
-
 
         # vadere
         self._parameter_variation.check_selected_keys(self._basis_scenario, simulator="vadere")
 
         # omnet
         #self._parameter_variation.check_selected_keys(self._basis_scenario, simulator="omnet")
+
+    def _create_new_omnet_scenario(self):
+
+        for par_id, run_id, par_change in self._parameter_variation.par_iter(simulator="omnet"):
+
+            par_var_scenario = change_dict_ini(self._basis_ini, changes=par_change)
+            output_path = self._env_man.scenario_variation_path(par_id, run_id, simulator = "omnet")
+
+            with open(output_path, "w") as outfile:
+                par_var_scenario.writer(outfile)
 
 
     def create_additional_files(self):

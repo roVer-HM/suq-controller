@@ -127,11 +127,15 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
     def to_dictlist(self):
         return [i[1] for i in self.par_iter()]
 
-    def par_iter(self):
+    def par_iter(self, simulator = None):
 
-        for (par_id, run_id), row in self._points[
-            ParameterVariationBase.MULTI_IDX_LEVEL0_PAR
-        ].iterrows():
+        if simulator is None:
+            df = self._points[ ParameterVariationBase.MULTI_IDX_LEVEL0_PAR ]
+        else:
+            df = self._points[ (ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator) ]
+
+
+        for (par_id, run_id), row in df.iterrows():
             # TODO: this is not nice coding, however, there are some issues. See issue #40
             parameter_variation = dict(row)
             delete_keys = list()

@@ -27,18 +27,17 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
 
 
-    par_var = [{"vadere": {"speedDistributionMean": 1.0, "maximumSpeed": 3.0}, "omnet": {"para1": 2.3}},
-               {"vadere": {"speedDistributionMean": 2.0, "maximumSpeed": 1.0}, "omnet": {"para1": 1.3}},
-               ]
-
     par_var = [
         {"speedDistributionMean": 1.0, "maximumSpeed": 3.0},
         {"speedDistributionMean": 1.3, "maximumSpeed": 4.0, "acceleration": 3.0},
     ]
 
+    par_var = [{"vadere": {"speedDistributionMean": 1.0, "maximumSpeed": 3.0}, "omnet": {"*.station[0].mobility.initialX": '120m'}},
+               {"vadere": {"speedDistributionMean": 2.0, "maximumSpeed": 1.0}, "omnet": {"*.station[0].mobility.initialX": '300m'}},
+               ]
+
 
     path2ini = "/home/christina/repos/suq-controller/tutorial/simple_detoure/omnetpp.ini"
-
 
     setup = CoupledDictVariation(
         ini_path = path2ini,
