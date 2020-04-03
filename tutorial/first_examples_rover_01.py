@@ -13,7 +13,6 @@ sys.path.append(os.path.abspath(".."))
 
 run_local = True
 
-
 ###############################################################################################################
 # Usecase: Set yourself the parameters you want to change. Do this by defining a list of dictionaries with the
 # corresponding parameter. Again, the Vadere output is deleted after all scenarios run.
@@ -21,32 +20,28 @@ run_local = True
 
 if __name__ == "__main__":  # main required by Windows to run in parallel
 
-    ## following code will be in a separate script
-    # create sampling for vadere only
-    parameter_vadere_only = [
-        Parameter("speedDistributionMean", range=[1.3, 1.6]),
-        Parameter("maximumSpeed", range=[2.3, 2.6]),
-    ]
-    par_var_vadere = LatinHyperCubeSampling(parameter_vadere_only).get_dictionary()
 
-    # create sampling for rover
+    # create sampling for rover - needs to be outsourced into Marions repo
     parameter = [
         Parameter("speedDistributionMean", simulator="vadere", range=[1.3, 1.6]),
         Parameter("maximumSpeed", simulator="vadere", range=[2.3, 2.6]),
-        Parameter("omnet", unit="m", simulator="omnet", range=[0.5, 1.5]),
+        Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 400]),
     ]
 
-    par_var = LatinHyperCubeSampling(parameter).get_dictionary(5)
+    par_var = LatinHyperCubeSampling(parameter).get_dictionary(3)
 
-    setup = DictVariation(
-        scenario_path=path2scenario,
+    path2ini = "/home/christina/repos/suq-controller/tutorial/simple_detoure/omnetpp.ini"
+
+    setup = CoupledDictVariation(
+        ini_path=path2ini,
+        scenario_name="example.scenario",
         parameter_dict_list=par_var,
         qoi="density.txt",
         model=path2model,
         scenario_runs=1,
         post_changes=PostScenarioChangesBase(apply_default=True),
-        output_path=None,
-        output_folder=None,
+        output_path=path2tutorial,
+        output_folder="roVer",
         remove_output=False,
     )
 

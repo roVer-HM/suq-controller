@@ -111,4 +111,5 @@ class Parameter:
         if self.unit is None:
             return {self.name: self.value}
         else:
-            return {self.name: (self.value, self.unit)}
+            #return {self.name: (self.value, self.unit)}
+            return {self.name: f"{self.value}{self.unit}"}
