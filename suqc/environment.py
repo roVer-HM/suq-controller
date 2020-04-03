@@ -9,6 +9,7 @@ from shutil import rmtree
 from typing import *
 
 from suqc.configuration import SuqcConfig
+from suqc.opp.config_parser import OppParser, OppConfigType, OppConfigFileBase
 from suqc.utils.general import user_query_yes_no, get_current_suqc_state, str_timestamp
 
 from suqc.utils.general import (get_current_suqc_state, str_timestamp,
@@ -391,6 +392,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
     def __init__(self, base_path, env_name: str):
 
+
         self.base_path, self.env_name = self.handle_path_and_env_input(
             base_path, env_name
         )
@@ -412,9 +414,12 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
                 f"'EnvironmentManager.create_new_environment'"
             )
         self._scenario_basis = None
+        self._ini_basis = None
+
 
     @property
     def basis_scenario(self):
+        print("property call basis scenario")
         if self._scenario_basis is None:
             path_basis_scenario = self.path_basis_scenario
 
@@ -423,6 +428,28 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             self._scenario_basis = basis_file
 
         return self._scenario_basis
+
+    @property
+    def basis_ini(self):
+        print("property call basis ini")
+        if self._ini_basis is None:
+            path_basis_scenario = self.path_ini
+            ini_file = OppConfigFileBase.from_path(ini_path = path_basis_scenario, config = "final")
+            self._ini_basis = ini_file
+        return self._ini_basis
+
+    @property
+    def path_ini(self):
+        sc_files = glob.glob(
+            os.path.join(self.env_path, "*ini")
+        )
+
+        if len(sc_files) != 1:
+            raise RuntimeError(
+                f"None or too many 'ini' files "
+                "found in environment."
+            )
+        return sc_files[0]
 
     @property
     def path_basis_scenario(self):
@@ -494,10 +521,13 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         return env_man
 
+
+
     @classmethod
     def create_variation_env(
         cls,
         basis_scenario: Union[str, dict],
+        ini_scenario: Union[str,dict],
         base_path=None,
         env_name=None,
         handle_existing="ask_user_replace",
@@ -509,7 +539,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         )
         path_output_folder = env_man.env_path
 
-        # Add basis scenario used for the variation (i.e. sampling)
+        # Add vadere basis scenario used for the variation (i.e. sampling)
         if isinstance(basis_scenario, str):  # assume that this is a path
             if not os.path.isfile(basis_scenario):
                 raise FileExistsError("Filepath to .scenario does not exist")
@@ -532,7 +562,31 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             if isinstance(basis_scenario, dict):
                 json.dump(basis_scenario, file, indent=4)
             else:
-                file.write(basis_scenario)
+                file.write(basis_scenario) # this is where the scenario is defined
+
+        # Add omnet basis scenario used for the variation (i.e. sampling)
+        if isinstance(ini_scenario, str):  # assume that this is a path
+            if not os.path.isfile(ini_scenario):
+                raise FileExistsError("Filepath to .ini does not exist")
+            elif ini_scenario.split(".")[-1] != "ini":
+                raise ValueError(
+                    "omnet ini has to be a ini file"
+                )
+
+            with open(ini_scenario, "r") as file:
+                ini_scenario = file.read()
+
+        # add prefix to scenario file:
+        basis_fp = os.path.join(
+            path_output_folder, "omnetpp.ini"
+        )
+
+        # FILL IN THE STANDARD FILES IN THE NEW SCENARIO:
+        with open(basis_fp, "w") as file:
+            if isinstance(ini_scenario, dict):
+                OppConfigFileBase.writer() # not working yet!
+            else:
+                file.write(ini_scenario)  # this is where the scenario is defined
 
         # Create and store the configuration file to the new folder
         cfg = dict()

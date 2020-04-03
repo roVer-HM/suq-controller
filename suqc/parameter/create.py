@@ -24,6 +24,9 @@ class VadereScenarioCreation(object):
         self._post_changes = post_change
 
         self._basis_scenario = self._env_man.basis_scenario
+        self._sampling_check_selected_keys()
+
+    def _sampling_check_selected_keys(self):
         self._parameter_variation.check_selected_keys(self._basis_scenario)
 
     def _create_new_vadere_scenario(
@@ -144,12 +147,22 @@ class CoupledScenarioCreation(VadereScenarioCreation):
 
     def __init__(self, env_man: AbstractEnvironmentManager, parameter_variation: ParameterVariationBase,
                  post_change: PostScenarioChangesBase = None):
-        
-        # omnet specific files
-        
-        self.create_additional_files()
+
+        self._basis_ini = env_man.basis_ini
+
 
         super().__init__( env_man, parameter_variation, post_change)
+
+    def _sampling_check_selected_keys(self):
+
+
+
+        # vadere
+        self._parameter_variation.check_selected_keys(self._basis_scenario, simulator="vadere")
+
+        # omnet
+        #self._parameter_variation.check_selected_keys(self._basis_scenario, simulator="omnet")
+
 
     def create_additional_files(self):
         pass

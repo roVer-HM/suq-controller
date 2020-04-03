@@ -391,6 +391,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         scenario_path = self._get_scenario_path(ini_path, scenario_name)
 
         self.scenario_path = scenario_path
+        self.ini_path = ini_path
         self.remove_output = remove_output
 
         assert os.path.exists(ini_path) and ini_path.endswith(
@@ -404,6 +405,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         if env_remote is None:
             env = CoupledEnvironmentManager.create_variation_env(
                 basis_scenario=self.scenario_path,
+                ini_scenario = self.ini_path,
                 base_path=output_path,
                 env_name=output_folder,
                 handle_existing="ask_user_replace",
@@ -440,8 +442,8 @@ class CoupledDictVariation(VariationBase, ServerRequest):
     def scenario_creation(self, njobs):
         parameter_variation = self.parameter_variation
 
-        if parameter_variation.check_multiple_simulators() is False:
-            raise Exception("Dataframe must contain parameters of multiple simulators.")
+        #if parameter_variation.check_multiple_simulators() is False:
+        #    raise Exception("Dataframe must contain parameters of multiple simulators.")
 
         scenario_creation = CoupledScenarioCreation(
             self.env_man, parameter_variation, self.post_changes

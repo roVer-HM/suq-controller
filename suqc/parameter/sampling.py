@@ -108,8 +108,12 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
     def _add_df_points(self, points: pd.DataFrame):
         self._points = points
 
-    def check_selected_keys(self, scenario: dict):
-        keys = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR].columns
+    def check_selected_keys(self, scenario: dict, simulator = None):
+
+        keys = self._points.columns.get_level_values(-1)
+
+        if simulator is not None:
+            keys = keys[self._points.columns.get_level_values(1) == simulator]
 
         for k in keys:
             try:  # check that the value is 'final' (i.e. not another sub-directory) and that the key is unique.

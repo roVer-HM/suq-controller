@@ -21,14 +21,21 @@ run_local = True
 if __name__ == "__main__":  # main required by Windows to run in parallel
 
     # Set own values to vary, they don't have to be the same - in the first run acceleration is left to default.
+
+
+
+
+
+
+    par_var = [{"vadere": {"speedDistributionMean": 1.0, "maximumSpeed": 3.0}, "omnet": {"para1": 2.3}},
+               {"vadere": {"speedDistributionMean": 2.0, "maximumSpeed": 1.0}, "omnet": {"para1": 1.3}},
+               ]
+
     par_var = [
         {"speedDistributionMean": 1.0, "maximumSpeed": 3.0},
         {"speedDistributionMean": 1.3, "maximumSpeed": 4.0, "acceleration": 3.0},
     ]
 
-    par_var = [ {"vadere": {"speedDistributionMean": 1.0, "maximumSpeed": 3.0}, "omnet": {"para1" : 2.3}},
-        {"vadere": {"speedDistributionMean": 2.0, "maximumSpeed": 1.0}, "omnet": {"para1" : 1.3}},
-    ]
 
     path2ini = "/home/christina/repos/suq-controller/tutorial/simple_detoure/omnetpp.ini"
 
