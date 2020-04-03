@@ -8,8 +8,7 @@ from suqc.environment import EnvironmentManager, AbstractEnvironmentManager
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import ParameterVariationBase
 from suqc.utils.dict_utils import change_dict, deep_dict_lookup
-from suqc.utils.general import (create_folder, njobs_check_and_set,
-                                remove_folder)
+from suqc.utils.general import create_folder, njobs_check_and_set, remove_folder
 
 
 class VadereScenarioCreation(object):
