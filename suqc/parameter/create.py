@@ -10,6 +10,8 @@ from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import ParameterVariationBase
 from suqc.utils.dict_utils import change_dict, deep_dict_lookup, change_dict_ini
 from suqc.utils.general import create_folder, njobs_check_and_set, remove_folder
+from distutils.dir_util import copy_tree
+
 
 
 class VadereScenarioCreation(object):
@@ -188,6 +190,11 @@ class CoupledScenarioCreation(VadereScenarioCreation):
 
             with open(output_path, "w") as outfile:
                 par_var_scenario.writer(outfile)
+
+            folder = os.path.dirname(output_path)
+            ini_path = os.path.join(self._env_man.env_path, "additional_rover_files")
+
+            copy_tree(ini_path,folder)
 
 
     def create_additional_files(self):

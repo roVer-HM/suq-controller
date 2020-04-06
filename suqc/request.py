@@ -5,7 +5,7 @@ import multiprocessing
 import os
 import shutil
 
-from suqc.environment import VadereConsoleWrapper, CoupledEnvironmentManager
+from suqc.environment import VadereConsoleWrapper, CoupledEnvironmentManager, AbstractConsoleWrapper, CoupledConsoleWrapper, AbstractEnvironmentManager
 from suqc.parameter.create import VadereScenarioCreation, CoupledScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
@@ -86,14 +86,15 @@ class Request(object):
     def __init__(
         self,
         request_item_list: List[RequestItem],
-        model: Union[str, VadereConsoleWrapper],
+        model: Union[str, AbstractConsoleWrapper],
         qoi: Union[QuantityOfInterest, None],
     ):
 
         if len(request_item_list) == 0:
             raise ValueError("request_item_list has no entries.")
 
-        self.model = VadereConsoleWrapper.infer_model(model)
+
+        self.model = AbstractConsoleWrapper.infer_model(model)
         self.request_item_list = request_item_list
         # Can be None, if this is the case, no output data will be parsed to pd.DataFrame
         self.qoi = qoi
@@ -252,7 +253,7 @@ class VariationBase(Request, ServerRequest):
         self,
         env_man: EnvironmentManager,
         parameter_variation: ParameterVariationBase,
-        model: str,
+        model: Union[str, AbstractConsoleWrapper],
         qoi: Union[str, List[str], QuantityOfInterest],
         post_changes: PostScenarioChangesBase = None,
         njobs: int = 1,
@@ -378,7 +379,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             scenario_name: str, # relative to ini_path
             parameter_dict_list: List[dict],
             qoi: Union[str, List[str]],
-            model: Union[str, VadereConsoleWrapper],
+            model: Union[str, CoupledConsoleWrapper],
             scenario_runs=1,
             post_changes=PostScenarioChangesBase(apply_default=True),
             njobs_create_scenarios=1,
@@ -393,6 +394,8 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         self.scenario_path = scenario_path
         self.ini_path = ini_path
         self.remove_output = remove_output
+
+        self.ini_dir = os.path.dirname(ini_path)
 
         assert os.path.exists(ini_path) and ini_path.endswith(
             ".ini"
@@ -421,10 +424,11 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             scenario_runs=scenario_runs
         )
 
+
         super().__init__(
             env_man=env,
             parameter_variation=parameter_variation,
-            model=model,
+            model = model,
             qoi=qoi,
             post_changes=post_changes,
             njobs=njobs_create_scenarios,
@@ -451,6 +455,18 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         request_item_list = scenario_creation.generate_vadere_scenarios(njobs)
 
         return request_item_list
+
+
+    def _single_request(self, request_item: RequestItem) -> RequestItem:
+
+        #self._create_output_path(request_item.output_path)
+
+        dirname = self.env_man.get_env_outputfolder_path()
+        self.model.run_simulation(request_item.parameter_id, request_item.run_id, dirname)
+        print("test")
+
+
+
 
 
 class DictVariation(VariationBase, ServerRequest):
@@ -770,6 +786,8 @@ class SingleExistScenario(Request, ServerRequest):
             class_name="SingleExistScenario",
             transfer_output=True,
         )
+
+
 
 
 if __name__ == "__main__":

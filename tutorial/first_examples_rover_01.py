@@ -32,6 +32,8 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     path2ini = "/home/christina/repos/suq-controller/tutorial/simple_detoure/omnetpp.ini"
 
+    path2model = "Coupled"
+
     setup = CoupledDictVariation(
         ini_path=path2ini,
         scenario_name="example.scenario",

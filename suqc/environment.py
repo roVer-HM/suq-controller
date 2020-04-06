@@ -5,8 +5,9 @@ import json
 import os
 import subprocess
 import time
-from shutil import rmtree
+from shutil import rmtree, copytree, ignore_patterns
 from typing import *
+from abc import ABC, abstractmethod, abstractclassmethod
 
 from suqc.configuration import SuqcConfig
 from suqc.opp.config_parser import OppParser, OppConfigType, OppConfigFileBase
@@ -23,8 +24,56 @@ DEFAULT_SUQ_CONFIG = {"default_vadere_src_path": "TODO",
                           "port": -1
                       }}
 
+class AbstractConsoleWrapper(object):
 
-class VadereConsoleWrapper(object):
+    @classmethod
+    def infer_model(cls, model):
+
+        if isinstance(model, str):
+            if model =="Coupled":
+                return CoupledConsoleWrapper(model)
+            else:
+                return VadereConsoleWrapper.infer_model(model)
+        elif issubclass(model, AbstractConsoleWrapper):
+            return model
+
+
+
+class CoupledConsoleWrapper(AbstractConsoleWrapper):
+
+    def __init__(self, model):
+        self.simulator = model
+
+    def run_simulation(self, parameter_id, run_id, dirname):
+
+        return_code, process_duration, output_subprocess=[],[],[]
+
+        if print(os.getenv('ROVER_MAIN')) is None:
+            # print("Please add variable ROVER_MAIN to your e.g. /etc/environment")
+
+            # print("Alternative: add ROVER_MAIN with python")
+            os.environ['ROVER_MAIN'] = '/home/christina/repos/rover-main'
+
+        # print(os.getenv('ROVER_MAIN'))
+
+
+        dirname = os.path.join(dirname, f"coupled_sim_run_{parameter_id}_{run_id}")
+        os.chdir(dirname)
+        os.system('echo ""')
+        os.system('echo "------------------- started -----------------------"')
+        os.system("chmod +x runScript.sh")
+        process = subprocess.Popen(["./runScript.sh"], env=os.environ)
+        process.wait()
+        os.chdir('..')
+        os.system('echo "------------------ finished -----------------------"')
+        os.system('echo ""')
+
+        return return_code, process_duration
+
+
+
+
+class VadereConsoleWrapper(AbstractConsoleWrapper):
 
     # Current log level choices, requires to manually add, if there are changes
     ALLOWED_LOGLVL = [
@@ -76,6 +125,18 @@ class VadereConsoleWrapper(object):
         self.jvm_flags = jvm_flags if jvm_flags is not None else []
         self.timeout_sec = timeout_sec
 
+    @classmethod
+    def infer_model(cls, model):
+        if isinstance(model, str):
+            if os.path.exists(model):
+                return VadereConsoleWrapper.from_model_path(os.path.abspath(model))
+            else:
+                return VadereConsoleWrapper.from_default_models(model)
+        elif isinstance(model, VadereConsoleWrapper):
+            return model
+        else:
+            raise ValueError(f"Failed to infer Vadere model. \n {model}")
+
     def run_simulation(self, scenario_fp, output_path):
         start = time.time()
 
@@ -120,17 +181,6 @@ class VadereConsoleWrapper(object):
     def from_model_path(cls, model_path):
         return cls(model_path)
 
-    @classmethod
-    def infer_model(cls, model):
-        if isinstance(model, str):
-            if os.path.exists(model):
-                return VadereConsoleWrapper.from_model_path(os.path.abspath(model))
-            else:
-                return VadereConsoleWrapper.from_default_models(model)
-        elif isinstance(model, VadereConsoleWrapper):
-            return model
-        else:
-            raise ValueError(f"Failed to infer Vadere model. \n {model}")
 
 
 class AbstractEnvironmentManager(object):
@@ -457,6 +507,8 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         return sc_files[0]
 
 
+
+
     @classmethod
     def create_variation_env(
         cls,
@@ -472,6 +524,14 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             base_path=base_path, env_name=env_name, handle_existing=handle_existing
         )
         path_output_folder = env_man.env_path
+
+        ini_path = os.path.dirname(ini_scenario)
+
+        new_path = os.path.join(path_output_folder,"additional_rover_files")
+
+        copytree(ini_path,new_path,ignore=ignore_patterns('*.ini', '*.scenario'))
+
+
 
         # Add vadere basis scenario used for the variation (i.e. sampling)
         if isinstance(basis_scenario, str):  # assume that this is a path
