@@ -30,15 +30,15 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     par_var = LatinHyperCubeSampling(parameter).get_dictionary(3)
 
-    path2ini = "/home/christina/repos/suq-controller/tutorial/simple_detoure/omnetpp.ini"
+    path2ini = "/home/christina/repos/suq-controller/tutorial/simple_detoure_2/omnetpp.ini"
 
     path2model = "Coupled"
 
     setup = CoupledDictVariation(
         ini_path=path2ini,
-        scenario_name="example.scenario",
+        scenario_name="simple_detour_100x177_miat0.85.scenario",
         parameter_dict_list=par_var,
-        qoi="density.txt",
+        qoi="startEndtime.csv",
         model=path2model,
         scenario_runs=1,
         post_changes=PostScenarioChangesBase(apply_default=True),
