@@ -36,9 +36,9 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     setup = CoupledDictVariation(
         ini_path=path2ini,
-        scenario_name="simple_detour_100x177_miat0.85.scenario",
+        scenario_name="simple_detour_100x177_miat1.25.scenario",
         parameter_dict_list=par_var,
-        qoi="startEndtime.csv",
+        qoi="DegreeInformed.txt",
         model=path2model,
         scenario_runs=1,
         post_changes=PostScenarioChangesBase(apply_default=True),
