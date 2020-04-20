@@ -23,8 +23,8 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     # create sampling for rover - needs to be outsourced into Marions repo
     parameter = [
-        Parameter("speedDistributionMean", simulator="vadere", range=[1.3, 1.6]),
-        Parameter("maximumSpeed", simulator="vadere", range=[2.3, 2.6]),
+        Parameter("attributesPedestrian.speedDistributionMean", simulator="vadere", range=[1.3, 1.6]),
+        Parameter("attributesPedestrian.maximumSpeed", simulator="vadere", range=[2.3, 2.6]),
         Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 400]),
     ]
 
@@ -49,8 +49,9 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     if run_local:
         par_var, data = setup.run(
-            -1
+            1
         )  # -1 indicates to use all cores available to parallelize the scenarios
+        # to do: allow -1 for rover containers
     else:
         par_var, data = setup.remote(-1)
 

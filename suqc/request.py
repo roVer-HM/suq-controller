@@ -241,10 +241,14 @@ class Request(object):
         else:
             self._mp_query(njobs=njobs)
 
-        if self.qoi is not None:
-            self.compiled_qoi_data = self._compile_qoi()
 
-        self.compiled_run_info = self._compile_run_info()
+
+        if (self.qoi is not None) and isinstance(self.env_man, EnvironmentManager):
+            self.compiled_qoi_data = self._compile_qoi()
+            self.compiled_run_info = self._compile_run_info()
+        else:
+            self.compiled_qoi_data, self.compiled_run_info = None, None
+
         return self.compiled_qoi_data, self.compiled_run_info
 
 
@@ -463,7 +467,9 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         dirname = self.env_man.get_env_outputfolder_path()
         self.model.run_simulation(request_item.parameter_id, request_item.run_id, dirname)
-        print("test")
+
+        # to do: read data with rover-analyzer
+        return None
 
 
 
