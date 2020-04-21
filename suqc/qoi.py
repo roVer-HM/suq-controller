@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import time
 import re
 from typing import *
 
@@ -113,6 +114,17 @@ class QuantityOfInterest(object):
         return selected_procs
 
     def _read_csv(self, req_qoi: FileDataInfo, filepath):
+
+        secs = 0
+        while os.path.exists(filepath) is False:
+            if secs == 0:
+                print(f"Wait for file {filepath}")
+            print(f"\t Waiting time: {secs}s")
+            time.sleep(1)
+            secs += 1
+
+        print(f"Read from {filepath}")
+
         # make sure that Vadere writes
         with open(filepath) as f:
             first_line = f.readline()

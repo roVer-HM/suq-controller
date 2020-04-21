@@ -46,7 +46,6 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
 
     def run_simulation(self, parameter_id, run_id, dirname):
 
-        return_code, process_duration, output_subprocess=[],[],[]
 
         if print(os.getenv('ROVER_MAIN')) is None:
             # print("Please add variable ROVER_MAIN to your e.g. /etc/environment")
@@ -56,19 +55,23 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
 
         # print(os.getenv('ROVER_MAIN'))
 
+        timeStarted = time.time()
 
         dirname = os.path.join(dirname, f"coupled_sim_run_{parameter_id}_{run_id}")
         os.chdir(dirname)
         os.system('echo ""')
         os.system('echo "------------------- started -----------------------"')
         os.system("chmod +x runScript.sh")
-        process = subprocess.Popen(["./runScript.sh"], env=os.environ)
-        process.wait()
+        return_code = subprocess.check_call(["./runScript.sh"], env=os.environ)
+
         os.chdir('..')
         os.system('echo "------------------ finished -----------------------"')
         os.system('echo ""')
 
-        return return_code, process_duration
+        process_duration = time.time() - timeStarted
+        output_subprocess = None
+
+        return return_code, process_duration, output_subprocess
 
 
 

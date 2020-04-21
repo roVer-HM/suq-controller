@@ -28,10 +28,9 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
         Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 400]),
     ]
 
-    par_var = LatinHyperCubeSampling(parameter).get_dictionary(3)
+    par_var = LatinHyperCubeSampling(parameter).get_dictionary(2)
 
-    path2ini = "/home/christina/repos/suq-controller/tutorial/simple_detoure_2/omnetpp.ini"
-
+    path2ini = "/home/christina/repos/rover-main/rover/simulations/simple_detoure_suqc/omnetpp.ini"
     path2model = "Coupled"
 
     setup = CoupledDictVariation(
@@ -43,7 +42,7 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
         scenario_runs=1,
         post_changes=PostScenarioChangesBase(apply_default=True),
         output_path=path2tutorial,
-        output_folder="roVer",
+        output_folder="simple",
         remove_output=False,
     )
 

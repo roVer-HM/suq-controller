@@ -242,12 +242,9 @@ class Request(object):
             self._mp_query(njobs=njobs)
 
 
-
-        if (self.qoi is not None) and isinstance(self.env_man, EnvironmentManager):
+        if self.qoi is not None:
             self.compiled_qoi_data = self._compile_qoi()
             self.compiled_run_info = self._compile_run_info()
-        else:
-            self.compiled_qoi_data, self.compiled_run_info = None, None
 
         return self.compiled_qoi_data, self.compiled_run_info
 
@@ -463,13 +460,52 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
     def _single_request(self, request_item: RequestItem) -> RequestItem:
 
-        #self._create_output_path(request_item.output_path)
 
         dirname = self.env_man.get_env_outputfolder_path()
-        self.model.run_simulation(request_item.parameter_id, request_item.run_id, dirname)
+        return_code, required_time, output_on_error = self.model.run_simulation(request_item.parameter_id, request_item.run_id, dirname)
 
-        # to do: read data with rover-analyzer
-        return None
+        outputfolder_path = os.path.join(dirname, f"coupled_sim_run_{request_item.parameter_id}_{request_item.run_id}")
+
+        for dirpath, dirnames, filenames in os.walk(outputfolder_path):
+            for filename in [f for f in filenames if f == self.qoi.req_qois[0].filename ]:
+                output_path = os.path.join(dirpath, filename)
+
+        #request_item.output_path = dirpath
+
+        is_results = self._interpret_return_value(
+            return_code, request_item.parameter_id
+        )
+
+        if is_results and self.qoi is not None:
+            result = self.qoi.read_and_extract_qois(
+                par_id=request_item.parameter_id,
+                run_id=request_item.run_id,
+                output_path=dirpath,
+            )
+        elif not is_results and self.qoi is not None:
+            # something went wrong during run
+            assert output_on_error is not None
+
+            filename_stdout = "stdout_on_error.txt"
+            filename_stderr = "stderr_on_error.txt"
+            self._write_console_output(
+                output_on_error["stdout"], request_item.output_path, filename_stdout
+            )
+            self._write_console_output(
+                output_on_error["stderr"], request_item.output_path, filename_stderr
+            )
+            result = None
+        else:
+            result = None
+
+        if self.qoi is not None and not is_results:
+            required_time = np.nan
+
+        request_item.add_qoi_result(result)
+        request_item.add_meta_info(required_time=required_time, return_code=return_code)
+
+        # Because of the multi-processor part, don't try to already add the results here to _results_df
+        return request_item
 
 
 
