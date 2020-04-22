@@ -25,8 +25,8 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
     # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
 
     parameter = [
-        Parameter("sources.[id==3001].distributionParameters", simulator="vadere", range=[1.25, 30], list=[1.25],
-                  list_index=0)
+        Parameter("sources.[id==3001].distributionParameters", simulator="vadere", range=[[5.25, 33]], list=[1.25],
+                  list_index=[0])
        ]
 
     dependent_parameters = [

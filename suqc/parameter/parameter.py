@@ -13,9 +13,16 @@ class LatinHyperCubeSampling:
         sample = self.__initialize_sample_dict()
         check = len(sample.keys())
 
-        for k in range(len(values)):
-            parameter = self.parameters[k]
-            parameter.set_val(values[k])
+        k = 0
+        for parameter in self.parameters:
+
+            if parameter.list_index is None:
+                parameter.set_val(values[k])
+                k += 1
+            else:
+                for index in parameter.list_index:
+                    parameter.set_val(values[k],index)
+                    k += 1
 
             if check == 0:
                 sample.update(parameter.to_dict())
@@ -33,7 +40,6 @@ class LatinHyperCubeSampling:
                 simulator = dep.get_simulator()
                 sample[simulator].update(dep.to_dict())
 
-
         return sample
 
 
@@ -45,11 +51,14 @@ class LatinHyperCubeSampling:
         if number_of_samples is not None:
             self.number_of_samples = number_of_samples
 
-        if len(self.parameters) == 1:
-            lhs_mapped = numpy.linspace( self.parameters[0].get_lower_bound(),  self.parameters[0].get_upper_bound(), self.number_of_samples)
-            lhs_mapped = [[val] for val in lhs_mapped.tolist()]
-        else:
-            lhs_mapped = self.__get_sampling_vals()
+        # if len(self.parameters) == 1:
+        #     lhs_mapped = numpy.linspace( self.parameters[0].get_lower_bound(),  self.parameters[0].get_upper_bound(), self.number_of_samples)
+        #     lhs_mapped = [[val] for val in lhs_mapped.tolist()]
+        # else:
+        #     lhs_mapped = self.__get_sampling_vals()
+
+        lhs_mapped = self.__get_sampling_vals()
+
         par_var = list()
 
         for sample in lhs_mapped:
@@ -63,17 +72,32 @@ class LatinHyperCubeSampling:
 
     def __get_sampling_vals(self):
 
+        number = 0
+        for para in self.parameters:
+            number = number + para.get_number_of_parameters()
 
-        lhs_without_ranges = lhs(len(self.parameters), self.number_of_samples)
+        lhs_without_ranges = lhs(number, self.number_of_samples)
         lhs_mapped = lhs_without_ranges.copy()
 
-        for ind in range(0, len(self.parameters)):
+        ind = 0
+        for parameter in self.parameters:
 
-            parameter = self.parameters[ind]
-            interval = parameter.get_interval()
-            lower_bound = parameter.get_lower_bound()
+            if parameter.get_number_of_parameters() is 1:
 
-            lhs_mapped[:, ind] = lower_bound + lhs_mapped[:, ind] * interval
+                interval = parameter.get_interval()
+                lower_bound = parameter.get_lower_bound()
+
+                lhs_mapped[:, ind] = lower_bound + lhs_mapped[:, ind] * interval
+                ind += 1
+            else:
+
+                for c in range(parameter.get_number_of_parameters()):
+
+                    interval = parameter.get_interval()[c]
+                    lower_bound = parameter.get_lower_bound()[c]
+
+                    lhs_mapped[:, ind] = lower_bound + lhs_mapped[:, ind] * interval
+                    ind += 1
 
         return lhs_mapped
 
@@ -117,8 +141,13 @@ class Parameter:
     def get_val(self):
         return self.value
 
-    def set_val(self, val):
-        self.value = val
+    def set_val(self, val, index = None):
+        if index is None:
+            self.value = val
+        else:
+            if self.value is None:
+                self.value = self.list
+            self.value[index] = val
 
     def set_range(self, range):
         # reorder
@@ -128,11 +157,17 @@ class Parameter:
         return self.range
 
     def get_interval(self):
-        interval = self.range[1] - self.range[0]
+        if self.list_index is None:
+            interval = self.range[1] - self.range[0]
+        else:
+            interval = [ item[1] - item[0] for item in self.range ]
         return interval
 
     def get_lower_bound(self):
-        return self.range[0]
+        if self.list_index is None:
+            return self.range[0]
+        else:
+            return [ item[0] for item in self.range ]
 
     def get_upper_bound(self):
         return self.range[1]
@@ -142,18 +177,20 @@ class Parameter:
 
     def to_dict(self):
 
-        if self.list is None:
-
-            if self.unit is None:
-                val = self.value
-            else:
-                val = f"{self.value}{self.unit}"
-
+        if self.unit is None:
+            val = self.value
         else:
-            val = self.list
-            val[self.list_index] = self.value
+            val = f"{self.value}{self.unit}"
 
         return {self.name: val}
+
+    def get_number_of_parameters(self):
+        if self.list_index is None:
+            return 1
+        else:
+            return len(self.list_index)
+
+
 
 
 class DependentParameter(Parameter):
