@@ -183,9 +183,21 @@ class CoupledScenarioCreation(VadereScenarioCreation):
 
     def _create_new_omnet_scenario(self):
 
-        for par_id, run_id, par_change in self._parameter_variation.par_iter(simulator="omnet"):
+        simulator_check = self._parameter_variation.points.Parameter.keys().get_level_values(0).to_list()
 
-            par_var_scenario = change_dict_ini(self._basis_ini, changes=par_change)
+        if "omnet" in simulator_check:
+            variations = self._parameter_variation.par_iter(simulator="omnet")
+        else:
+            variations = self._parameter_variation.par_iter()
+
+
+        for par_id, run_id, par_change in variations:
+
+            if "omnet" in simulator_check:
+                par_var_scenario = change_dict_ini(self._basis_ini, changes=par_change)
+            else:
+                par_var_scenario = self._basis_ini
+
             output_path = self._env_man.scenario_variation_path(par_id, run_id, simulator = "omnet")
 
             with open(output_path, "w") as outfile:

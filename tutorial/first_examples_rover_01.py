@@ -3,7 +3,7 @@
 import os
 import sys
 
-from suqc.parameter.parameter import LatinHyperCubeSampling, Parameter
+from suqc.parameter.parameter import LatinHyperCubeSampling, Parameter, DependentParameter
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
@@ -21,14 +21,25 @@ run_local = True
 if __name__ == "__main__":  # main required by Windows to run in parallel
 
 
-    # create sampling for rover - needs to be outsourced into Marions repo
+    #create sampling for rover - needs to be outsourced into Marions repo
+    # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
+
     parameter = [
-        Parameter("attributesPedestrian.speedDistributionMean", simulator="vadere", range=[1.3, 1.6]),
-        Parameter("attributesPedestrian.maximumSpeed", simulator="vadere", range=[2.3, 2.6]),
-        Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 400]),
+        Parameter("sources.[id==3001].distributionParameters", simulator="vadere", range=[1.25, 30], list=[1.25],
+                  list_index=0)
+       ]
+
+    dependent_parameters = [
+        
+        DependentParameter(name="sources.[id==3002].distributionParameters", simulator="vadere",
+                           equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=0),
+        DependentParameter(name="sources.[id==3003].distributionParameters", simulator="vadere",
+                           equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=0),
+        DependentParameter(name="sources.[id==3004].distributionParameters", simulator="vadere",
+                           equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=0)
     ]
 
-    par_var = LatinHyperCubeSampling(parameter).get_dictionary(2)
+    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(2)
 
     path2ini = "/home/christina/repos/rover-main/rover/simulations/simple_detoure_suqc/omnetpp.ini"
     path2model = "Coupled"
