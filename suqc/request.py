@@ -14,7 +14,7 @@ from suqc.remote import ServerRequest
 from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
 
 
-def read_from_existing_output(env_path, qoi_filename, extract_ids=True):
+def read_from_existing_output(env_path, qoi_filename, extract_ids=True, parentfolder_level = 1):
 
     read_data = []
 
@@ -25,7 +25,13 @@ def read_from_existing_output(env_path, qoi_filename, extract_ids=True):
             if file == qoi_filename:
 
                 filepath = os.path.join(root, file)
-                parentfolder = os.path.basename(os.path.dirname(filepath))
+
+                # default vals: vadere (1), rover/omnet (5)
+                filepath0 = filepath
+                for level_up in range(parentfolder_level):
+                    filepath0 = os.path.dirname(filepath0)
+
+                parentfolder = os.path.basename(filepath0)
 
                 df_data = pd.read_csv(filepath, delimiter=" ", header=[0], comment="#")
 

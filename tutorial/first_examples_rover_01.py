@@ -25,35 +25,36 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
     # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
 
     parameter = [
-        Parameter("sources.[id==3001].distributionParameters", simulator="vadere", range=[[5.25, 33]], list=[1.25],
+        Parameter("sources.[id==3001].distributionParameters", simulator="vadere", range=[[25, 33]], list=[1.25],
                   list_index=[0])
        ]
 
     dependent_parameters = [
-        
         DependentParameter(name="sources.[id==3002].distributionParameters", simulator="vadere",
-                           equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=0),
+                           equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=[0]),
         DependentParameter(name="sources.[id==3003].distributionParameters", simulator="vadere",
-                           equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=0),
+                           equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=[0]),
         DependentParameter(name="sources.[id==3004].distributionParameters", simulator="vadere",
-                           equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=0)
+                           equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=[0])
     ]
 
     par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(2)
 
     path2ini = "/home/christina/repos/rover-main/rover/simulations/simple_detoure_suqc/omnetpp.ini"
     path2model = "Coupled"
+    output_folder = "simple"
+    qoi = "DegreeInformed.txt"
 
     setup = CoupledDictVariation(
         ini_path=path2ini,
         scenario_name="simple_detour_100x177_miat1.25.scenario",
         parameter_dict_list=par_var,
-        qoi="DegreeInformed.txt",
+        qoi=qoi,
         model=path2model,
         scenario_runs=1,
         post_changes=PostScenarioChangesBase(apply_default=True),
         output_path=path2tutorial,
-        output_folder="simple",
+        output_folder=output_folder,
         remove_output=False,
     )
 
@@ -71,3 +72,5 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     print("COLLECTED DATA:")
     print(data)
+
+    
