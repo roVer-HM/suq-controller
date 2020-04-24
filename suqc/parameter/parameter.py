@@ -51,11 +51,7 @@ class LatinHyperCubeSampling:
         if number_of_samples is not None:
             self.number_of_samples = number_of_samples
 
-        # if len(self.parameters) == 1:
-        #     lhs_mapped = numpy.linspace( self.parameters[0].get_lower_bound(),  self.parameters[0].get_upper_bound(), self.number_of_samples)
-        #     lhs_mapped = [[val] for val in lhs_mapped.tolist()]
-        # else:
-        #     lhs_mapped = self.__get_sampling_vals()
+
 
         lhs_mapped = self.__get_sampling_vals()
 
@@ -76,6 +72,21 @@ class LatinHyperCubeSampling:
         for para in self.parameters:
             number = number + para.get_number_of_parameters()
 
+        # Create discrete values for parameter (equally spaced)
+        if number == 1:
+            low = self.parameters[0].get_lower_bound()
+            up = self.parameters[0].get_upper_bound()
+
+            if isinstance(low,list):
+                low = low[0]
+            if isinstance(up,list):
+                up = up[0]
+
+            #lin = numpy.linspace( low, up, self.number_of_samples)
+            lin = numpy.logspace( numpy.log10(low), numpy.log10(up), self.number_of_samples )
+            return lin
+
+        # Use Latin Hypercube Sampling if number of parameters > 1
         lhs_without_ranges = lhs(number, self.number_of_samples)
         lhs_mapped = lhs_without_ranges.copy()
 
@@ -170,7 +181,11 @@ class Parameter:
             return [ item[0] for item in self.range ]
 
     def get_upper_bound(self):
-        return self.range[1]
+        if self.list_index is None:
+            return self.range[1]
+        else:
+            return [item[1] for item in self.range]
+
 
     def get_simulator(self):
         return self.simulator

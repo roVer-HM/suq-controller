@@ -7,6 +7,7 @@ import subprocess
 import time
 from shutil import rmtree, copytree, ignore_patterns
 from typing import *
+import sys
 from abc import ABC, abstractmethod, abstractclassmethod
 
 from suqc.configuration import SuqcConfig
@@ -47,26 +48,18 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
     def run_simulation(self, parameter_id, run_id, dirname):
 
 
-        if print(os.getenv('ROVER_MAIN')) is None:
-            # print("Please add variable ROVER_MAIN to your e.g. /etc/environment")
-
-            # print("Alternative: add ROVER_MAIN with python")
-            os.environ['ROVER_MAIN'] = '/home/christina/repos/rover-main'
-
-        # print(os.getenv('ROVER_MAIN'))
-
         timeStarted = time.time()
+        t = time.strftime("%H:%M:%S", time.localtime(timeStarted))
 
         dirname = os.path.join(dirname, f"coupled_sim_run_{parameter_id}_{run_id}")
         os.chdir(dirname)
-        os.system('echo ""')
-        os.system('echo "------------------- started -----------------------"')
+
+        print(f"start simulation  \t  parameter id: \t{parameter_id}, run id: \t{run_id} at {t}")
+
         os.system("chmod +x runScript.sh")
-        return_code = subprocess.check_call(["./runScript.sh"], env=os.environ)
+        return_code = subprocess.check_call(["./runScript.sh"], env=os.environ, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT )
 
         os.chdir('..')
-        os.system('echo "------------------ finished -----------------------"')
-        os.system('echo ""')
 
         process_duration = time.time() - timeStarted
         output_subprocess = None
@@ -489,7 +482,6 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
     @property
     def basis_ini(self):
-        print("property call basis ini")
         if self._ini_basis is None:
             path_basis_scenario = self.path_ini
             ini_file = OppConfigFileBase.from_path(ini_path = path_basis_scenario, config = "final", cfg_type=OppConfigType.EXT_DEL_LOCAL)

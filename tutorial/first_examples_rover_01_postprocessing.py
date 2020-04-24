@@ -61,14 +61,11 @@ if __name__ == "__main__":
         plt.savefig(os.path.join(analysis_path, my_title_short + "_all.png"))
         plt.show()
 
-
         number_peaks.append(peaks.size)
         peak_time = dt * peaks[0]
 
         if peak_time < start_time or peak_time > end_time:
-            print("error")
-        else:
-            print("ok")
+            print(f"Please check simulation {simulation}")
 
         evolution_times.append(evolution_time)
 
@@ -94,7 +91,7 @@ if __name__ == "__main__":
         plt.savefig( os.path.join(analysis_path, my_title_short + ".png"))
         plt.show()
 
-        stat = pd.Series.describe( df_r.iloc[:,2] )
+        stat = pd.Series.describe( df_r.iloc[150:-1,2] )
         stats = pd.concat( [stats, pd.DataFrame(stat).transpose()] )
 
     stats = stats.reset_index()
@@ -106,7 +103,7 @@ if __name__ == "__main__":
 
 
 
-    plt.plot([ float(item[1:8]) for item in  qoi["inter_arrival_t_sec"]], qoi["time_all_informed"],marker="o")
+    plt.plot([ float(item[1:4]) for item in  qoi["inter_arrival_t_sec"]], qoi["time_all_informed"],marker="o")
     plt.xlabel(f"Parameter: mean inter-arrival-time [s]")
     plt.title("Time to inform 95% of pedestrians [s]")
     plt.ylabel("QoI: time [s]")

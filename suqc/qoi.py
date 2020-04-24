@@ -117,13 +117,13 @@ class QuantityOfInterest(object):
 
         secs = 0
         while os.path.exists(filepath) is False:
-            if secs == 0:
-                print(f"Wait for file {filepath}")
-            print(f"\t Waiting time: {secs}s")
+            # if secs == 0:
+            #     print(f"Wait for file {filepath}")
+            # print(f"\t Waiting time: {secs}s")
             time.sleep(1)
             secs += 1
 
-        print(f"Read from {filepath}")
+        #print(f"Read from {filepath}")
 
         # make sure that Vadere writes
         with open(filepath) as f:

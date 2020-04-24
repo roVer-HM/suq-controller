@@ -2,6 +2,7 @@
 
 import os
 import sys
+import datetime
 
 from suqc.parameter.parameter import LatinHyperCubeSampling, Parameter, DependentParameter
 from tutorial.imports import *
@@ -21,11 +22,15 @@ run_local = True
 if __name__ == "__main__":  # main required by Windows to run in parallel
 
 
+    if print(os.getenv('ROVER_MAIN')) is None:
+        os.environ['ROVER_MAIN'] = '/home/christina/repos/rover-main'
+
+
     #create sampling for rover - needs to be outsourced into Marions repo
     # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
 
     parameter = [
-        Parameter("sources.[id==3001].distributionParameters", simulator="vadere", range=[[25, 33]], list=[1.25],
+        Parameter("sources.[id==3001].distributionParameters", simulator="vadere", range=[[5.0, 40.0]], list=[1.25],
                   list_index=[0])
        ]
 
@@ -38,7 +43,7 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
                            equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=[0])
     ]
 
-    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(2)
+    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(10)
 
     path2ini = "/home/christina/repos/rover-main/rover/simulations/simple_detoure_suqc/omnetpp.ini"
     path2model = "Coupled"
@@ -66,10 +71,6 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
     else:
         par_var, data = setup.remote(-1)
 
-    print("\n \n ---------------------------------------\n \n")
-    print("ALL USED PARAMETER:")
-    print(par_var)
+    print("FINISHED")
 
-    print("COLLECTED DATA:")
-    print(data)
 
