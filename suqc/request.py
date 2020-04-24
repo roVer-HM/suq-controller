@@ -35,6 +35,7 @@ def read_from_existing_output(env_path, qoi_filename, extract_ids=True, parentfo
 
                 df_data = pd.read_csv(filepath, delimiter=" ", header=[0], comment="#")
 
+
                 if extract_ids:
                     run_data = [int(i) for i in parentfolder.split("_") if i.isdigit()]
 
@@ -63,7 +64,10 @@ def read_from_existing_output(env_path, qoi_filename, extract_ids=True, parentfo
 
     read_data = pd.concat(read_data, axis=0)
 
-    return read_data
+    meta_data = pd.read_csv(os.path.join(env_path, "metainfo.csv"), header=[0]).set_index(['id', 'run_id'])
+
+
+    return read_data, meta_data
 
 
 class RequestItem(object):
@@ -430,7 +434,6 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         parameter_variation = parameter_variation.multiply_scenario_runs(
             scenario_runs=scenario_runs
         )
-
 
         super().__init__(
             env_man=env,

@@ -73,4 +73,3 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
     print("COLLECTED DATA:")
     print(data)
 
-    
