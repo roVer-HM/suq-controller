@@ -52,7 +52,6 @@ class LatinHyperCubeSampling:
             self.number_of_samples = number_of_samples
 
 
-
         lhs_mapped = self.__get_sampling_vals()
 
         par_var = list()
@@ -84,6 +83,7 @@ class LatinHyperCubeSampling:
 
             #lin = numpy.linspace( low, up, self.number_of_samples)
             lin = numpy.logspace( numpy.log10(low), numpy.log10(up), self.number_of_samples )
+            lin = [[val] for val in lin]
             return lin
 
         # Use Latin Hypercube Sampling if number of parameters > 1

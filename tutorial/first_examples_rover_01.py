@@ -30,7 +30,7 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
     # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
 
     parameter = [
-        Parameter("sources.[id==3001].distributionParameters", simulator="vadere", range=[[5.0, 40.0]], list=[1.25],
+        Parameter("sources.[id==3001].distributionParameters", simulator="vadere", range=[[0.05, 0.25]], list=[1.25],
                   list_index=[0])
        ]
 
@@ -43,11 +43,11 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
                            equation=" = 1 * sources.[id==3001].distributionParameters ", list=[1.25], list_index=[0])
     ]
 
-    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(10)
+    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(4)
 
     path2ini = "/home/christina/repos/rover-main/rover/simulations/simple_detoure_suqc/omnetpp.ini"
     path2model = "Coupled"
-    output_folder = "simple"
+    output_folder = "simple_short_2"
     qoi = "DegreeInformed.txt"
 
     setup = CoupledDictVariation(

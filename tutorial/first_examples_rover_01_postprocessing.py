@@ -4,6 +4,37 @@ import matplotlib.pyplot as plt
 from numpy import diff
 from scipy.signal import find_peaks
 
+
+import roveranalyzer.oppanalyzer.wlan80211 as w80211
+from roveranalyzer.oppanalyzer.utils import RoverBuilder
+from roveranalyzer.uitls.mesh import SimpleMesh
+from roveranalyzer.uitls.path import PathHelper
+from roveranalyzer.vadereanalyzer.plots.plots import t_cmap, DensityPlots, PlotOptions
+
+
+def mac_analysis(base_dir, fig_title, vec_input, prefix, out_input=None):
+    builder = RoverBuilder(
+        path=PathHelper(base_dir),
+        analysis_name=f"{prefix}mac",
+        analysis_dir="analysis.d",
+        hdf_store_name="analysis.h5",
+    )
+    builder.set_scave_filter('module("*.hostMobile[*].*.mac")')
+    builder.set_scave_input_path(vec_input)
+    if out_input is not None:
+        _log_file = builder.root.join(out_input)
+    else:
+        _log_file = ""
+    w80211.create_mac_pkt_drop_figures(
+        builder=builder,
+        log_file=_log_file,
+        figure_title=fig_title,
+        figure_prefix=prefix,
+        hdf_key=f"/df/{prefix}mac_pkt_drop_ts",
+        show_fig=True,
+    )
+
+
 if __name__ == "__main__":
 
     # read existing data and store them in dataframe
@@ -100,6 +131,8 @@ if __name__ == "__main__":
     qoi = qoi.assign(time_all_informed = evolution_times)
     qoi = qoi.assign(number_of_peaks = number_peaks)
     qoi = pd.concat ( [qoi,stats], axis=1 )
+
+    qoi.to_csv(os.path.join(analysis_path, "qoi_summary.csv") )
 
 
 
