@@ -121,6 +121,11 @@ class LatinHyperCubeSampling:
             if sim is not None:
                 simulators.append(sim)
 
+        for parameter in self.parameters_dependent:
+            sim = parameter.get_simulator()
+            if sim is not None:
+                simulators.append(sim)
+
         simulators = list(set(simulators))
 
         if len(simulators) > 0:

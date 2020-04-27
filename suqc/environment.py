@@ -524,7 +524,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         new_path = os.path.join(path_output_folder,"additional_rover_files")
 
-        copytree(ini_path,new_path,ignore=ignore_patterns('*.ini', '*.scenario','results'))
+        copytree(ini_path,new_path,ignore=ignore_patterns('*.ini', '*.scenario','results','output'))
 
 
 

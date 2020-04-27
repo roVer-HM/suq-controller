@@ -3,6 +3,7 @@ from tutorial.imports import *
 import matplotlib.pyplot as plt
 from numpy import diff
 from scipy.signal import find_peaks
+import numpy as np
 
 
 import roveranalyzer.oppanalyzer.wlan80211 as w80211
@@ -38,7 +39,7 @@ def mac_analysis(base_dir, fig_title, vec_input, prefix, out_input=None):
 if __name__ == "__main__":
 
     # read existing data and store them in dataframe
-    output_folder = "simple"
+    output_folder = "simple_detour_without_obstacles"
     qoi = "DegreeInformed.txt"
     env_path = os.path.join(path2tutorial,output_folder)
     df, meta_df = read_from_existing_output( env_path= env_path , qoi_filename = qoi, parentfolder_level = 5 )
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     dt = 0.4
     df["timeStep"] = dt * df["timeStep"]
 
-    qoi = pd.DataFrame(meta_df.iloc[:, 0])
+    qoi = pd.DataFrame(meta_df.loc[:, "('Parameter', 'vadere', 'sources.[id==3001].distributionParameters')"])
     qoi = qoi.rename( columns = { "('Parameter', 'vadere', 'sources.[id==3001].distributionParameters')" : "inter_arrival_t_sec"})
 
     number_peaks, evolution_times = list(), list()
@@ -64,14 +65,14 @@ if __name__ == "__main__":
         percentage_informed = percentage_informed[0:-1]
         time = time[0:-1]
 
-        index_start_time = np.argwhere(percentage_informed == 0.0)[-1]+1
-        index_end_time = np.argwhere(percentage_informed >= 0.95)[0]+1
+        index_start_time = np.where(percentage_informed == 0.0)[0][-1]+1
+        index_end_time = np.where(percentage_informed >= 0.95)[0][0]+1
 
         start_time = dt*index_start_time
         end_time = dt*index_end_time
 
         evolution_time = end_time - start_time
-        t_i = np.round(evolution_time[0], 5)
+        t_i = np.round(evolution_time, 5)
 
         my_title = f'Parameter: mean inter-arrival-time t_m = {qoi.loc[simulation, "inter_arrival_t_sec"][1:5]}s \n QoI: time 95% informed t_i = {t_i}s'
         my_title_short = f'Simulation_{simulation}__mean_time_{qoi.loc[simulation, "inter_arrival_t_sec"][1:5]}'.replace(",","_").replace(".","_")
@@ -101,18 +102,18 @@ if __name__ == "__main__":
         evolution_times.append(evolution_time)
 
         tol = 4
-        plt.plot(time[index_start_time[0] - tol:index_end_time[0] + tol],
-                 100 * percentage_informed[index_start_time[0] - tol:index_end_time[0] + tol])
+        plt.plot(time[index_start_time - tol:index_end_time + tol],
+                 100 * percentage_informed[index_start_time - tol:index_end_time + tol])
 
         for yc, c in zip([0, 95], ['m','m']):
             plt.axhline(y=yc, c=c)
 
-        for xc, c in zip([start_time[0], end_time[0]], ['r', 'r']):
+        for xc, c in zip([start_time, end_time], ['r', 'r']):
             plt.axvline(x=xc, c=c)
 
-        plt.arrow(start_time[0], 50, evolution_time[0], 0, head_width=2, head_length=0.2,color='k', length_includes_head=True)
-        plt.arrow(end_time[0], 50, -evolution_time[0], 0, head_width=2, head_length=0.2,color='k', length_includes_head=True)
-        plt.text(start_time[0]+0.375*evolution_time[0], 53, f"t_i = {t_i}s")
+        plt.arrow(start_time, 50, evolution_time, 0, head_width=2, head_length=0.2,color='k', length_includes_head=True)
+        plt.arrow(end_time, 50, -evolution_time, 0, head_width=2, head_length=0.2,color='k', length_includes_head=True)
+        plt.text(start_time+0.375*evolution_time, 53, f"t_i = {t_i}s")
 
         plt.xlabel("Time [s]")
         plt.ylabel("Percentage of pedestrians informed [%]")
