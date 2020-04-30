@@ -38,11 +38,28 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
     def multiply_scenario_runs(self, scenario_runs):
 
-        idx_ids = self._points.index.values.repeat(scenario_runs)
-        idx_run_ids = np.tile(np.arange(scenario_runs), self._points.shape[0])
+        # scenario_runs can be a scalar value or a list
+        # if it is a scalar value, each sample is repeated the same number of time
+        # if it is a list, the int values co
+        if isinstance(scenario_runs, int):
+            scenario_runs = scenario_runs*np.ones((len(self._points.index.values),), dtype=int)
 
-        self._points = pd.DataFrame(
-            self._points.values.repeat(scenario_runs, axis=0),
+        k = 0
+        for idx_vals in self._points.index.values:
+            idx_id = idx_vals.repeat(scenario_runs[k])
+            idx_run_id = np.arange(0, scenario_runs[k])
+            df0 = np.tile(self._points.values[k], (scenario_runs[k],1))
+            if k == 0:
+                idx_ids = idx_id
+                idx_run_ids = idx_run_id
+                df = df0
+            else:
+                idx_ids = np.append(idx_ids ,idx_id)
+                idx_run_ids = np.append(idx_run_ids, idx_run_id)
+                df = np.append(df, df0, axis=0)
+            k += 1
+
+        self._points = pd.DataFrame(df,
             index=pd.MultiIndex.from_arrays(
                 [idx_ids, idx_run_ids], names=["id", "run_id"]
             ),

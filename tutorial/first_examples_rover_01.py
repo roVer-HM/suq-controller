@@ -143,7 +143,7 @@ def postprocessing(output_folder,qoi):
         plt.savefig(os.path.join(analysis_path, my_title_short + ".png"))
         plt.show()
 
-        stat = pd.Series.describe(df_r.iloc[150:-1, 2])
+        stat = pd.Series.describe(df_r.iloc[index_start_time:index_end_time, 2])
         stats = pd.concat([stats, pd.DataFrame(stat).transpose()])
 
     stats = stats.reset_index()
@@ -212,7 +212,7 @@ def simple_forward_propagation_1():
     #create sampling for rover - needs to be outsourced into Marions repo
     # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
     parameter = [
-        Parameter("number_of_agents_mean", simulator="dummy", range=[20, 22])
+        Parameter("number_of_agents_mean", simulator="dummy", range=[14, 16])
        ]
 
     dependent_parameters = [
@@ -226,8 +226,8 @@ def simple_forward_propagation_1():
                            equation=" = [570/ number_of_agents_mean]"),
         DependentParameter(name="*.radioMedium.obstacleLoss.typename", simulator="omnet", equation= '= "IdealObstacleLoss"' )
     ]
-    reps = 2
-    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(2)
+    reps = 3
+    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(3)
     preprocessing_and_simulation_run(par_var, path2ini, output_folder, qoi, repitions= reps)
     postprocessing(output_folder, qoi)
 
