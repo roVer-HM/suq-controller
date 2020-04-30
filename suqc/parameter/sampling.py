@@ -50,6 +50,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         )
         return self
 
+
     def _add_dict_points(self, points: List[dict]):
         # NOTE: it may be required to generalize 'points' definition, at the moment it is assumed to be a list(grid),
         # where 'grid' is a ParameterGrid of scikit-learn
