@@ -334,9 +334,44 @@ def simple_forward_propagation_3():
 
     reps = 1
     par_var = LatinHyperCubeSampling(parameters=parameter, parameters_dependent=dependent_parameters).get_sampling(30)
-    #preprocessing_and_simulation_run(par_var, path2ini, output_folder, qoi, repitions=reps)
+    preprocessing_and_simulation_run(par_var, path2ini, output_folder, qoi, repitions=reps)
     postprocessing(output_folder, qoi)
 
+
+def repetion_test():
+    # add roVer system variable to your environment, otherwise roVer will not work
+
+    # define roVer simulation
+    path2ini = os.path.join(os.environ['ROVER_MAIN'], "rover/simulations/simple_detoure_suqc/omnetpp.ini") # use this ini-file
+    output_folder = "repition_test" # folder name in tutorials -> write output here
+    qoi = "DegreeInformed.txt" # qoi
+
+    #create sampling for rover - needs to be outsourced into Marions repo
+    # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
+    parameter = [
+        Parameter("number_of_agents_mean", simulator="dummy", range=[30, 32])
+       ]
+
+    dependent_parameters = [
+        DependentParameter(name="sources.[id==3001].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sources.[id==3002].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sources.[id==3003].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean] "),
+        DependentParameter(name="sources.[id==3004].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sim-time-limit", simulator="omnet", equation= '= "150s"'),
+        DependentParameter(name="*.station[0].app[0].incidentTime", simulator="omnet", equation= '= "100s"')
+    ]
+
+
+    reps = 5
+    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(1)
+    preprocessing_and_simulation_run(par_var, path2ini, output_folder, qoi, repitions= reps)
+    postprocessing(output_folder, qoi)
+
+    print("finished: simple forward propagation 1")
 
 
 if __name__ == "__main__":
@@ -345,7 +380,9 @@ if __name__ == "__main__":
         os.environ['ROVER_MAIN'] = '/home/christina/repos/rover-main'
 
 
-    simple_forward_propagation_3()
+    #simple_forward_propagation_3()
+
+    repetion_test()
 
 
 
