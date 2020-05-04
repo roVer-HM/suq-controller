@@ -57,7 +57,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         print(f"start simulation  \t  parameter id: \t{parameter_id}, run id: \t{run_id} at {t}")
 
         os.system("chmod +x runScript.sh")
-        return_code = subprocess.check_call(["./runScript.sh"], env=os.environ ) #, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+        return_code = subprocess.check_call(["./runScript.sh"], env=os.environ , stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
         os.chdir('..')
 
         process_duration = time.time() - timeStarted

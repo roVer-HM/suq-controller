@@ -79,17 +79,40 @@ def postprocessing(output_folder,qoi):
         df_r = df.loc[simulation]
         time = df_r.iloc[:, 0]
         percentage_informed = df_r.iloc[:, 3]
+        # percentage_informed.iloc[-4] = 0.5
+        # percentage_informed.iloc[-3] = 0.5
+        # percentage_informed.iloc[-2] = 1.0
+
         derivative = diff(percentage_informed) / dt
         percentage_informed = percentage_informed[0:-1]
         time = time[0:-1]
 
-        index_start_time = np.where(percentage_informed == 0.0)[0][-1] + 1
-        index_end_time = np.where(percentage_informed >= 0.95)[0][0] + 1
+        try:
 
-        start_time = dt * index_start_time
-        end_time = dt * index_end_time
+            index_start_time = np.where(percentage_informed == 0.0)[0][-1] + 1
+            index_end_time = np.where(percentage_informed >= 0.95)[0][0] + 1
 
-        evolution_time = end_time - start_time
+            start_time = dt * index_start_time
+            end_time = dt * index_end_time
+
+            evolution_time = end_time - start_time
+
+            tol = 4
+
+        except:
+
+            index_start_time = np.where(percentage_informed == 0.0)[0][-1] + 1
+            index_end_time = len(percentage_informed)-1
+
+            start_time = dt * index_start_time
+            end_time = dt * index_end_time
+
+            tol = 0
+
+            evolution_time = np.NaN
+
+
+
         t_i = np.round(evolution_time, 5)
 
         my_title = f'Parameter: mean inter-arrival-time t_m = {qoi.loc[simulation, "inter_arrival_t_sec"][1:5]}s \n QoI: time 95% informed t_i = {t_i}s'
@@ -113,14 +136,20 @@ def postprocessing(output_folder,qoi):
         plt.show()
 
         number_peaks.append(peaks.size)
-        peak_time = dt * peaks[0]
+        try:
+            peak_time = dt * peaks[0]
 
-        if peak_time < start_time or peak_time > end_time:
-            print(f"Please check simulation {simulation}")
+            if peak_time < start_time or peak_time > end_time:
+                print(f"Please check simulation {simulation}")
+
+        except:
+            print("failed")
+
+
 
         evolution_times.append(evolution_time)
 
-        tol = 4
+
         plt.plot(time[index_start_time - tol:index_end_time + tol],
                  100 * percentage_informed[index_start_time - tol:index_end_time + tol])
 
@@ -198,21 +227,16 @@ def mac_analysis(base_dir, fig_title, vec_input, prefix, out_input=None):
 
 def simple_forward_propagation_1():
     # add roVer system variable to your environment, otherwise roVer will not work
-    if print(os.getenv('ROVER_MAIN')) is None:
-        os.environ['ROVER_MAIN'] = '/home/christina/repos/rover-main'
 
     # define roVer simulation
     path2ini = os.path.join(os.environ['ROVER_MAIN'], "rover/simulations/simple_detoure_suqc/omnetpp.ini") # use this ini-file
-    output_folder = "simple_detour_33" # folder name in tutorials -> write output here
+    output_folder = "simple_detour_16_5000_with_obstacle" # folder name in tutorials -> write output here
     qoi = "DegreeInformed.txt" # qoi
-
-
-
 
     #create sampling for rover - needs to be outsourced into Marions repo
     # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
     parameter = [
-        Parameter("number_of_agents_mean", simulator="dummy", range=[14, 16])
+        Parameter("number_of_agents_mean", simulator="dummy", range=[16, 5000])
        ]
 
     dependent_parameters = [
@@ -224,18 +248,104 @@ def simple_forward_propagation_1():
                            equation=" = [570/ number_of_agents_mean] "),
         DependentParameter(name="sources.[id==3004].distributionParameters", simulator="vadere",
                            equation=" = [570/ number_of_agents_mean]"),
-        DependentParameter(name="*.radioMedium.obstacleLoss.typename", simulator="omnet", equation= '= "IdealObstacleLoss"' )
+        DependentParameter(name="sim-time-limit", simulator="omnet", equation= '= "150s"'),
+        DependentParameter(name="*.station[0].app[0].incidentTime", simulator="omnet", equation= '= "100s"')
     ]
-    reps = 3
-    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(3)
+
+
+    reps = 1
+    par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(30)
     preprocessing_and_simulation_run(par_var, path2ini, output_folder, qoi, repitions= reps)
     postprocessing(output_folder, qoi)
 
     print("finished: simple forward propagation 1")
 
+
+def simple_forward_propagation_2():
+    # add roVer system variable to your environment, otherwise roVer will not work
+
+    # define roVer simulation
+    path2ini = os.path.join(os.environ['ROVER_MAIN'],
+                            "rover/simulations/simple_detoure_suqc_traffic/omnetpp.ini")  # use this ini-file
+    output_folder = "simple_detour_16_1000_with_traffic_20000"  # folder name in tutorials -> write output here
+    qoi = "DegreeInformed.txt"  # qoi
+
+    # create sampling for rover - needs to be outsourced into Marions repo
+    # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
+    parameter = [
+        Parameter("number_of_agents_mean", simulator="dummy", range=[16, 840.8266139])
+    ]
+
+    dependent_parameters = [
+        DependentParameter(name="sources.[id==3001].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sources.[id==3002].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sources.[id==3003].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean] "),
+        DependentParameter(name="sources.[id==3004].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sim-time-limit", simulator="omnet", equation='= "180s"'),
+        DependentParameter(name="*.hostMobile[*].app[1].messageLength", simulator="omnet", equation='= "20000B"'),
+        DependentParameter(name="*.station[0].app[0].incidentTime", simulator="omnet", equation='= "100s"')
+    ]
+
+    # *.mappingDistribution[0].mapping_distribution="p1=1.0 p2=0.0"
+
+
+    reps = 1
+    par_var = LatinHyperCubeSampling(parameters=parameter, parameters_dependent=dependent_parameters).get_sampling(21)
+    preprocessing_and_simulation_run(par_var, path2ini, output_folder, qoi, repitions=reps)
+    postprocessing(output_folder, qoi)
+
+
+
+def simple_forward_propagation_3():
+    # add roVer system variable to your environment, otherwise roVer will not work
+
+    # define roVer simulation
+    path2ini = os.path.join(os.environ['ROVER_MAIN'],
+                            "rover/simulations/simple_detoure_suqc_traffic/omnetpp.ini")  # use this ini-file
+    output_folder = "simple_detour_16_1000_with_traffic_30000"  # folder name in tutorials -> write output here
+    qoi = "DegreeInformed.txt"  # qoi
+
+    # create sampling for rover - needs to be outsourced into Marions repo
+    # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
+    parameter = [
+        Parameter("number_of_agents_mean", simulator="dummy", range=[16, 5000])
+    ]
+
+    dependent_parameters = [
+        DependentParameter(name="sources.[id==3001].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sources.[id==3002].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sources.[id==3003].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean] "),
+        DependentParameter(name="sources.[id==3004].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sim-time-limit", simulator="omnet", equation='= "180s"'),
+        DependentParameter(name="*.hostMobile[*].app[1].messageLength", simulator="omnet", equation='= "30000B"'),
+        DependentParameter(name="*.station[0].app[0].incidentTime", simulator="omnet", equation='= "100s"')
+    ]
+
+    # *.mappingDistribution[0].mapping_distribution="p1=1.0 p2=0.0"
+
+
+    reps = 1
+    par_var = LatinHyperCubeSampling(parameters=parameter, parameters_dependent=dependent_parameters).get_sampling(30)
+    #preprocessing_and_simulation_run(par_var, path2ini, output_folder, qoi, repitions=reps)
+    postprocessing(output_folder, qoi)
+
+
+
 if __name__ == "__main__":
 
-    simple_forward_propagation_1()
+    if print(os.getenv('ROVER_MAIN')) is None:
+        os.environ['ROVER_MAIN'] = '/home/christina/repos/rover-main'
+
+
+    simple_forward_propagation_3()
 
 
 
