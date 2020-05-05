@@ -318,9 +318,7 @@ class VariationBase(Request, ServerRequest):
             [["MetaInfo"] * meta_info.shape[1], meta_info.columns]
         )
         lookup_df = pd.concat([self.parameter_variation.points, meta_info], axis=1)
-
         savepath_lookup_df = os.path.join(self.env_man.env_path, "metainfo.csv")
-
         lookup_df.to_csv(savepath_lookup_df)
 
         if self.remove_output:
@@ -519,6 +517,13 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         # Because of the multi-processor part, don't try to already add the results here to _results_df
         return request_item
+
+
+    def _remove_output(self):
+        # to do adapt this method
+
+        if self.env_man.env_path is not None:
+            shutil.rmtree(self.env_man.env_path)
 
 
 

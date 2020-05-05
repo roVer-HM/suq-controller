@@ -1,12 +1,54 @@
 from pyDOE import lhs
+import numpy as np
+import abc
+import copy
 
-import copy, numpy
+class RoverSampling(metaclass=abc.ABCMeta):
 
-class LatinHyperCubeSampling:
-    def __init__(self, parameters=None, parameters_dependent = None, number_of_samples=10, ):
+    def __init__(self, parameters=None, parameters_dependent = None ):
         self.parameters = parameters
         self.parameters_dependent = parameters_dependent
-        self.number_of_samples = number_of_samples
+
+    @abc.abstractmethod
+    def get_sampling_vals(self):
+        pass
+
+
+    def get_sampling(self):
+
+        sample_vals = self.get_sampling_vals()
+
+        par_var = list()
+
+        for sample in sample_vals:
+            pars = self.get_single_sample(sample)
+            par_var.append(copy.deepcopy(pars))
+
+        return par_var
+
+    def __initialize_sample_dict(self):
+
+        simulators = list()
+
+        for parameter in self.parameters:
+            sim = parameter.get_simulator()
+            if sim is not None:
+                simulators.append(sim)
+
+        for parameter in self.parameters_dependent:
+            sim = parameter.get_simulator()
+            if sim is not None:
+                simulators.append(sim)
+
+        simulators = list(set(simulators))
+
+        if len(simulators) > 0:
+            pars = dict()
+            for simulator in simulators:
+                pars.update({simulator: {}})
+        else:
+            pars = {}
+        return pars
 
     def get_single_sample(self, values):
 
@@ -44,56 +86,27 @@ class LatinHyperCubeSampling:
 
 
 
+class RoverSamplingLatinHyperCube(RoverSampling):
+
+    def __init__(self,parameters=None, parameters_dependent = None, number_of_samples=10):
+        self.number_of_samples = number_of_samples
+        super().__init__(parameters=parameters, parameters_dependent=parameters_dependent)
 
 
-    def get_sampling(self, number_of_samples=None):
-
-        if number_of_samples is not None:
-            self.number_of_samples = number_of_samples
-
-
-        lhs_mapped = self.__get_sampling_vals()
-
-        par_var = list()
-
-        for sample in lhs_mapped:
-            pars = self.get_single_sample(sample)
-            par_var.append(copy.deepcopy(pars))
-
-        return par_var
-
-
-
-
-    def __get_sampling_vals(self):
+    def get_sampling_vals(self):
 
         number = 0
         for para in self.parameters:
             number = number + para.get_number_of_parameters()
 
-        # Create discrete values for parameter (equally spaced)
-        if number == 1:
-            low = self.parameters[0].get_lower_bound()
-            up = self.parameters[0].get_upper_bound()
 
-            if isinstance(low,list):
-                low = low[0]
-            if isinstance(up,list):
-                up = up[0]
-
-            #lin = numpy.linspace( low, up, self.number_of_samples)
-            lin = numpy.logspace( numpy.log10(low), numpy.log10(up), self.number_of_samples )
-            lin = [[val] for val in lin]
-            return lin
-
-        # Use Latin Hypercube Sampling if number of parameters > 1
         lhs_without_ranges = lhs(number, self.number_of_samples)
         lhs_mapped = lhs_without_ranges.copy()
 
         ind = 0
         for parameter in self.parameters:
 
-            if parameter.get_number_of_parameters() is 1:
+            if parameter.get_number_of_parameters() == 1:
 
                 interval = parameter.get_interval()
                 lower_bound = parameter.get_lower_bound()
@@ -112,29 +125,26 @@ class LatinHyperCubeSampling:
 
         return lhs_mapped
 
-    def __initialize_sample_dict(self):
 
-        simulators = list()
 
-        for parameter in self.parameters:
-            sim = parameter.get_simulator()
-            if sim is not None:
-                simulators.append(sim)
+class RoverSamplingFullFactorial(RoverSampling):
 
-        for parameter in self.parameters_dependent:
-            sim = parameter.get_simulator()
-            if sim is not None:
-                simulators.append(sim)
+    def __init__(self, parameters=None, parameters_dependent=None):
+        super().__init__(parameters=parameters, parameters_dependent=parameters_dependent)
 
-        simulators = list(set(simulators))
 
-        if len(simulators) > 0:
-            pars = dict()
-            for simulator in simulators:
-                pars.update({simulator: {}})
-        else:
-            pars = {}
-        return pars
+    def get_sampling_vals(self):
+
+        par_var, x = list(), list()
+
+        for para in self.parameters:
+            x.append( para.get_stages() )
+
+        full_factorial = np.meshgrid(*x, indexing="ij")
+        full_factorial = np.concatenate(np.transpose(full_factorial))
+
+        return full_factorial
+
 
 
 
@@ -145,7 +155,7 @@ class Parameter:
     def from_dict(cls, par_dict):
         pass
 
-    def __init__(self, name, unit=None, simulator=None, value=None, range=None, list = None, list_index = None):
+    def __init__(self, name, unit=None, simulator=None, value=None, range=None, list = None, list_index = None, stages = None):
         self.name = name
         self.value = value
         self.unit = unit
@@ -153,11 +163,28 @@ class Parameter:
         self.set_range(range)
         self.list_index = list_index
         self.list = list
+        self.set_stages(stages)
+
+    def get_stages(self):
+        return self.stages
+
+    def set_stages(self, stages):
+
+        if isinstance(stages,int):
+            range = self.get_range()
+            stages = np.linspace(range[0],range[1], stages)
+
+        self.stages = stages
+
 
     def get_val(self):
         return self.value
 
     def set_val(self, val, index = None):
+
+        if (val - int(val)) == 0:
+            val = int(val)
+
         if index is None:
             self.value = val
         else:
@@ -197,6 +224,8 @@ class Parameter:
 
     def to_dict(self):
 
+
+
         if self.unit is None:
             val = self.value
         else:
@@ -235,6 +264,8 @@ class DependentParameter(Parameter):
         eqn = eqn.replace("=", "")
         function_val = eval(eqn)
 
+        if isinstance(function_val, float):
+            if (function_val - int(function_val)) == 0:
+                function_val = int(function_val)
+        # to do for list
         self.value = function_val
-
-
