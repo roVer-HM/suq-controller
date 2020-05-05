@@ -268,6 +268,76 @@ def mac_analysis(base_dir, fig_title, vec_input, prefix, out_input=None):
     )
 
 
+def forward_propagation_test_shadowing():
+
+    # define roVer simulation
+    path2ini = os.path.join(
+        os.environ["ROVER_MAIN"], "rover/simulations/simple_detoure_suqc/omnetpp.ini"
+    )  # use this ini-file
+    output_folder = os.path.join(
+        os.environ["ROVER_MAIN"],
+        "rover/simulations/Sensitivity_Studies/simple_detoure_suqc_test_shadowing",
+    )
+    qoi = "DegreeInformed.txt"  # qoi
+
+    # create sampling for rover - needs to be outsourced into Marions repo
+    # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
+    parameter = [
+        Parameter(
+            name="number_of_agents_mean",
+            simulator="dummy",
+            range=np.log10([15, 3500]).tolist(),
+            stages=15,
+        )
+    ]
+
+    dependent_parameters = [
+        DependentParameter(
+            name="sources.[id==3001].distributionParameters",
+            simulator="vadere",
+            equation=" = [570/(10**number_of_agents_mean)]",
+        ),
+        DependentParameter(
+            name="sources.[id==3002].distributionParameters",
+            simulator="vadere",
+            equation=" = [570/(10**number_of_agents_mean)]",
+        ),
+        DependentParameter(
+            name="sources.[id==3003].distributionParameters",
+            simulator="vadere",
+            equation=" = [570/(10**number_of_agents_mean)] ",
+        ),
+        DependentParameter(
+            name="sources.[id==3004].distributionParameters",
+            simulator="vadere",
+            equation=" = [570/(10**number_of_agents_mean)]",
+        ),
+        DependentParameter(
+            name="sim-time-limit", simulator="omnet", equation='= "180s"'
+        ),
+        DependentParameter(
+            name="*.station[0].app[0].incidentTime",
+            simulator="omnet",
+            equation='= "100s"',
+        ),
+        DependentParameter(
+            name="*.radioMedium.obstacleLoss.typename",
+            simulator="omnet",
+            equation='= ""',
+        )
+
+    ]
+
+    reps = 1
+    par_var = RoverSamplingFullFactorial(
+        parameters=parameter, parameters_dependent=dependent_parameters
+    ).get_sampling()
+    preprocessing_and_simulation_run(
+        par_var, path2ini, output_folder, qoi, repitions=reps
+    )
+    postprocessing(output_folder, qoi)
+
+
 def forward_propagation_without_traffic():
 
     # define roVer simulation
@@ -320,6 +390,12 @@ def forward_propagation_without_traffic():
             simulator="omnet",
             equation='= "100s"',
         ),
+        DependentParameter(
+            name="*.radioMedium.obstacleLoss.typename",
+            simulator="omnet",
+            equation='= "IdealObstacleLoss"',
+        )
+
     ]
 
     reps = [10, 10, 10, 6, 6, 6, 3, 3, 3, 2, 2, 2, 1, 1, 1]
@@ -410,3 +486,4 @@ if __name__ == "__main__":
 
     forward_propagation_without_traffic()
     forward_propagation_traffic()
+    forward_propagation_test_shadowing()
