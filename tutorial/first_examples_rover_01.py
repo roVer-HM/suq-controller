@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-import sys
+import sys, copy
 import datetime
 import roveranalyzer.oppanalyzer.wlan80211 as w80211
 from roveranalyzer.oppanalyzer.utils import RoverBuilder
@@ -338,6 +338,67 @@ def simple_forward_propagation_3():
     postprocessing(output_folder, qoi)
 
 
+
+def simple_forward_propagation_4():
+    # add roVer system variable to your environment, otherwise roVer will not work
+
+    # define roVer simulation
+    path2ini = os.path.join(os.environ['ROVER_MAIN'],
+                            "rover/simulations/simple_detoure_suqc_traffic/omnetpp.ini")  # use this ini-file
+    output_folder = "simple_detour_with_traffic_all"  # folder name in tutorials -> write output here
+    qoi = "DegreeInformed.txt"  # qoi
+
+    # create sampling for rover - needs to be outsourced into Marions repo
+    # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
+    parameter = [
+        Parameter("number_of_agents_mean", simulator="dummy", range=[16, 3000])
+    ]
+
+    dependent_parameters = [
+        DependentParameter(name="sources.[id==3001].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sources.[id==3002].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sources.[id==3003].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean] "),
+        DependentParameter(name="sources.[id==3004].distributionParameters", simulator="vadere",
+                           equation=" = [570/ number_of_agents_mean]"),
+        DependentParameter(name="sim-time-limit", simulator="omnet", equation='= "180s"'),
+        DependentParameter(name="*.hostMobile[*].app[1].messageLength", simulator="omnet", equation='= "30000B"'),
+        DependentParameter(name="*.station[0].app[0].incidentTime", simulator="omnet", equation='= "100s"')
+    ]
+
+    # *.mappingDistribution[0].mapping_distribution="p1=1.0 p2=0.0"
+
+
+    reps = [10,10,10,5,5,5,2,2,2,1,1,1]
+    #reps = 1
+
+    par_var = LatinHyperCubeSampling(parameters=parameter, parameters_dependent=dependent_parameters).get_sampling(12)
+
+    traffic_vals = ['= "500B"', '= "5000B"', '= "50000B"']
+    traffics = np.repeat(traffic_vals,len(par_var))
+    reps = np.tile(reps,len(traffic_vals)).ravel()
+    par_var = np.tile(par_var,len(traffic_vals))
+
+    par_var2 = list()
+    counter = 0
+    for counter in range(len(traffics)):
+
+        sample = copy.deepcopy(par_var[counter])
+        traffic_para = DependentParameter(name="*.hostMobile[*].app[1].messageLength", simulator="omnet",
+                                              equation=traffics[counter])
+        traffic_para.set_val()
+        sample[traffic_para.get_simulator()].update(traffic_para.to_dict())
+
+        par_var2.append(copy.deepcopy(sample))
+
+    print(par_var2)
+
+    preprocessing_and_simulation_run(par_var2, path2ini, output_folder, qoi, repitions=reps)
+    postprocessing(output_folder, qoi)
+
+
 def repetion_test():
     # add roVer system variable to your environment, otherwise roVer will not work
 
@@ -365,7 +426,6 @@ def repetion_test():
         DependentParameter(name="*.station[0].app[0].incidentTime", simulator="omnet", equation= '= "100s"')
     ]
 
-
     reps = 5
     par_var = LatinHyperCubeSampling(parameters = parameter, parameters_dependent = dependent_parameters).get_sampling(1)
     preprocessing_and_simulation_run(par_var, path2ini, output_folder, qoi, repitions= reps)
@@ -380,9 +440,9 @@ if __name__ == "__main__":
         os.environ['ROVER_MAIN'] = '/home/christina/repos/rover-main'
 
 
-    #simple_forward_propagation_3()
+    simple_forward_propagation_4()
 
-    repetion_test()
+    #repetion_test()
 
 
 

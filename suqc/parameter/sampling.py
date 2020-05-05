@@ -56,6 +56,9 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
             else:
                 idx_ids = np.append(idx_ids ,idx_id)
                 idx_run_ids = np.append(idx_run_ids, idx_run_id)
+                print(f"{idx_ids}")
+                print(f"{idx_run_ids}")
+
                 df = np.append(df, df0, axis=0)
             k += 1
 

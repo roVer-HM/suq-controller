@@ -206,6 +206,8 @@ class CoupledScenarioCreation(VadereScenarioCreation):
             folder = os.path.dirname(output_path)
             ini_path = os.path.join(self._env_man.env_path, "additional_rover_files")
 
+            print(f"{par_id}__{run_id}")
+
             copy_tree(ini_path,folder)
 
 

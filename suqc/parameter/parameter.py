@@ -221,15 +221,18 @@ class DependentParameter(Parameter):
         super().__init__(name = name, unit =unit, simulator = simulator, value=value, list = list, list_index=list_index)
 
 
-    def set_val(self, parameter):
+    def set_val(self, parameter = None):
 
         eqn = self.equation
 
-        for para in parameter:
-            val = para.get_val()
-            eqn = eqn.replace( para.name, str(val) )
+        if parameter is not None:
+            for para in parameter:
+                val = para.get_val()
+                eqn = eqn.replace( para.name, str(val) )
 
-        eqn = eqn.replace("=","")
+            eqn = eqn.replace("=","")
+
+        eqn = eqn.replace("=", "")
         function_val = eval(eqn)
 
         self.value = function_val
