@@ -52,6 +52,9 @@ class RoverSampling(metaclass=abc.ABCMeta):
 
     def get_single_sample(self, values):
 
+        #if isinstance(values,float) or isinstance(values,int):
+         #   values = [values]
+
         sample = self.__initialize_sample_dict()
         check = len(sample.keys())
 
@@ -90,7 +93,7 @@ class RoverSamplingLatinHyperCube(RoverSampling):
 
     def __init__(self,parameters=None, parameters_dependent = None, number_of_samples=10):
         self.number_of_samples = number_of_samples
-        super().__init__(parameters=parameters, parameters_dependent=parameters_dependent)
+        super(RoverSamplingLatinHyperCube, self).__init__(parameters=parameters, parameters_dependent=parameters_dependent)
 
 
     def get_sampling_vals(self):
@@ -130,7 +133,7 @@ class RoverSamplingLatinHyperCube(RoverSampling):
 class RoverSamplingFullFactorial(RoverSampling):
 
     def __init__(self, parameters=None, parameters_dependent=None):
-        super().__init__(parameters=parameters, parameters_dependent=parameters_dependent)
+        super(RoverSamplingFullFactorial, self).__init__(parameters=parameters, parameters_dependent=parameters_dependent)
 
 
     def get_sampling_vals(self):
@@ -142,6 +145,9 @@ class RoverSamplingFullFactorial(RoverSampling):
 
         full_factorial = np.meshgrid(*x, indexing="ij")
         full_factorial = np.concatenate(np.transpose(full_factorial))
+
+        if len(self.parameters) == 1:
+            full_factorial = [[val] for val in full_factorial]
 
         return full_factorial
 

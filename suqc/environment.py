@@ -63,7 +63,13 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         process_duration = time.time() - timeStarted
         output_subprocess = None
 
+
+
+
+
         return return_code, process_duration, output_subprocess
+
+
 
 
 

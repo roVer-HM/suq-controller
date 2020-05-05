@@ -56,8 +56,6 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
             else:
                 idx_ids = np.append(idx_ids ,idx_id)
                 idx_run_ids = np.append(idx_run_ids, idx_run_id)
-                print(f"{idx_ids}")
-                print(f"{idx_run_ids}")
 
                 df = np.append(df, df0, axis=0)
             k += 1
@@ -88,13 +86,11 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         check_nested = any(isinstance(i, dict) for i in dictionary.values())
 
         if check_nested:
-            print("Dictionary is nested")
 
             keys = dictionary.keys()
             df = pd.DataFrame()
 
             for key in keys:
-                print(key)
 
                 df_single = list()
                 for point in points:
@@ -108,7 +104,6 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
             cols = df.columns.values
 
         else:
-            print("Dictionary is not nested nested")
 
             df = pd.concat([self._points, pd.DataFrame(points)], ignore_index=True, axis=0)
             cols = [tuple([parameter]) for parameter in df.columns.values]

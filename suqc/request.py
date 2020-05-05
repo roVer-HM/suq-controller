@@ -4,6 +4,7 @@ import json
 import multiprocessing
 import os
 import shutil
+import time
 
 from suqc.environment import VadereConsoleWrapper, CoupledEnvironmentManager, AbstractConsoleWrapper, CoupledConsoleWrapper, AbstractEnvironmentManager
 from suqc.parameter.create import VadereScenarioCreation, CoupledScenarioCreation
@@ -386,20 +387,20 @@ class SampleVariation(VariationBase, ServerRequest):
 
 class CoupledDictVariation(VariationBase, ServerRequest):
 
-    def __init__(
-            self,
+    def __init__(self,
             ini_path: str,
             scenario_name: str, # relative to ini_path
             parameter_dict_list: List[dict],
             qoi: Union[str, List[str]],
             model: Union[str, CoupledConsoleWrapper],
-            scenario_runs=1,
+            scenario_runs= Union[int,List[int]],
             post_changes=PostScenarioChangesBase(apply_default=True),
             njobs_create_scenarios=1,
             output_path=None,
             output_folder=None,
             remove_output=False,
             env_remote=None,
+            remove_omnet_files=None
     ):
 
         scenario_path = self._get_scenario_path(ini_path, scenario_name)
@@ -407,6 +408,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         self.scenario_path = scenario_path
         self.ini_path = ini_path
         self.remove_output = remove_output
+        self.remove_omnet_files = remove_omnet_files
 
         self.ini_dir = os.path.dirname(ini_path)
 
@@ -437,14 +439,14 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             scenario_runs=scenario_runs
         )
 
-        super().__init__(
+        super(CoupledDictVariation, self).__init__(
             env_man=env,
             parameter_variation=parameter_variation,
             model = model,
             qoi=qoi,
             post_changes=post_changes,
             njobs=njobs_create_scenarios,
-            remove_output=remove_output,
+            remove_output=remove_output
         )
 
     def _get_scenario_path(self, ini_path, scenario_name):
@@ -474,14 +476,14 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         dirname = self.env_man.get_env_outputfolder_path()
         return_code, required_time, output_on_error = self.model.run_simulation(request_item.parameter_id, request_item.run_id, dirname)
-
         outputfolder_path = os.path.join(dirname, f"coupled_sim_run_{request_item.parameter_id}_{request_item.run_id}")
+
 
         for dirpath, dirnames, filenames in os.walk(outputfolder_path):
             for filename in [f for f in filenames if f == self.qoi.req_qois[0].filename ]:
                 output_path = os.path.join(dirpath, filename)
 
-        #request_item.output_path = dirpath
+
 
         is_results = self._interpret_return_value(
             return_code, request_item.parameter_id
@@ -515,16 +517,16 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         request_item.add_qoi_result(result)
         request_item.add_meta_info(required_time=required_time, return_code=return_code)
 
+
+        patterns = ['*.ini', '*.scenario','*.sca','*.vci','*.vec','vadere','sumo','*.traj','*.csv','*.xml','*.sh']
+        if self.remove_omnet_files is True:
+            # delete files
+            shutil.copytree(outputfolder_path,outputfolder_path + "temp", ignore=shutil.ignore_patterns(*patterns) )
+            shutil.rmtree(outputfolder_path)
+            os.rename(outputfolder_path + "temp", outputfolder_path)
+
         # Because of the multi-processor part, don't try to already add the results here to _results_df
         return request_item
-
-
-    def _remove_output(self):
-        # to do adapt this method
-
-        if self.env_man.env_path is not None:
-            shutil.rmtree(self.env_man.env_path)
-
 
 
 
