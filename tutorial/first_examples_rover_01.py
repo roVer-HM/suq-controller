@@ -142,7 +142,7 @@ def postprocessing(output_folder, qoi):
             loc="center right",
         )
 
-        plt.savefig(os.path.join(analysis_path, my_title_short + "_all.png"))
+        #plt.savefig(os.path.join(analysis_path, my_title_short + "_all.png"))
         plt.show()
 
         number_peaks.append(peaks.size)
@@ -199,7 +199,7 @@ def postprocessing(output_folder, qoi):
         )
 
         plt.title(my_title)
-        plt.savefig(os.path.join(analysis_path, my_title_short + ".png"))
+        #plt.savefig(os.path.join(analysis_path, my_title_short + ".png"))
         plt.show()
 
         stat = pd.Series.describe(df_r.iloc[index_start_time:index_end_time, 2])
@@ -407,7 +407,7 @@ def forward_propagation_without_traffic():
         )
     ]
 
-    reps = [10, 10, 10, 6, 6, 6, 3, 3, 3, 2, 2, 2, 1, 1, 1]
+    reps = [100, 50, 30, 20, 10, 5, 3, 3, 3, 2, 2, 2, 1, 1, 1]
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
