@@ -2,6 +2,7 @@ from pyDOE import lhs
 import numpy as np
 import abc
 import copy
+import random
 
 class RoverSampling(metaclass=abc.ABCMeta):
 
@@ -11,7 +12,7 @@ class RoverSampling(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_sampling_vals(self):
-        pass
+        raise NotImplemented("Overwrite in child class.")
 
 
     def get_sampling(self):

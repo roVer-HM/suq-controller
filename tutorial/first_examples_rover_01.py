@@ -278,6 +278,12 @@ def forward_propagation_test_shadowing():
         os.environ["ROVER_MAIN"],
         "rover/simulations/Sensitivity_Studies/simple_detoure_suqc_test_shadowing",
     )
+    output_folder = os.path.join(
+        path2tutorial,
+        "simple_detoure_suqc_test_shadowing",
+    )
+
+
     qoi = "DegreeInformed.txt"  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
@@ -286,7 +292,7 @@ def forward_propagation_test_shadowing():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([15, 3500]).tolist(),
+            range=np.log10([15, 2500]).tolist(),
             stages=15,
         )
     ]
@@ -348,6 +354,10 @@ def forward_propagation_without_traffic():
         os.environ["ROVER_MAIN"],
         "rover/simulations/Sensitivity_Studies/simple_detoure_suqc",
     )
+    output_folder = os.path.join(
+        path2tutorial,
+        "simple_detoure_suqc",
+    )
     qoi = "DegreeInformed.txt"  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
@@ -356,7 +366,7 @@ def forward_propagation_without_traffic():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([15, 3500]).tolist(),
+            range=np.log10([15, 2500]).tolist(),
             stages=15,
         )
     ]
@@ -395,7 +405,6 @@ def forward_propagation_without_traffic():
             simulator="omnet",
             equation='= "IdealObstacleLoss"',
         )
-
     ]
 
     reps = [10, 10, 10, 6, 6, 6, 3, 3, 3, 2, 2, 2, 1, 1, 1]
@@ -420,6 +429,10 @@ def forward_propagation_traffic():
         os.environ["ROVER_MAIN"],
         "rover/simulations/Sensitivity_Studies/simple_detoure_suqc_traffic",
     )
+    output_folder = os.path.join(
+        path2tutorial,
+        "simple_detoure_suqc_traffic",
+    )
     qoi = "DegreeInformed.txt"  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
@@ -428,7 +441,7 @@ def forward_propagation_traffic():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([15, 3500]).tolist(),
+            range=np.log10([15, 2500]).tolist(),
             stages=15,
         ),
         Parameter(
@@ -438,6 +451,8 @@ def forward_propagation_traffic():
             stages=[500, 5000, 50000],
         ),
     ]
+
+
 
     dependent_parameters = [
         DependentParameter(

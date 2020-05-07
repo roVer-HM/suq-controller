@@ -123,6 +123,7 @@ class QuantityOfInterest(object):
             time.sleep(1)
             secs += 1
 
+        time.sleep(2)
         #print(f"Read from {filepath}")
 
         # make sure that Vadere writes
