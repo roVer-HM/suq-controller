@@ -290,7 +290,7 @@ def fp_traffic_no__obstacle_yes__seed_none():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,30]).tolist(),
+            range=np.log10([25,4000]).tolist(),
             stages=10,
         )
     ]
@@ -368,7 +368,7 @@ def fp_traffic_no__obstacle_yes__seed_set():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,30]).tolist(),
+            range=np.log10([25,4000]).tolist(),
             stages=10,
         )
     ]
@@ -446,7 +446,7 @@ def fp_traffic_no__obstacle_no__seed_set():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,30]).tolist(),
+            range=np.log10([25,4000]).tolist(),
             stages=10,
         )
     ]
@@ -524,7 +524,7 @@ def fp_traffic_yes__obstacle_yes__seed_set():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,30]).tolist(),
+            range=np.log10([25,4000]).tolist(),
             stages=10,
         ),
         Parameter(
@@ -609,7 +609,7 @@ def fp_traffic_yes__obstacle_no__seed_set():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,30]).tolist(),
+            range=np.log10([25,4000]).tolist(),
             stages=10,
         ),
         Parameter(
