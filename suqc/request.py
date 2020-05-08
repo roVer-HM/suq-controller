@@ -26,11 +26,7 @@ def read_from_existing_output(env_path, qoi_filename, extract_ids=True, parentfo
             if file == qoi_filename:
 
 
-
                 filepath = os.path.join(root, file)
-
-                print(filepath)
-
                 # default vals: vadere (1), rover/omnet (5)
                 filepath0 = filepath
                 for level_up in range(parentfolder_level):

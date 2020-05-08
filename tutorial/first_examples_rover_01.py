@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import warnings
 
 import matplotlib.pyplot as plt
 from numpy import diff
@@ -70,21 +71,23 @@ def postprocessing(output_folder, qoi):
     dt = 0.4
     df["timeStep"] = dt * df["timeStep"]
 
-    # qoi = pd.DataFrame(meta_df.loc[:, "('Parameter', 'vadere', 'sources.[id==3001].distributionParameters')"])
-    # qoi = qoi.rename(
-    #     columns={"('Parameter', 'vadere', 'sources.[id==3001].distributionParameters')": "inter_arrival_t_sec"})
-
     qoi = meta_df
-    qoi = qoi.rename(
+    qoi2 = pd.DataFrame(qoi.iloc[:,0])
+    qoi2 = qoi2.rename(
         columns={
-            "('Parameter', 'vadere', 'sources.[id==3001].distributionParameters')": "inter_arrival_t_sec"
+            "('Parameter', 'vadere', 'sources.[id==3001].distributionParameters')": "interArrivalTimeSecs"
         }
     )
+    qoi2["interArrivalTimeSecs"] = qoi2["interArrivalTimeSecs"].str.replace("]","")
+    qoi2["interArrivalTimeSecs"] = qoi2["interArrivalTimeSecs"].str.replace("[", "").astype(float)
+    qoi = pd.concat([qoi, qoi2], axis=1)
+
 
     number_peaks, evolution_times = list(), list()
     stats = pd.DataFrame()
 
     for simulation in meta_df.index:
+
         df_r = df.loc[simulation]
         time = df_r.iloc[:, 0]
         percentage_informed = df_r.iloc[:, 3]
@@ -119,8 +122,8 @@ def postprocessing(output_folder, qoi):
 
         t_i = np.round(evolution_time, 5)
 
-        my_title = f'Parameter: mean inter-arrival-time t_m = {qoi.loc[simulation, "inter_arrival_t_sec"][1:5]}s \n QoI: time 95% informed t_i = {t_i}s'
-        my_title_short = f'Simulation_{simulation}__mean_time_{qoi.loc[simulation, "inter_arrival_t_sec"][1:5]}'.replace(
+        my_title = f'Parameter: mean inter-arrival-time t_m = {qoi.loc[simulation, "interArrivalTimeSecs"]}s \n QoI: time 95% informed t_i = {t_i}s'
+        my_title_short = f'Simulation_{simulation}__mean_time_{qoi.loc[simulation, "interArrivalTimeSecs"]}'.replace(
             ",", "_"
         ).replace(
             ".", "_"
@@ -150,7 +153,8 @@ def postprocessing(output_folder, qoi):
             peak_time = dt * peaks[0]
 
             if peak_time < start_time or peak_time > end_time:
-                print(f"Please check simulation {simulation}")
+                pass
+                #print(f"Please check simulation {simulation}")
 
         except:
             print("failed")
@@ -205,17 +209,16 @@ def postprocessing(output_folder, qoi):
         stat = pd.Series.describe(df_r.iloc[index_start_time:index_end_time, 2])
         stats = pd.concat([stats, pd.DataFrame(stat).transpose()])
 
-    stats = stats.reset_index()
+    stats = stats.set_index(qoi.index)
 
-    qoi = qoi.droplevel(["run_id"]).reset_index()
-    qoi = qoi.assign(time_all_informed=evolution_times)
-    qoi = qoi.assign(number_of_peaks=number_peaks)
+    qoi = qoi.assign(time95informed=evolution_times)
+    qoi = qoi.assign(numberOfPeaks=number_peaks)
     qoi = pd.concat([qoi, stats], axis=1)
-    qoi.to_csv(os.path.join(analysis_path, "qoi_summary.csv"))
+    qoi.to_csv(os.path.join(analysis_path, "qoi_summary.csv"), sep = ";")
 
     plt.plot(
-        [float(item[1:4]) for item in qoi["inter_arrival_t_sec"]],
-        qoi["time_all_informed"],
+        qoi["interArrivalTimeSecs"],
+        qoi["time95informed"],
         marker="o",
     )
     plt.xlabel(f"Parameter: mean inter-arrival-time [s]")
@@ -231,7 +234,7 @@ def postprocessing(output_folder, qoi):
     plot_items = ["mean", "max", "75%"]
 
     for x in plot_items:
-        plt.plot(qoi[x], qoi["time_all_informed"], marker="o")
+        plt.plot(qoi[x], qoi["time95informed"], marker="o")
         plt.xlabel(f"Number of pedestrians over time: {x} value [-]")
         plt.title("Time to inform 95% of pedestrians [s]")
         plt.ylabel("QoI: time [s]")
@@ -268,22 +271,17 @@ def mac_analysis(base_dir, fig_title, vec_input, prefix, out_input=None):
     )
 
 
-def forward_propagation_test_shadowing():
+def fp_traffic_no__obstacle_yes__seed_none():
 
     # define roVer simulation
     path2ini = os.path.join(
         os.environ["ROVER_MAIN"], "rover/simulations/simple_detoure_suqc/omnetpp.ini"
     )  # use this ini-file
-    output_folder = os.path.join(
-        os.environ["ROVER_MAIN"],
-        "rover/simulations/Sensitivity_Studies/simple_detoure_suqc_test_shadowing",
-    )
+
     output_folder = os.path.join(
         path2tutorial,
-        "simple_detoure_suqc_test_shadowing",
+        sys._getframe().f_code.co_name,
     )
-
-
     qoi = "DegreeInformed.txt"  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
@@ -292,8 +290,8 @@ def forward_propagation_test_shadowing():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([15, 2500]).tolist(),
-            stages=15,
+            range=np.log10([25,30]).tolist(),
+            stages=10,
         )
     ]
 
@@ -301,22 +299,22 @@ def forward_propagation_test_shadowing():
         DependentParameter(
             name="sources.[id==3001].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)]",
+            equation=" = [1000/(10**number_of_agents_mean)]",
         ),
         DependentParameter(
             name="sources.[id==3002].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)]",
+            equation=" = [1000/(10**number_of_agents_mean)]",
         ),
         DependentParameter(
             name="sources.[id==3003].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)] ",
+            equation=" = [1000/(10**number_of_agents_mean)] ",
         ),
         DependentParameter(
             name="sources.[id==3004].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)]",
+            equation=" = [1000/(10**number_of_agents_mean)]",
         ),
         DependentParameter(
             name="sim-time-limit", simulator="omnet", equation='= "180s"'
@@ -329,7 +327,90 @@ def forward_propagation_test_shadowing():
         DependentParameter(
             name="*.radioMedium.obstacleLoss.typename",
             simulator="omnet",
-            equation='= ""',
+            equation='= "IdealObstacleLoss"',
+        ),
+        DependentParameter(
+            name="*.manager.useVadereSeed",
+            simulator="omnet",
+            equation='= "true"',
+        )
+    ]
+
+    reps = [100, 100, 75, 75, 50, 50, 25, 25, 10, 10]
+    reps = 2
+    par_var = RoverSamplingFullFactorial(
+        parameters=parameter, parameters_dependent=dependent_parameters
+    ).get_sampling()
+    preprocessing_and_simulation_run(
+        par_var, path2ini, output_folder, qoi, repitions=reps
+    )
+    postprocessing(output_folder, qoi)
+
+
+def fp_traffic_no__obstacle_yes__seed_set():
+
+    # define roVer simulation
+    path2ini = os.path.join(
+        os.environ["ROVER_MAIN"], "rover/simulations/simple_detoure_suqc/omnetpp.ini"
+    )  # use this ini-file
+
+    output_folder = os.path.join(
+        path2tutorial,
+        sys._getframe(  ).f_code.co_name,
+    )
+
+
+    qoi = "DegreeInformed.txt"  # qoi
+
+    # create sampling for rover - needs to be outsourced into Marions repo
+    # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
+    parameter = [
+        Parameter(
+            name="number_of_agents_mean",
+            simulator="dummy",
+            range=np.log10([25,30]).tolist(),
+            stages=10,
+        )
+    ]
+
+    dependent_parameters = [
+        DependentParameter(
+            name="sources.[id==3001].distributionParameters",
+            simulator="vadere",
+            equation=" = [1000/(10**number_of_agents_mean)]",
+        ),
+        DependentParameter(
+            name="sources.[id==3002].distributionParameters",
+            simulator="vadere",
+            equation=" = [1000/(10**number_of_agents_mean)]",
+        ),
+        DependentParameter(
+            name="sources.[id==3003].distributionParameters",
+            simulator="vadere",
+            equation=" = [1000/(10**number_of_agents_mean)] ",
+        ),
+        DependentParameter(
+            name="sources.[id==3004].distributionParameters",
+            simulator="vadere",
+            equation=" = [1000/(10**number_of_agents_mean)]",
+        ),
+        DependentParameter(
+            name="sim-time-limit", simulator="omnet", equation='= "180s"'
+        ),
+        DependentParameter(
+            name="*.station[0].app[0].incidentTime",
+            simulator="omnet",
+            equation='= "100s"',
+        ),
+        DependentParameter(
+            name="*.radioMedium.obstacleLoss.typename",
+            simulator="omnet",
+            equation='= "IdealObstacleLoss"',
+        ),
+        DependentParameter(
+            name="*.manager.useVadereSeed",
+            simulator="omnet",
+            equation='= "false"',
         )
 
     ]
@@ -344,20 +425,19 @@ def forward_propagation_test_shadowing():
     postprocessing(output_folder, qoi)
 
 
-def forward_propagation_without_traffic():
+def fp_traffic_no__obstacle_no__seed_set():
 
     # define roVer simulation
     path2ini = os.path.join(
         os.environ["ROVER_MAIN"], "rover/simulations/simple_detoure_suqc/omnetpp.ini"
     )  # use this ini-file
-    output_folder = os.path.join(
-        os.environ["ROVER_MAIN"],
-        "rover/simulations/Sensitivity_Studies/simple_detoure_suqc",
-    )
+
     output_folder = os.path.join(
         path2tutorial,
-        "simple_detoure_suqc",
+        sys._getframe().f_code.co_name,
     )
+
+
     qoi = "DegreeInformed.txt"  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
@@ -366,8 +446,8 @@ def forward_propagation_without_traffic():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([15, 2500]).tolist(),
-            stages=15,
+            range=np.log10([25,30]).tolist(),
+            stages=10,
         )
     ]
 
@@ -375,22 +455,22 @@ def forward_propagation_without_traffic():
         DependentParameter(
             name="sources.[id==3001].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)]",
+            equation=" = [1000/(10**number_of_agents_mean)]",
         ),
         DependentParameter(
             name="sources.[id==3002].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)]",
+            equation=" = [1000/(10**number_of_agents_mean)]",
         ),
         DependentParameter(
             name="sources.[id==3003].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)] ",
+            equation=" = [1000/(10**number_of_agents_mean)] ",
         ),
         DependentParameter(
             name="sources.[id==3004].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)]",
+            equation=" = [1000/(10**number_of_agents_mean)]",
         ),
         DependentParameter(
             name="sim-time-limit", simulator="omnet", equation='= "180s"'
@@ -403,11 +483,17 @@ def forward_propagation_without_traffic():
         DependentParameter(
             name="*.radioMedium.obstacleLoss.typename",
             simulator="omnet",
-            equation='= "IdealObstacleLoss"',
+            equation='= ""',
+        ),
+        DependentParameter(
+            name="*.manager.useVadereSeed",
+            simulator="omnet",
+            equation='= "false"',
         )
+
     ]
 
-    reps = [100, 50, 30, 20, 10, 5, 3, 3, 3, 2, 2, 2, 1, 1, 1]
+    reps = 1
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
@@ -417,7 +503,7 @@ def forward_propagation_without_traffic():
     postprocessing(output_folder, qoi)
 
 
-def forward_propagation_traffic():
+def fp_traffic_yes__obstacle_yes__seed_set():
 
     # define roVer simulation
     # define roVer simulation
@@ -425,13 +511,10 @@ def forward_propagation_traffic():
         os.environ["ROVER_MAIN"],
         "rover/simulations/simple_detoure_suqc_traffic/omnetpp.ini",
     )  # use this ini-file
-    output_folder = os.path.join(
-        os.environ["ROVER_MAIN"],
-        "rover/simulations/Sensitivity_Studies/simple_detoure_suqc_traffic",
-    )
+
     output_folder = os.path.join(
         path2tutorial,
-        "simple_detoure_suqc_traffic",
+        sys._getframe().f_code.co_name,
     )
     qoi = "DegreeInformed.txt"  # qoi
 
@@ -441,8 +524,8 @@ def forward_propagation_traffic():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([15, 2500]).tolist(),
-            stages=15,
+            range=np.log10([25,30]).tolist(),
+            stages=10,
         ),
         Parameter(
             name="*.hostMobile[*].app[1].messageLength",
@@ -458,22 +541,22 @@ def forward_propagation_traffic():
         DependentParameter(
             name="sources.[id==3001].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)]",
+            equation=" = [1000/(10**number_of_agents_mean)]",
         ),
         DependentParameter(
             name="sources.[id==3002].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)]",
+            equation=" = [1000/(10**number_of_agents_mean)]",
         ),
         DependentParameter(
             name="sources.[id==3003].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)] ",
+            equation=" = [1000/(10**number_of_agents_mean)] ",
         ),
         DependentParameter(
             name="sources.[id==3004].distributionParameters",
             simulator="vadere",
-            equation=" = [570/(10**number_of_agents_mean)]",
+            equation=" = [1000/(10**number_of_agents_mean)]",
         ),
         DependentParameter(
             name="sim-time-limit", simulator="omnet", equation='= "180s"'
@@ -483,6 +566,16 @@ def forward_propagation_traffic():
             simulator="omnet",
             equation='= "100s"',
         ),
+        DependentParameter(
+            name="*.radioMedium.obstacleLoss.typename",
+            simulator="omnet",
+            equation='= "IdealObstacleLoss"',
+        ),
+        DependentParameter(
+            name="*.manager.useVadereSeed",
+            simulator="omnet",
+            equation='= "false"',
+        )
     ]
 
     reps = 1
@@ -495,10 +588,100 @@ def forward_propagation_traffic():
     postprocessing(output_folder, qoi)
 
 
+def fp_traffic_yes__obstacle_no__seed_set():
+
+    # define roVer simulation
+    # define roVer simulation
+    path2ini = os.path.join(
+        os.environ["ROVER_MAIN"],
+        "rover/simulations/simple_detoure_suqc_traffic/omnetpp.ini",
+    )  # use this ini-file
+
+    output_folder = os.path.join(
+        path2tutorial,
+        sys._getframe().f_code.co_name,
+    )
+    qoi = "DegreeInformed.txt"  # qoi
+
+    # create sampling for rover - needs to be outsourced into Marions repo
+    # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
+    parameter = [
+        Parameter(
+            name="number_of_agents_mean",
+            simulator="dummy",
+            range=np.log10([25,30]).tolist(),
+            stages=10,
+        ),
+        Parameter(
+            name="*.hostMobile[*].app[1].messageLength",
+            simulator="omnet",
+            unit="B",
+            stages=[500, 5000, 50000],
+        ),
+    ]
+
+
+
+    dependent_parameters = [
+        DependentParameter(
+            name="sources.[id==3001].distributionParameters",
+            simulator="vadere",
+            equation=" = [1000/(10**number_of_agents_mean)]",
+        ),
+        DependentParameter(
+            name="sources.[id==3002].distributionParameters",
+            simulator="vadere",
+            equation=" = [1000/(10**number_of_agents_mean)]",
+        ),
+        DependentParameter(
+            name="sources.[id==3003].distributionParameters",
+            simulator="vadere",
+            equation=" = [1000/(10**number_of_agents_mean)] ",
+        ),
+        DependentParameter(
+            name="sources.[id==3004].distributionParameters",
+            simulator="vadere",
+            equation=" = [1000/(10**number_of_agents_mean)]",
+        ),
+        DependentParameter(
+            name="sim-time-limit", simulator="omnet", equation='= "180s"'
+        ),
+        DependentParameter(
+            name="*.station[0].app[0].incidentTime",
+            simulator="omnet",
+            equation='= "100s"',
+        ),
+        DependentParameter(
+            name="*.radioMedium.obstacleLoss.typename",
+            simulator="omnet",
+            equation='= ""',
+        ),
+        DependentParameter(
+            name="*.manager.useVadereSeed",
+            simulator="omnet",
+            equation='= "false"',
+        )
+    ]
+
+    reps = 1
+    par_var = RoverSamplingFullFactorial(
+        parameters=parameter, parameters_dependent=dependent_parameters
+    ).get_sampling()
+    preprocessing_and_simulation_run(
+        par_var, path2ini, output_folder, qoi, repitions=reps
+    )
+    postprocessing(output_folder, qoi)
+
+
+
 if __name__ == "__main__":
 
     os.environ["ROVER_MAIN"] = "/home/christina/repos/rover-main"
+    warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-    forward_propagation_without_traffic()
-    forward_propagation_traffic()
-    forward_propagation_test_shadowing()
+    fp_traffic_no__obstacle_no__seed_set()
+    fp_traffic_no__obstacle_yes__seed_none()
+    fp_traffic_no__obstacle_yes__seed_set()
+    fp_traffic_yes__obstacle_no__seed_set()
+    fp_traffic_yes__obstacle_yes__seed_set()
+
