@@ -47,7 +47,7 @@ def preprocessing_and_simulation_run(
 
     if run_local:
         par_var, data = setup.run(
-            1
+            4
         )  # -1 indicates to use all cores available to parallelize the scenarios
         # to do: allow -1 for rover containers
     else:
@@ -72,16 +72,18 @@ def postprocessing(output_folder, qoi):
     df["timeStep"] = dt * df["timeStep"]
 
     qoi = meta_df
-    qoi2 = pd.DataFrame(qoi.iloc[:,0])
+    qoi2 = pd.DataFrame(qoi)
     qoi2 = qoi2.rename(
         columns={
             "('Parameter', 'vadere', 'sources.[id==3001].distributionParameters')": "interArrivalTimeSecs"
         }
     )
-    qoi2["interArrivalTimeSecs"] = qoi2["interArrivalTimeSecs"].str.replace("]","")
-    qoi2["interArrivalTimeSecs"] = qoi2["interArrivalTimeSecs"].str.replace("[", "").astype(float)
+    qoi2["interArrivalTimeSecs"] = qoi2["interArrivalTimeSecs"].str.replace("]", "")
+    qoi2["interArrivalTimeSecs"] = (
+        qoi2["interArrivalTimeSecs"].str.replace("[", "").astype(float)
+    )
+    qoi2 = pd.DataFrame(qoi2["interArrivalTimeSecs"])
     qoi = pd.concat([qoi, qoi2], axis=1)
-
 
     number_peaks, evolution_times = list(), list()
     stats = pd.DataFrame()
@@ -145,7 +147,7 @@ def postprocessing(output_folder, qoi):
             loc="center right",
         )
 
-        #plt.savefig(os.path.join(analysis_path, my_title_short + "_all.png"))
+        # plt.savefig(os.path.join(analysis_path, my_title_short + "_all.png"))
         plt.show()
 
         number_peaks.append(peaks.size)
@@ -154,7 +156,7 @@ def postprocessing(output_folder, qoi):
 
             if peak_time < start_time or peak_time > end_time:
                 pass
-                #print(f"Please check simulation {simulation}")
+                # print(f"Please check simulation {simulation}")
 
         except:
             print("failed")
@@ -203,7 +205,7 @@ def postprocessing(output_folder, qoi):
         )
 
         plt.title(my_title)
-        #plt.savefig(os.path.join(analysis_path, my_title_short + ".png"))
+        # plt.savefig(os.path.join(analysis_path, my_title_short + ".png"))
         plt.show()
 
         stat = pd.Series.describe(df_r.iloc[index_start_time:index_end_time, 2])
@@ -214,12 +216,10 @@ def postprocessing(output_folder, qoi):
     qoi = qoi.assign(time95informed=evolution_times)
     qoi = qoi.assign(numberOfPeaks=number_peaks)
     qoi = pd.concat([qoi, stats], axis=1)
-    qoi.to_csv(os.path.join(analysis_path, "qoi_summary.csv"), sep = ";")
+    qoi.to_csv(os.path.join(analysis_path, "qoi_summary.csv"), sep=";")
 
     plt.plot(
-        qoi["interArrivalTimeSecs"],
-        qoi["time95informed"],
-        marker="o",
+        qoi["interArrivalTimeSecs"], qoi["time95informed"], marker="o",
     )
     plt.xlabel(f"Parameter: mean inter-arrival-time [s]")
     plt.title("Time to inform 95% of pedestrians [s]")
@@ -278,10 +278,7 @@ def fp_traffic_no__obstacle_yes__seed_none():
         os.environ["ROVER_MAIN"], "rover/simulations/simple_detoure_suqc/omnetpp.ini"
     )  # use this ini-file
 
-    output_folder = os.path.join(
-        path2tutorial,
-        sys._getframe().f_code.co_name,
-    )
+    output_folder = os.path.join(path2tutorial, sys._getframe().f_code.co_name,)
     qoi = "DegreeInformed.txt"  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
@@ -290,7 +287,7 @@ def fp_traffic_no__obstacle_yes__seed_none():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,4000]).tolist(),
+            range=np.log10([25, 4000]).tolist(),
             stages=10,
         )
     ]
@@ -330,14 +327,11 @@ def fp_traffic_no__obstacle_yes__seed_none():
             equation='= "IdealObstacleLoss"',
         ),
         DependentParameter(
-            name="*.manager.useVadereSeed",
-            simulator="omnet",
-            equation='= "true"',
-        )
+            name="*.manager.useVadereSeed", simulator="omnet", equation='= "true"',
+        ),
     ]
 
     reps = [100, 100, 75, 75, 50, 50, 25, 25, 10, 10]
-    reps = 2
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
@@ -354,11 +348,7 @@ def fp_traffic_no__obstacle_yes__seed_set():
         os.environ["ROVER_MAIN"], "rover/simulations/simple_detoure_suqc/omnetpp.ini"
     )  # use this ini-file
 
-    output_folder = os.path.join(
-        path2tutorial,
-        sys._getframe(  ).f_code.co_name,
-    )
-
+    output_folder = os.path.join(path2tutorial, sys._getframe().f_code.co_name,)
 
     qoi = "DegreeInformed.txt"  # qoi
 
@@ -368,7 +358,7 @@ def fp_traffic_no__obstacle_yes__seed_set():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,4000]).tolist(),
+            range=np.log10([25, 4000]).tolist(),
             stages=10,
         )
     ]
@@ -408,11 +398,8 @@ def fp_traffic_no__obstacle_yes__seed_set():
             equation='= "IdealObstacleLoss"',
         ),
         DependentParameter(
-            name="*.manager.useVadereSeed",
-            simulator="omnet",
-            equation='= "false"',
-        )
-
+            name="*.manager.useVadereSeed", simulator="omnet", equation='= "false"',
+        ),
     ]
 
     reps = 1
@@ -432,11 +419,7 @@ def fp_traffic_no__obstacle_no__seed_set():
         os.environ["ROVER_MAIN"], "rover/simulations/simple_detoure_suqc/omnetpp.ini"
     )  # use this ini-file
 
-    output_folder = os.path.join(
-        path2tutorial,
-        sys._getframe().f_code.co_name,
-    )
-
+    output_folder = os.path.join(path2tutorial, sys._getframe().f_code.co_name,)
 
     qoi = "DegreeInformed.txt"  # qoi
 
@@ -446,7 +429,7 @@ def fp_traffic_no__obstacle_no__seed_set():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,4000]).tolist(),
+            range=np.log10([25, 4000]).tolist(),
             stages=10,
         )
     ]
@@ -486,11 +469,8 @@ def fp_traffic_no__obstacle_no__seed_set():
             equation='= ""',
         ),
         DependentParameter(
-            name="*.manager.useVadereSeed",
-            simulator="omnet",
-            equation='= "false"',
-        )
-
+            name="*.manager.useVadereSeed", simulator="omnet", equation='= "false"',
+        ),
     ]
 
     reps = 1
@@ -512,10 +492,7 @@ def fp_traffic_yes__obstacle_yes__seed_set():
         "rover/simulations/simple_detoure_suqc_traffic/omnetpp.ini",
     )  # use this ini-file
 
-    output_folder = os.path.join(
-        path2tutorial,
-        sys._getframe().f_code.co_name,
-    )
+    output_folder = os.path.join(path2tutorial, sys._getframe().f_code.co_name,)
     qoi = "DegreeInformed.txt"  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
@@ -524,7 +501,7 @@ def fp_traffic_yes__obstacle_yes__seed_set():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,4000]).tolist(),
+            range=np.log10([25, 4000]).tolist(),
             stages=10,
         ),
         Parameter(
@@ -534,8 +511,6 @@ def fp_traffic_yes__obstacle_yes__seed_set():
             stages=[500, 5000, 50000],
         ),
     ]
-
-
 
     dependent_parameters = [
         DependentParameter(
@@ -572,10 +547,8 @@ def fp_traffic_yes__obstacle_yes__seed_set():
             equation='= "IdealObstacleLoss"',
         ),
         DependentParameter(
-            name="*.manager.useVadereSeed",
-            simulator="omnet",
-            equation='= "false"',
-        )
+            name="*.manager.useVadereSeed", simulator="omnet", equation='= "false"',
+        ),
     ]
 
     reps = 1
@@ -597,10 +570,7 @@ def fp_traffic_yes__obstacle_no__seed_set():
         "rover/simulations/simple_detoure_suqc_traffic/omnetpp.ini",
     )  # use this ini-file
 
-    output_folder = os.path.join(
-        path2tutorial,
-        sys._getframe().f_code.co_name,
-    )
+    output_folder = os.path.join(path2tutorial, sys._getframe().f_code.co_name,)
     qoi = "DegreeInformed.txt"  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
@@ -609,7 +579,7 @@ def fp_traffic_yes__obstacle_no__seed_set():
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            range=np.log10([25,4000]).tolist(),
+            range=np.log10([25, 4000]).tolist(),
             stages=10,
         ),
         Parameter(
@@ -619,8 +589,6 @@ def fp_traffic_yes__obstacle_no__seed_set():
             stages=[500, 5000, 50000],
         ),
     ]
-
-
 
     dependent_parameters = [
         DependentParameter(
@@ -657,10 +625,8 @@ def fp_traffic_yes__obstacle_no__seed_set():
             equation='= ""',
         ),
         DependentParameter(
-            name="*.manager.useVadereSeed",
-            simulator="omnet",
-            equation='= "false"',
-        )
+            name="*.manager.useVadereSeed", simulator="omnet", equation='= "false"',
+        ),
     ]
 
     reps = 1
@@ -673,15 +639,13 @@ def fp_traffic_yes__obstacle_no__seed_set():
     postprocessing(output_folder, qoi)
 
 
-
 if __name__ == "__main__":
 
     os.environ["ROVER_MAIN"] = "/home/christina/repos/rover-main"
-    warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+    warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
     fp_traffic_no__obstacle_no__seed_set()
     fp_traffic_no__obstacle_yes__seed_none()
     fp_traffic_no__obstacle_yes__seed_set()
     fp_traffic_yes__obstacle_no__seed_set()
     fp_traffic_yes__obstacle_yes__seed_set()
-
