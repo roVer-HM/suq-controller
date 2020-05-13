@@ -5,7 +5,6 @@ from typing import *
 
 import numpy as np
 import pandas as pd
-
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid
 from suqc.environment import EnvironmentManager
@@ -42,32 +41,34 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         # if it is a scalar value, each sample is repeated the same number of time
         # if it is a list, the int values co
         if isinstance(scenario_runs, int):
-            scenario_runs = scenario_runs*np.ones((len(self._points.index.values),), dtype=int)
+            scenario_runs = scenario_runs * np.ones(
+                (len(self._points.index.values),), dtype=int
+            )
 
         k = 0
         for idx_vals in self._points.index.values:
             idx_id = idx_vals.repeat(scenario_runs[k])
             idx_run_id = np.arange(0, scenario_runs[k])
-            df0 = np.tile(self._points.values[k], (scenario_runs[k],1))
+            df0 = np.tile(self._points.values[k], (scenario_runs[k], 1))
             if k == 0:
                 idx_ids = idx_id
                 idx_run_ids = idx_run_id
                 df = df0
             else:
-                idx_ids = np.append(idx_ids ,idx_id)
+                idx_ids = np.append(idx_ids, idx_id)
                 idx_run_ids = np.append(idx_run_ids, idx_run_id)
 
                 df = np.append(df, df0, axis=0)
             k += 1
 
-        self._points = pd.DataFrame(df,
+        self._points = pd.DataFrame(
+            df,
             index=pd.MultiIndex.from_arrays(
                 [idx_ids, idx_run_ids], names=["id", "run_id"]
             ),
             columns=self._points.columns,
         )
         return self
-
 
     def _add_dict_points(self, points: List[dict]):
         # NOTE: it may be required to generalize 'points' definition, at the moment it is assumed to be a list(grid),
@@ -98,14 +99,18 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
                     df_single.append(data)
 
                 df_single = pd.DataFrame(df_single)
-                df_single.columns = pd.MultiIndex.from_product([[key], df_single.columns])
+                df_single.columns = pd.MultiIndex.from_product(
+                    [[key], df_single.columns]
+                )
                 df = pd.concat([df, df_single], axis=1)
 
             cols = df.columns.values
 
         else:
 
-            df = pd.concat([self._points, pd.DataFrame(points)], ignore_index=True, axis=0)
+            df = pd.concat(
+                [self._points, pd.DataFrame(points)], ignore_index=True, axis=0
+            )
             cols = [tuple([parameter]) for parameter in df.columns.values]
 
         # add 'Parameter' on top
@@ -118,13 +123,12 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
         df.index.name = ParameterVariationBase.ROW_IDX_NAME_ID
 
-
         self._points = df
 
     def _add_df_points(self, points: pd.DataFrame):
         self._points = points
 
-    def check_selected_keys(self, scenario: dict, simulator = None):
+    def check_selected_keys(self, scenario: dict, simulator=None):
 
         keys = self._points.columns.get_level_values(-1)
 
@@ -143,13 +147,12 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
     def to_dictlist(self):
         return [i[1] for i in self.par_iter()]
 
-    def par_iter(self, simulator = None):
+    def par_iter(self, simulator=None):
 
         if simulator is None:
-            df = self._points[ ParameterVariationBase.MULTI_IDX_LEVEL0_PAR ]
+            df = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR]
         else:
-            df = self._points[ (ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator) ]
-
+            df = self._points[(ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator)]
 
         for (par_id, run_id), row in df.iterrows():
             # TODO: this is not nice coding, however, there are some issues. See issue #40
@@ -168,7 +171,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
     def check_multiple_simulators(self):
 
-        df =  self.points
+        df = self.points
         number_of_levels = len(df.columns.levels)
 
         check = None

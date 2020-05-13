@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import os
-import time
 import re
+import time
 from typing import *
 
 import pandas as pd
-
 from suqc.environment import EnvironmentManager
 from suqc.utils.dict_utils import deep_dict_lookup
 
@@ -119,12 +118,12 @@ class QuantityOfInterest(object):
         while os.path.exists(filepath) is False:
             # if secs == 0:
             #     print(f"Wait for file {filepath}")
-            #print(f"\t Waiting time: {secs}s")
+            # print(f"\t Waiting time: {secs}s")
             time.sleep(1)
             secs += 1
 
         time.sleep(2)
-        #print(f"Read from {filepath}")
+        # print(f"Read from {filepath}")
 
         # make sure that Vadere writes
         with open(filepath) as f:

@@ -4,34 +4,30 @@ import glob
 import json
 import os
 import subprocess
-import time
-from shutil import rmtree, copytree, ignore_patterns
-from typing import *
 import sys
-from abc import ABC, abstractmethod, abstractclassmethod
+import time
+from abc import ABC, abstractclassmethod, abstractmethod
+from shutil import copytree, ignore_patterns, rmtree
+from typing import *
 
 from suqc.configuration import SuqcConfig
-from suqc.opp.config_parser import OppParser, OppConfigType, OppConfigFileBase
-from suqc.utils.general import user_query_yes_no, get_current_suqc_state, str_timestamp
-
+from suqc.opp.config_parser import OppConfigFileBase, OppConfigType, OppParser
 from suqc.utils.general import (get_current_suqc_state, str_timestamp,
                                 user_query_yes_no)
 
 # configuration of the suq-controller
-DEFAULT_SUQ_CONFIG = {"default_vadere_src_path": "TODO",
-                      "server": {
-                          "host": "",
-                          "user": "",
-                          "port": -1
-                      }}
+DEFAULT_SUQ_CONFIG = {
+    "default_vadere_src_path": "TODO",
+    "server": {"host": "", "user": "", "port": -1},
+}
+
 
 class AbstractConsoleWrapper(object):
-
     @classmethod
     def infer_model(cls, model):
 
         if isinstance(model, str):
-            if model =="Coupled":
+            if model == "Coupled":
                 return CoupledConsoleWrapper(model)
             else:
                 return VadereConsoleWrapper.infer_model(model)
@@ -39,14 +35,11 @@ class AbstractConsoleWrapper(object):
             return model
 
 
-
 class CoupledConsoleWrapper(AbstractConsoleWrapper):
-
     def __init__(self, model):
         self.simulator = model
 
     def run_simulation(self, parameter_id, run_id, dirname):
-
 
         timeStarted = time.time()
         t = time.strftime("%H:%M:%S", time.localtime(timeStarted))
@@ -54,24 +47,23 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         dirname = os.path.join(dirname, f"coupled_sim_run_{parameter_id}_{run_id}")
         os.chdir(dirname)
 
-        print(f"start simulation  \t  parameter id: \t{parameter_id}, run id: \t{run_id} at {t}")
+        print(
+            f"start simulation  \t  parameter id: \t{parameter_id}, run id: \t{run_id} at {t}"
+        )
 
         os.system("chmod +x runScript.sh")
-        return_code = subprocess.check_call(["./runScript.sh"], env=os.environ , stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-        os.chdir('..')
+        return_code = subprocess.check_call(
+            ["./runScript.sh"],
+            env=os.environ,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
+        )
+        os.chdir("..")
 
         process_duration = time.time() - timeStarted
         output_subprocess = None
 
-
-
-
-
         return return_code, process_duration, output_subprocess
-
-
-
-
 
 
 class VadereConsoleWrapper(AbstractConsoleWrapper):
@@ -183,9 +175,7 @@ class VadereConsoleWrapper(AbstractConsoleWrapper):
         return cls(model_path)
 
 
-
 class AbstractEnvironmentManager(object):
-
     @property
     def basis_scenario(self):
         if self._scenario_basis is None:
@@ -196,7 +186,6 @@ class AbstractEnvironmentManager(object):
             self._scenario_basis = basis_file
 
         return self._scenario_basis
-
 
     @property
     def path_basis_scenario(self):
@@ -272,7 +261,6 @@ class AbstractEnvironmentManager(object):
             return True
         return False
 
-
     @classmethod
     def from_full_path(cls, env_path):
         assert os.path.isdir(env_path)
@@ -302,7 +290,6 @@ class AbstractEnvironmentManager(object):
         assert os.path.isdir(base_path)
         output_folder_path = os.path.join(base_path, env_name)
         return output_folder_path
-
 
     def scenario_variation_path(self, par_id, run_id):
         return os.path.join(
@@ -341,8 +328,6 @@ class AbstractEnvironmentManager(object):
         numbered_scenario_name = "_".join([digits_parameter_id, digits_run_id])
 
         return "".join([numbered_scenario_name, self.VADERE_SCENARIO_FILE_TYPE])
-
-
 
 
 class EnvironmentManager(AbstractEnvironmentManager):
@@ -445,6 +430,7 @@ class EnvironmentManager(AbstractEnvironmentManager):
 
         return cls(base_path, env_name)
 
+
 class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
     PREFIX_BASIS_SCENARIO = ""
@@ -452,7 +438,6 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
     vadere_output_folder = "simulation_runs"
 
     def __init__(self, base_path, env_name: str):
-
 
         self.base_path, self.env_name = self.handle_path_and_env_input(
             base_path, env_name
@@ -489,31 +474,27 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
     def basis_ini(self):
         if self._ini_basis is None:
             path_basis_scenario = self.path_ini
-            ini_file = OppConfigFileBase.from_path(ini_path = path_basis_scenario, config = "final", cfg_type=OppConfigType.EXT_DEL_LOCAL)
+            ini_file = OppConfigFileBase.from_path(
+                ini_path=path_basis_scenario,
+                config="final",
+                cfg_type=OppConfigType.EXT_DEL_LOCAL,
+            )
             self._ini_basis = ini_file
         return self._ini_basis
 
     @property
     def path_ini(self):
-        sc_files = glob.glob(
-            os.path.join(self.env_path, "*ini")
-        )
+        sc_files = glob.glob(os.path.join(self.env_path, "*ini"))
 
         if len(sc_files) != 1:
-            raise RuntimeError(
-                f"None or too many 'ini' files "
-                "found in environment."
-            )
+            raise RuntimeError(f"None or too many 'ini' files " "found in environment.")
         return sc_files[0]
-
-
-
 
     @classmethod
     def create_variation_env(
         cls,
         basis_scenario: Union[str, dict],
-        ini_scenario: Union[str,dict],
+        ini_scenario: Union[str, dict],
         base_path=None,
         env_name=None,
         handle_existing="ask_user_replace",
@@ -527,11 +508,13 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         ini_path = os.path.dirname(ini_scenario)
 
-        new_path = os.path.join(path_output_folder,"additional_rover_files")
+        new_path = os.path.join(path_output_folder, "additional_rover_files")
 
-        copytree(ini_path,new_path,ignore=ignore_patterns('*.ini', '*.scenario','results','output'))
-
-
+        copytree(
+            ini_path,
+            new_path,
+            ignore=ignore_patterns("*.ini", "*.scenario", "results", "output"),
+        )
 
         # Add vadere basis scenario used for the variation (i.e. sampling)
         if isinstance(basis_scenario, str):  # assume that this is a path
@@ -548,7 +531,8 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         # add prefix to scenario file:
         basis_fp = os.path.join(
-            path_output_folder, f"{cls.PREFIX_BASIS_SCENARIO}{env_man.get_scenario_name()}.scenario"
+            path_output_folder,
+            f"{cls.PREFIX_BASIS_SCENARIO}{env_man.get_scenario_name()}.scenario",
         )
 
         # FILL IN THE STANDARD FILES IN THE NEW SCENARIO:
@@ -556,29 +540,25 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             if isinstance(basis_scenario, dict):
                 json.dump(basis_scenario, file, indent=4)
             else:
-                file.write(basis_scenario) # this is where the scenario is defined
+                file.write(basis_scenario)  # this is where the scenario is defined
 
         # Add omnet basis scenario used for the variation (i.e. sampling)
         if isinstance(ini_scenario, str):  # assume that this is a path
             if not os.path.isfile(ini_scenario):
                 raise FileExistsError("Filepath to .ini does not exist")
             elif ini_scenario.split(".")[-1] != "ini":
-                raise ValueError(
-                    "omnet ini has to be a ini file"
-                )
+                raise ValueError("omnet ini has to be a ini file")
 
             with open(ini_scenario, "r") as file:
                 ini_scenario = file.read()
 
         # add prefix to scenario file:
-        basis_fp = os.path.join(
-            path_output_folder, "omnetpp.ini"
-        )
+        basis_fp = os.path.join(path_output_folder, "omnetpp.ini")
 
         # FILL IN THE STANDARD FILES IN THE NEW SCENARIO:
         with open(basis_fp, "w") as file:
             if isinstance(ini_scenario, dict):
-                OppConfigFileBase.writer() # not working yet!
+                OppConfigFileBase.writer()  # not working yet!
             else:
                 file.write(ini_scenario)  # this is where the scenario is defined
 
@@ -616,7 +596,6 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             self.VADERE_SCENARIO_FILE_TYPE, ""
         )
 
-
         variation_output_folder = os.path.join(
             self.get_env_outputfolder_path(), "".join([scenario_filename, "_output"])
         )
@@ -630,8 +609,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         return "".join([numbered_scenario_name, self.VADERE_SCENARIO_FILE_TYPE])
 
-
-    def scenario_variation_path(self, par_id, run_id, simulator = None ):
+    def scenario_variation_path(self, par_id, run_id, simulator=None):
 
         if simulator is None:
             subdirs = "vadere/scenarios"
@@ -640,14 +618,13 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             subdirs = ""
             original_name_scenario = "omnetpp.ini"
 
-
         sim_name = f"coupled_sim_run_{par_id}_{run_id}"
         sim_path = os.path.join(self.get_env_outputfolder_path(), sim_name)
         sim_path = os.path.join(sim_path, subdirs)
 
         os.makedirs(sim_path, exist_ok=True)
 
-        scenario_variation_path = os.path.join(sim_path,original_name_scenario)
+        scenario_variation_path = os.path.join(sim_path, original_name_scenario)
 
         return scenario_variation_path
 
@@ -655,5 +632,3 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         scenario_name = cls.basis_scenario_name
         scenario_name = os.path.splitext(scenario_name)[0]
         return scenario_name
-
-

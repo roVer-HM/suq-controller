@@ -6,13 +6,13 @@ import warnings
 import matplotlib.pyplot as plt
 from numpy import diff
 from scipy.signal import find_peaks
+from suqc.parameter.parameter import (DependentParameter, Parameter,
+                                      RoverSampling,
+                                      RoverSamplingFullFactorial)
 
 import roveranalyzer.oppanalyzer.wlan80211 as w80211
 from roveranalyzer.oppanalyzer.utils import RoverBuilder
 from roveranalyzer.uitls.path import PathHelper
-from suqc.parameter.parameter import (DependentParameter, Parameter,
-                                      RoverSampling,
-                                      RoverSamplingFullFactorial)
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
@@ -642,10 +642,9 @@ def fp_traffic_yes__obstacle_no__seed_set():
 if __name__ == "__main__":
 
     os.environ["ROVER_MAIN"] = "/home/christina/repos/rover-main"
-    warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
-    fp_traffic_no__obstacle_no__seed_set()
-    fp_traffic_no__obstacle_yes__seed_none()
-    fp_traffic_no__obstacle_yes__seed_set()
-    fp_traffic_yes__obstacle_no__seed_set()
-    fp_traffic_yes__obstacle_yes__seed_set()
+    # fp_traffic_no__obstacle_no__seed_set()
+    # fp_traffic_no__obstacle_yes__seed_none()
+    # fp_traffic_no__obstacle_yes__seed_set()
+    # fp_traffic_yes__obstacle_no__seed_set()
+    # fp_traffic_yes__obstacle_yes__seed_set()

@@ -6,16 +6,23 @@ import os
 import shutil
 import time
 
-from suqc.environment import VadereConsoleWrapper, CoupledEnvironmentManager, AbstractConsoleWrapper, CoupledConsoleWrapper, AbstractEnvironmentManager
-from suqc.parameter.create import VadereScenarioCreation, CoupledScenarioCreation
+from suqc.environment import (AbstractConsoleWrapper,
+                              AbstractEnvironmentManager,
+                              CoupledConsoleWrapper, CoupledEnvironmentManager,
+                              VadereConsoleWrapper)
+from suqc.parameter.create import (CoupledScenarioCreation,
+                                   VadereScenarioCreation)
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
 from suqc.qoi import QuantityOfInterest
 from suqc.remote import ServerRequest
-from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
+from suqc.utils.general import (create_folder, njobs_check_and_set,
+                                parent_folder_clean)
 
 
-def read_from_existing_output(env_path, qoi_filename, extract_ids=True, parentfolder_level = 1):
+def read_from_existing_output(
+    env_path, qoi_filename, extract_ids=True, parentfolder_level=1
+):
 
     read_data = []
 
@@ -24,7 +31,6 @@ def read_from_existing_output(env_path, qoi_filename, extract_ids=True, parentfo
     for root, dirs, files in os.walk(env_path):
         for file in files:
             if file == qoi_filename:
-
 
                 filepath = os.path.join(root, file)
                 # default vals: vadere (1), rover/omnet (5)
@@ -35,7 +41,6 @@ def read_from_existing_output(env_path, qoi_filename, extract_ids=True, parentfo
                 parentfolder = os.path.basename(filepath0)
 
                 df_data = pd.read_csv(filepath, delimiter=" ", header=[0], comment="#")
-
 
                 if extract_ids:
                     run_data = [int(i) for i in parentfolder.split("_") if i.isdigit()]
@@ -65,8 +70,9 @@ def read_from_existing_output(env_path, qoi_filename, extract_ids=True, parentfo
 
     read_data = pd.concat(read_data, axis=0)
 
-    meta_data = pd.read_csv(os.path.join(env_path, "metainfo.csv"), header=[0]).set_index(['id', 'run_id'])
-
+    meta_data = pd.read_csv(
+        os.path.join(env_path, "metainfo.csv"), header=[0]
+    ).set_index(["id", "run_id"])
 
     return read_data, meta_data
 
@@ -103,7 +109,6 @@ class Request(object):
 
         if len(request_item_list) == 0:
             raise ValueError("request_item_list has no entries.")
-
 
         self.model = AbstractConsoleWrapper.infer_model(model)
         self.request_item_list = request_item_list
@@ -252,7 +257,6 @@ class Request(object):
         else:
             self._mp_query(njobs=njobs)
 
-
         if self.qoi is not None:
             self.compiled_qoi_data = self._compile_qoi()
             self.compiled_run_info = self._compile_run_info()
@@ -382,21 +386,21 @@ class SampleVariation(VariationBase, ServerRequest):
 
 
 class CoupledDictVariation(VariationBase, ServerRequest):
-
-    def __init__(self,
-            ini_path: str,
-            scenario_name: str, # relative to ini_path
-            parameter_dict_list: List[dict],
-            qoi: Union[str, List[str]],
-            model: Union[str, CoupledConsoleWrapper],
-            scenario_runs= Union[int,List[int]],
-            post_changes=PostScenarioChangesBase(apply_default=True),
-            njobs_create_scenarios=1,
-            output_path=None,
-            output_folder=None,
-            remove_output=False,
-            env_remote=None,
-            remove_omnet_files=None
+    def __init__(
+        self,
+        ini_path: str,
+        scenario_name: str,  # relative to ini_path
+        parameter_dict_list: List[dict],
+        qoi: Union[str, List[str]],
+        model: Union[str, CoupledConsoleWrapper],
+        scenario_runs=Union[int, List[int]],
+        post_changes=PostScenarioChangesBase(apply_default=True),
+        njobs_create_scenarios=1,
+        output_path=None,
+        output_folder=None,
+        remove_output=False,
+        env_remote=None,
+        remove_omnet_files=None,
     ):
 
         scenario_path = self._get_scenario_path(ini_path, scenario_name)
@@ -419,7 +423,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         if env_remote is None:
             env = CoupledEnvironmentManager.create_variation_env(
                 basis_scenario=self.scenario_path,
-                ini_scenario = self.ini_path,
+                ini_scenario=self.ini_path,
                 base_path=output_path,
                 env_name=output_folder,
                 handle_existing="ask_user_replace",
@@ -438,11 +442,11 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         super(CoupledDictVariation, self).__init__(
             env_man=env,
             parameter_variation=parameter_variation,
-            model = model,
+            model=model,
             qoi=qoi,
             post_changes=post_changes,
             njobs=njobs_create_scenarios,
-            remove_output=remove_output
+            remove_output=remove_output,
         )
 
     def _get_scenario_path(self, ini_path, scenario_name):
@@ -456,7 +460,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
     def scenario_creation(self, njobs):
         parameter_variation = self.parameter_variation
 
-        #if parameter_variation.check_multiple_simulators() is False:
+        # if parameter_variation.check_multiple_simulators() is False:
         #    raise Exception("Dataframe must contain parameters of multiple simulators.")
 
         scenario_creation = CoupledScenarioCreation(
@@ -466,20 +470,22 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         return request_item_list
 
-
     def _single_request(self, request_item: RequestItem) -> RequestItem:
 
-
         dirname = self.env_man.get_env_outputfolder_path()
-        return_code, required_time, output_on_error = self.model.run_simulation(request_item.parameter_id, request_item.run_id, dirname)
-        outputfolder_path = os.path.join(dirname, f"coupled_sim_run_{request_item.parameter_id}_{request_item.run_id}")
-
+        return_code, required_time, output_on_error = self.model.run_simulation(
+            request_item.parameter_id, request_item.run_id, dirname
+        )
+        outputfolder_path = os.path.join(
+            dirname,
+            f"coupled_sim_run_{request_item.parameter_id}_{request_item.run_id}",
+        )
 
         for dirpath, dirnames, filenames in os.walk(outputfolder_path):
-            for filename in [f for f in filenames if f == self.qoi.req_qois[0].filename ]:
+            for filename in [
+                f for f in filenames if f == self.qoi.req_qois[0].filename
+            ]:
                 output_path = os.path.join(dirpath, filename)
-
-
 
         is_results = self._interpret_return_value(
             return_code, request_item.parameter_id
@@ -513,18 +519,31 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         request_item.add_qoi_result(result)
         request_item.add_meta_info(required_time=required_time, return_code=return_code)
 
-
-        patterns = ['*.ini', '*.scenario','*.sca','*.vci','*.vec','vadere','sumo','*.traj','*.csv','*.xml','*.sh']
+        patterns = [
+            "*.ini",
+            "*.scenario",
+            "*.sca",
+            "*.vci",
+            "*.vec",
+            "vadere",
+            "sumo",
+            "*.traj",
+            "*.csv",
+            "*.xml",
+            "*.sh",
+        ]
         if self.remove_omnet_files is True:
             # delete files
-            shutil.copytree(outputfolder_path,outputfolder_path + "temp", ignore=shutil.ignore_patterns(*patterns) )
+            shutil.copytree(
+                outputfolder_path,
+                outputfolder_path + "temp",
+                ignore=shutil.ignore_patterns(*patterns),
+            )
             shutil.rmtree(outputfolder_path)
             os.rename(outputfolder_path + "temp", outputfolder_path)
 
         # Because of the multi-processor part, don't try to already add the results here to _results_df
         return request_item
-
-
 
 
 class DictVariation(VariationBase, ServerRequest):
@@ -844,8 +863,6 @@ class SingleExistScenario(Request, ServerRequest):
             class_name="SingleExistScenario",
             transfer_output=True,
         )
-
-
 
 
 if __name__ == "__main__":
