@@ -37,7 +37,6 @@ def preprocessing_and_simulation_run(
         output_path=path2tutorial,
         output_folder=output_folder,
         remove_output=False,
-        remove_omnet_files=True,
     )
 
     if run_local:
@@ -423,16 +422,13 @@ def test_me():
 
     output_folder = os.path.join(path2tutorial, sys._getframe().f_code.co_name,)
 
-    qoi = "DegreeInformed.txt"  # qoi
+    qoi = "DegreeInformed_extract.txt"  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
     # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
     parameter = [
         Parameter(name="number_of_agents_mean", simulator="dummy", stages=[30, 30.5],)
     ]
-
-    # equation=lambda args: [570 / args["number_of_agents_mean"]],
-
     dependent_parameters = [
         DependentParameter(
             name="sources.[id==3001].distributionParameters",
@@ -475,6 +471,8 @@ def test_me():
     preprocessing_and_simulation_run(
         par_var, path2ini, output_folder, qoi, repitions=reps
     )
+
+    print("finished")
 
 
 if __name__ == "__main__":

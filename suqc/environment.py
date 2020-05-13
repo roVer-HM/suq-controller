@@ -45,19 +45,15 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
 
         dirname = os.path.join(dirname, f"coupled_sim_run_{parameter_id}_{run_id}")
         os.chdir(dirname)
-
-        print(os.getcwd())
-
         print(
             f"start simulation  \t  parameter id: \t{parameter_id}, run id: \t{run_id} at {t}"
         )
-
         os.system("chmod u+x run_script.py")
         return_code = subprocess.check_call(
             ["./run_script.py"],
             env=os.environ,
-            # stdout=subprocess.DEVNULL,
-            # stderr=subprocess.STDOUT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
         )
 
         os.chdir("..")

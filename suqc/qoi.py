@@ -114,17 +114,6 @@ class QuantityOfInterest(object):
 
     def _read_csv(self, req_qoi: FileDataInfo, filepath):
 
-        secs = 0
-        while os.path.exists(filepath) is False:
-            # if secs == 0:
-            #     print(f"Wait for file {filepath}")
-            # print(f"\t Waiting time: {secs}s")
-            time.sleep(1)
-            secs += 1
-
-        time.sleep(2)
-        # print(f"Read from {filepath}")
-
         # make sure that Vadere writes
         with open(filepath) as f:
             first_line = f.readline()
@@ -168,6 +157,22 @@ class QuantityOfInterest(object):
             )  # filename is identifier for QoI
 
         return read_data
+
+
+class CoupledQuantityOfInterest(QuantityOfInterest):
+    def __init__(self, basis_scenario: dict, requested_files: Union[List[str], str]):
+        super().__init__(basis_scenario, requested_files)
+
+    def _requested_qoi(self, requested_files, process_files, processsors):
+
+        req_qois = list()
+
+        for pf in process_files:
+
+            # TODO: This has to exactly match, maybe make more robust to allow without the file-ending
+            filename = pf["filename"]  # TODO: see issue #33
+
+        return req_qois
 
 
 if __name__ == "__main__":

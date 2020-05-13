@@ -4,20 +4,22 @@ import json
 import multiprocessing
 import os
 import shutil
+import glob
 import time
 
-from suqc.environment import (AbstractConsoleWrapper,
-                              AbstractEnvironmentManager,
-                              CoupledConsoleWrapper, CoupledEnvironmentManager,
-                              VadereConsoleWrapper)
-from suqc.parameter.create import (CoupledScenarioCreation,
-                                   VadereScenarioCreation)
+from suqc.environment import (
+    AbstractConsoleWrapper,
+    AbstractEnvironmentManager,
+    CoupledConsoleWrapper,
+    CoupledEnvironmentManager,
+    VadereConsoleWrapper,
+)
+from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
-from suqc.qoi import QuantityOfInterest
+from suqc.qoi import QuantityOfInterest, CoupledQuantityOfInterest
 from suqc.remote import ServerRequest
-from suqc.utils.general import (create_folder, njobs_check_and_set,
-                                parent_folder_clean)
+from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
 
 
 def read_from_existing_output(
@@ -288,17 +290,21 @@ class VariationBase(Request, ServerRequest):
                 "not keeping the output (remove_output=False)."
             )
 
-        if isinstance(qoi, (str, list)):
-            self.qoi = QuantityOfInterest(
-                basis_scenario=self.env_man.basis_scenario, requested_files=qoi
-            )
-        else:
-            self.qoi = qoi
-
+        self.set_qoi(qoi)
         request_item_list = self.scenario_creation(njobs)
 
         super(VariationBase, self).__init__(request_item_list, self.model, self.qoi)
         ServerRequest.__init__(self)
+
+    def set_qoi(self, qoi):
+        if isinstance(qoi, (str, list)):
+            self.qoi = QuantityOfInterest(
+                basis_scenario=self.env_man.basis_scenario, requested_files=qoi
+            )
+        elif isinstance(qoi, QuantityOfInterest):
+            self.qoi = qoi
+        else:
+            raise ValueError(f"qoi must be of type QuantityOfInterest")
 
     def scenario_creation(self, njobs):
         scenario_creation = VadereScenarioCreation(
@@ -398,18 +404,14 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         njobs_create_scenarios=1,
         output_path=None,
         output_folder=None,
-        remove_output=False,
         env_remote=None,
-        remove_omnet_files=None,
+        remove_output=False,
     ):
 
         scenario_path = self._get_scenario_path(ini_path, scenario_name)
 
         self.scenario_path = scenario_path
         self.ini_path = ini_path
-        self.remove_output = remove_output
-        self.remove_omnet_files = remove_omnet_files
-
         self.ini_dir = os.path.dirname(ini_path)
 
         assert os.path.exists(ini_path) and ini_path.endswith(
@@ -446,8 +448,17 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             qoi=qoi,
             post_changes=post_changes,
             njobs=njobs_create_scenarios,
-            remove_output=remove_output,
         )
+
+    def set_qoi(self, qoi):
+        if isinstance(qoi, (str, list)):
+            self.qoi = CoupledQuantityOfInterest(
+                basis_scenario=self.env_man.basis_scenario, requested_files=qoi
+            )
+        elif isinstance(qoi, CoupledQuantityOfInterest):
+            self.qoi = qoi
+        else:
+            raise ValueError(f"qoi must be of type CoupledQuantityOfInterest")
 
     def _get_scenario_path(self, ini_path, scenario_name):
 
@@ -481,11 +492,9 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             f"coupled_sim_run_{request_item.parameter_id}_{request_item.run_id}",
         )
 
-        for dirpath, dirnames, filenames in os.walk(outputfolder_path):
-            for filename in [
-                f for f in filenames if f == self.qoi.req_qois[0].filename
-            ]:
-                output_path = os.path.join(dirpath, filename)
+        filepath = f"{outputfolder_path}/results/**/*.scenario"
+        file = glob.glob(filepath, recursive=True)
+        dirpath = file[0]
 
         is_results = self._interpret_return_value(
             return_code, request_item.parameter_id
@@ -518,30 +527,6 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         request_item.add_qoi_result(result)
         request_item.add_meta_info(required_time=required_time, return_code=return_code)
-
-        patterns = [
-            "*.ini",
-            "*.scenario",
-            "*.sca",
-            "*.vci",
-            "*.vec",
-            "vadere",
-            "sumo",
-            "*.traj",
-            "*.csv",
-            "*.xml",
-            "*.sh",
-        ]
-        if self.remove_omnet_files is True:
-            # delete files
-            shutil.copytree(
-                outputfolder_path,
-                outputfolder_path + "temp",
-                ignore=shutil.ignore_patterns(*patterns),
-            )
-            shutil.rmtree(outputfolder_path)
-            os.rename(outputfolder_path + "temp", outputfolder_path)
-
         # Because of the multi-processor part, don't try to already add the results here to _results_df
         return request_item
 
