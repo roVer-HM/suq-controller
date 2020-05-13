@@ -273,17 +273,16 @@ class DependentParameter(Parameter):
 
     def set_val(self, parameter=None):
 
-        eqn = self.equation
-
-        if parameter is not None:
-            for para in parameter:
-                val = para.get_val()
-                eqn = eqn.replace(para.name, str(val))
-
-            eqn = eqn.replace("=", "")
-
-        eqn = eqn.replace("=", "")
-        function_val = eval(eqn)
+        if callable(self.equation):
+            # build argv for callable equation.
+            if parameter is not None:
+                argv = {p.name: p.get_val() for p in parameter}
+            else:
+                argv = {}
+            function_val = self.equation(argv)
+        else:
+            # just set the value given in equation.
+            function_val = self.equation
 
         if isinstance(function_val, float):
             if (function_val - int(function_val)) == 0:

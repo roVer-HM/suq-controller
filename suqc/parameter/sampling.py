@@ -68,6 +68,9 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
             ),
             columns=self._points.columns,
         )
+
+        self._points = self._points.sort_index(axis=1)
+
         return self
 
     def _add_dict_points(self, points: List[dict]):
