@@ -25,12 +25,16 @@ class AbstractConsoleWrapper(object):
     @classmethod
     def infer_model(cls, model):
 
+        # discuss: replace if else statements
+
         if isinstance(model, str):
             if model == "Coupled":
                 return CoupledConsoleWrapper(model)
             else:
                 return VadereConsoleWrapper.infer_model(model)
-        elif issubclass(model, AbstractConsoleWrapper):
+        elif isinstance(model, VadereConsoleWrapper) or isinstance(
+            model, CoupledConsoleWrapper
+        ):
             return model
 
 
@@ -38,22 +42,23 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
     def __init__(self, model):
         self.simulator = model
 
-    def run_simulation(self, parameter_id, run_id, dirname):
+    def run_simulation(self, dirname, required_files):
+
+        terminal_command = ["python3", "run_script.py"]
+        terminal_command = ["python3", "run_script.py", "--qoi"]
+        terminal_command.extend(required_files)
 
         timeStarted = time.time()
         t = time.strftime("%H:%M:%S", time.localtime(timeStarted))
-
-        dirname = os.path.join(dirname, f"coupled_sim_run_{parameter_id}_{run_id}")
+        print(f"{t}\t Call {os.path.basename(dirname)}/run_script.py ")
         os.chdir(dirname)
-        print(
-            f"start simulation  \t  parameter id: \t{parameter_id}, run id: \t{run_id} at {t}"
-        )
+
         os.system("chmod u+x run_script.py")
         return_code = subprocess.check_call(
-            ["./run_script.py"],
+            terminal_command,
             env=os.environ,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.STDOUT,
+            # stdout=subprocess.DEVNULL,
+            # stderr=subprocess.STDOUT,
         )
 
         os.chdir("..")
@@ -306,7 +311,9 @@ class AbstractEnvironmentManager(object):
         return scenario_path
 
     def get_env_outputfolder_path(self):
-        rel_path = os.path.join(self.env_path, EnvironmentManager.vadere_output_folder)
+        rel_path = os.path.join(
+            self.env_path, EnvironmentManager.simulation_runs_output_folder
+        )
         return os.path.abspath(rel_path)
 
     def get_variation_output_folder(self, parameter_id, run_id):
@@ -332,7 +339,7 @@ class EnvironmentManager(AbstractEnvironmentManager):
 
     PREFIX_BASIS_SCENARIO = "BASIS_"
     VADERE_SCENARIO_FILE_TYPE = ".scenario"
-    vadere_output_folder = "vadere_output"
+    simulation_runs_output_folder = "vadere_output"
 
     def __init__(self, base_path, env_name: str):
 
@@ -423,7 +430,9 @@ class EnvironmentManager(AbstractEnvironmentManager):
 
         # Create the folder where all output is stored
         os.mkdir(
-            os.path.join(path_output_folder, EnvironmentManager.vadere_output_folder)
+            os.path.join(
+                path_output_folder, EnvironmentManager.simulation_runs_output_folder
+            )
         )
 
         return cls(base_path, env_name)
@@ -433,7 +442,8 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
     PREFIX_BASIS_SCENARIO = ""
     VADERE_SCENARIO_FILE_TYPE = ".scenario"
-    vadere_output_folder = "simulation_runs"
+    simulation_runs_output_folder = "simulation_runs"
+    simulation_runs_single_folder_name = "Sample_"
 
     def __init__(self, base_path, env_name: str):
 
@@ -577,13 +587,18 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         # Create the folder where all output is stored
         os.mkdir(
-            os.path.join(path_output_folder, EnvironmentManager.vadere_output_folder)
+            os.path.join(
+                path_output_folder,
+                CoupledEnvironmentManager.simulation_runs_output_folder,
+            )
         )
 
         return cls(base_path, env_name)
 
     def get_env_outputfolder_path(self):
-        rel_path = os.path.join(self.env_path, EnvironmentManager.vadere_output_folder)
+        rel_path = os.path.join(
+            self.env_path, CoupledEnvironmentManager.simulation_runs_output_folder
+        )
         return os.path.abspath(rel_path)
 
     def get_variation_output_folder(self, parameter_id, run_id):
@@ -616,7 +631,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             subdirs = ""
             original_name_scenario = "omnetpp.ini"
 
-        sim_name = f"coupled_sim_run_{par_id}_{run_id}"
+        sim_name = self.get_simulation_directory(par_id, run_id)
         sim_path = os.path.join(self.get_env_outputfolder_path(), sim_name)
         sim_path = os.path.join(sim_path, subdirs)
 
@@ -625,6 +640,10 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         scenario_variation_path = os.path.join(sim_path, original_name_scenario)
 
         return scenario_variation_path
+
+    def get_simulation_directory(self, par_id, run_id):
+        prefix = CoupledEnvironmentManager.simulation_runs_single_folder_name
+        return f"{prefix}_{par_id}_{run_id}"
 
     def get_scenario_name(cls):
         scenario_name = cls.basis_scenario_name

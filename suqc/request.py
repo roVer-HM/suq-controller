@@ -483,16 +483,20 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
     def _single_request(self, request_item: RequestItem) -> RequestItem:
 
-        dirname = self.env_man.get_env_outputfolder_path()
-        return_code, required_time, output_on_error = self.model.run_simulation(
-            request_item.parameter_id, request_item.run_id, dirname
+        par_id = request_item.parameter_id
+        run_id = request_item.run_id
+
+        dirname = os.path.join(
+            self.env_man.get_env_outputfolder_path(),
+            self.env_man.get_simulation_directory(par_id, run_id),
         )
-        outputfolder_path = os.path.join(
-            dirname,
-            f"coupled_sim_run_{request_item.parameter_id}_{request_item.run_id}",
+        required_files = [k.filename for k in self.qoi.req_qois]
+
+        return_code, required_time, output_on_error = self.model.run_simulation(
+            dirname, required_files
         )
 
-        filepath = f"{outputfolder_path}/results/**/*.scenario"
+        filepath = f"{dirname}/results/**/*.scenario"
         file = glob.glob(filepath, recursive=True)
         dirpath = os.path.dirname(file[0])
 
