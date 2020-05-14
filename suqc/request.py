@@ -485,6 +485,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         par_id = request_item.parameter_id
         run_id = request_item.run_id
+        start_file = self.env_man.get_name_run_script_file()
 
         dirname = os.path.join(
             self.env_man.get_env_outputfolder_path(),
@@ -493,7 +494,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         required_files = [k.filename for k in self.qoi.req_qois]
 
         return_code, required_time, output_on_error = self.model.run_simulation(
-            dirname, required_files
+            dirname, start_file, required_files
         )
 
         filepath = f"{dirname}/results/**/*.scenario"

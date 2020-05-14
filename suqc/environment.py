@@ -4,9 +4,7 @@ import glob
 import json
 import os
 import subprocess
-import sys
 import time
-from abc import ABC, abstractclassmethod, abstractmethod
 from shutil import copytree, ignore_patterns, rmtree
 from typing import *
 
@@ -42,15 +40,14 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
     def __init__(self, model):
         self.simulator = model
 
-    def run_simulation(self, dirname, required_files):
+    def run_simulation(self, dirname, start_file, required_files):
 
-        terminal_command = ["python3", "run_script.py"]
-        terminal_command = ["python3", "run_script.py", "--qoi"]
+        terminal_command = ["python3", start_file, "--qoi"]
         terminal_command.extend(required_files)
 
         timeStarted = time.time()
         t = time.strftime("%H:%M:%S", time.localtime(timeStarted))
-        print(f"{t}\t Call {os.path.basename(dirname)}/run_script.py ")
+        print(f"{t}\t Call {os.path.basename(dirname)}/{start_file} ")
         os.chdir(dirname)
 
         os.system("chmod u+x run_script.py")
@@ -439,11 +436,13 @@ class EnvironmentManager(AbstractEnvironmentManager):
 
 
 class CoupledEnvironmentManager(AbstractEnvironmentManager):
+    # discuss
 
     PREFIX_BASIS_SCENARIO = ""
     VADERE_SCENARIO_FILE_TYPE = ".scenario"
     simulation_runs_output_folder = "simulation_runs"
     simulation_runs_single_folder_name = "Sample_"
+    run_file = "run_script.py"
 
     def __init__(self, base_path, env_name: str):
 
@@ -641,11 +640,16 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         return scenario_variation_path
 
-    def get_simulation_directory(self, par_id, run_id):
-        prefix = CoupledEnvironmentManager.simulation_runs_single_folder_name
-        return f"{prefix}_{par_id}_{run_id}"
-
     def get_scenario_name(cls):
+        # discuss
         scenario_name = cls.basis_scenario_name
         scenario_name = os.path.splitext(scenario_name)[0]
         return scenario_name
+
+    def get_name_run_script_file(self):
+        # discuss
+        return CoupledEnvironmentManager.run_file
+
+    def get_simulation_directory(self, par_id, run_id):
+        prefix = CoupledEnvironmentManager.simulation_runs_single_folder_name
+        return f"{prefix}_{par_id}_{run_id}"
