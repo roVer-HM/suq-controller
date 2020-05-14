@@ -24,13 +24,19 @@ class FileDataInfo(object):
         "TimestepPedestrianIdOverlapOutputFile": 3,
         "TimestepPositionOutputFile": 3,
         "TimestepRowOutputFile": 2,
+        "GeneralOutputFile": 1,
     }
 
     printFallbackMsg = False
 
-    def __init__(self, process_file, processors):
+    def __init__(
+        self, process_file, processors=None, outputkey=None,
+    ):
         self.filename = process_file["filename"]
-        self.output_key = process_file["type"].split(".")[-1]
+        if outputkey is None:
+            self.output_key = process_file["type"].split(".")[-1]
+        else:
+            self.output_key = outputkey
         self.processors = processors  # not really needed yet, but maybe in future.
 
         try:
@@ -163,14 +169,19 @@ class CoupledQuantityOfInterest(QuantityOfInterest):
     def __init__(self, basis_scenario: dict, requested_files: Union[List[str], str]):
         super().__init__(basis_scenario, requested_files)
 
-    def _requested_qoi(self, requested_files, process_files, processsors):
-
+    def _requested_qoi(
+        self, requested_files, process_files, processsors,
+    ):
         req_qois = list()
 
-        for pf in process_files:
-
+        for rf in requested_files:
+            pf = dict()
+            pf["filename"] = rf
+            pf["type"] = rf
             # TODO: This has to exactly match, maybe make more robust to allow without the file-ending
-            filename = pf["filename"]  # TODO: see issue #33
+            req_qois.append(
+                FileDataInfo(process_file=pf, outputkey="GeneralOutputFile")
+            )
 
         return req_qois
 

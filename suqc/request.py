@@ -494,7 +494,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         filepath = f"{outputfolder_path}/results/**/*.scenario"
         file = glob.glob(filepath, recursive=True)
-        dirpath = file[0]
+        dirpath = os.path.dirname(file[0])
 
         is_results = self._interpret_return_value(
             return_code, request_item.parameter_id

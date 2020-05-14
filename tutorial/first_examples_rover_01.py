@@ -48,6 +48,7 @@ def preprocessing_and_simulation_run(
         par_var, data = setup.remote(-1)
 
     print("simulation runs: finished")
+    return par_var, data
 
 
 def fp_traffic_no__obstacle_yes__seed_none():
@@ -422,7 +423,7 @@ def test_me():
 
     output_folder = os.path.join(path2tutorial, sys._getframe().f_code.co_name,)
 
-    qoi = "DegreeInformed_extract.txt"  # qoi
+    qoi = ["Time95Informed.txt", "DegreeInformed_extract.txt"]  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
     # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
@@ -464,11 +465,11 @@ def test_me():
         ),
     ]
 
-    reps = 1
+    reps = [2, 1]
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-    preprocessing_and_simulation_run(
+    par_var, data = preprocessing_and_simulation_run(
         par_var, path2ini, output_folder, qoi, repitions=reps
     )
 
