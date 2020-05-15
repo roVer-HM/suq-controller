@@ -136,11 +136,10 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
     def _add_df_points(self, points: pd.DataFrame):
         self._points = points
 
-    def check_selected_keys(self, scenario: dict, simulator=None):
+    def check_vadere_keys(self, scenario: dict, simulator="vadere"):
 
         keys = self._points.columns.get_level_values(-1)
-
-        if simulator is not None:
+        if self.check_multiple_simulators():
             keys = keys[self._points.columns.get_level_values(1) == simulator]
 
         for k in keys:
@@ -152,18 +151,25 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
                 raise e  # re-raise Exception
         return True
 
+    def check_omnet_keys(self, inifile, simulator="omnet"):
+        keys = self._points.columns.get_level_values(-1)
+        if self.check_multiple_simulators():
+            keys = keys[self._points.columns.get_level_values(1) == simulator]
+
+        for k in keys:
+            if k not in inifile.keys():
+                raise ValueError("Key not found in omnet inifile.")
+        return True
+
     def to_dictlist(self):
         return [i[1] for i in self.par_iter()]
 
     def par_iter(self, simulator=None):
 
-        df = self._points
-        number_of_levels = len(df.columns.levels)
-
-        if number_of_levels == 2:  # vadere only
-            df = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR]
-        elif number_of_levels == 3:
+        if self.check_multiple_simulators():  # vadere only
             df = self._points[(ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator)]
+        else:
+            df = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR]
 
         for (par_id, run_id), row in df.iterrows():
             # TODO: this is not nice coding, however, there are some issues. See issue #40
@@ -184,15 +190,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
         df = self.points
         number_of_levels = len(df.columns.levels)
-
-        check = None
-
-        if number_of_levels == 2:
-            check = False
-        if number_of_levels == 3:
-            check = True
-
-        return check
+        return number_of_levels == 3
 
 
 class UserDefinedSampling(ParameterVariationBase):

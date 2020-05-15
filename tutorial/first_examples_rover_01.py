@@ -41,7 +41,7 @@ def preprocessing_and_simulation_run(
 
     if run_local:
         par_var, data = setup.run(
-            1
+            4
         )  # -1 indicates to use all cores available to parallelize the scenarios
         # to do: allow -1 for rover containers
     else:
