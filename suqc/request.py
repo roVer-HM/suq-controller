@@ -313,7 +313,7 @@ class VariationBase(Request, ServerRequest):
         scenario_creation = VadereScenarioCreation(
             self.env_man, self.parameter_variation, self.post_changes
         )
-        request_item_list = scenario_creation.generate_vadere_scenarios(njobs)
+        request_item_list = scenario_creation.generate_scenarios(njobs)
         return request_item_list
 
     def _remove_output(self):
@@ -481,7 +481,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         scenario_creation = CoupledScenarioCreation(
             self.env_man, parameter_variation, self.post_changes
         )
-        request_item_list = scenario_creation.generate_vadere_scenarios(njobs)
+        request_item_list = scenario_creation.generate_scenarios(njobs)
 
         return request_item_list
 

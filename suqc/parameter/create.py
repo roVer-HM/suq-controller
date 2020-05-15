@@ -9,13 +9,11 @@ import suqc.request  # no "from suqc.request import ..." works because of circul
 from suqc.environment import AbstractEnvironmentManager, EnvironmentManager
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import ParameterVariationBase
-from suqc.utils.dict_utils import (change_dict, change_dict_ini,
-                                   deep_dict_lookup)
-from suqc.utils.general import (create_folder, njobs_check_and_set,
-                                remove_folder)
+from suqc.utils.dict_utils import change_dict, change_dict_ini, deep_dict_lookup
+from suqc.utils.general import create_folder, njobs_check_and_set, remove_folder
 
 
-class VadereScenarioCreation(object):
+class AbstractScenarioCreation(object):
     def __init__(
         self,
         env_man: AbstractEnvironmentManager,
@@ -28,10 +26,8 @@ class VadereScenarioCreation(object):
         self._post_changes = post_change
 
         self._basis_scenario = self._env_man.basis_scenario
+        self._basis_ini = env_man.basis_ini
         self._sampling_check_selected_keys()
-
-    def _sampling_check_selected_keys(self):
-        self._parameter_variation.check_selected_keys(self._basis_scenario)
 
     def _create_new_vadere_scenario(
         self, scenario: dict, parameter_id: int, run_id: int, parameter_variation: dict
@@ -121,7 +117,7 @@ class VadereScenarioCreation(object):
         self._env_man.nr_digits_variation = len(str(nr_variations))
         self._env_man.nr_digits_runs = len(str(nr_runs))
 
-    def generate_vadere_scenarios(self, njobs):
+    def generate_scenarios(self, njobs):
 
         ntasks = self._parameter_variation.points.shape[0]
         njobs = njobs_check_and_set(njobs=njobs, ntasks=ntasks)
@@ -147,7 +143,7 @@ class VadereScenarioCreation(object):
         return request_item_list
 
 
-class CoupledScenarioCreation(VadereScenarioCreation):
+class VadereScenarioCreation(AbstractScenarioCreation):
     def __init__(
         self,
         env_man: AbstractEnvironmentManager,
@@ -155,23 +151,70 @@ class CoupledScenarioCreation(VadereScenarioCreation):
         post_change: PostScenarioChangesBase = None,
     ):
 
-        self._basis_ini = env_man.basis_ini
+        super().__init__(env_man, parameter_variation, post_change)
+
+    def _sampling_check_selected_keys(self):
+        self._parameter_variation.check_selected_keys(self._basis_scenario)
+
+
+class CoupledScenarioCreation(AbstractScenarioCreation):
+    def __init__(
+        self,
+        env_man: AbstractEnvironmentManager,
+        parameter_variation: ParameterVariationBase,
+        post_change: PostScenarioChangesBase = None,
+    ):
 
         super().__init__(env_man, parameter_variation, post_change)
+
+    def _create_scenario(
+        self, args
+    ):  # TODO: how do multiple arguments work for pool.map functions? (see below)
+        """Set up a new scenario and return info of parameter id and location."""
+        parameter_id = args[0]  # TODO: this would kind of reduce this ugly code
+        run_id = args[1]
+        parameter_variation = args[2]
+
+        new_scenario = self._create_new_vadere_scenario(
+            self._basis_scenario, parameter_id, run_id, parameter_variation
+        )
+
+        output_folder = self._env_man.get_variation_output_folder(parameter_id, run_id)
+        scenario_path = self._save_vadere_scenario(parameter_id, run_id, new_scenario)
+
+        result_item = suqc.request.RequestItem(
+            parameter_id=parameter_id,
+            run_id=run_id,
+            scenario_path=scenario_path,
+            base_path=self._env_man.base_path,
+            output_folder=output_folder,
+        )
+        return result_item
 
     def _sp_creation(self):
         """Single process loop to create all requested scenarios."""
 
-        request_item_list = list()
-        for par_id, run_id, par_change in self._parameter_variation.par_iter(
-            simulator="vadere"
-        ):
+        variations_omnet = self._parameter_variation.par_iter(simulator="omnet")
+        for par_id, run_id, par_change in variations_omnet:
+            par_var_scenario = change_dict_ini(self._basis_ini, changes=par_change)
+            output_path = self._env_man.scenario_variation_path(
+                par_id, run_id, simulator="omnet"
+            )
 
+            with open(output_path, "w") as outfile:
+                par_var_scenario.writer(outfile)
+
+            folder = os.path.dirname(output_path)
+            ini_path = os.path.join(self._env_man.env_path, "additional_rover_files")
+
+            copy_tree(ini_path, folder)
+
+        request_item_list = list()
+        variations_vadere = self._parameter_variation.par_iter(simulator="vadere")
+        for par_id, run_id, par_change in variations_vadere:
             request_item_list.append(
                 self._create_scenario([par_id, run_id, par_change])
             )
-
-        self._create_new_omnet_scenario()
 
         return request_item_list
 
@@ -216,6 +259,3 @@ class CoupledScenarioCreation(VadereScenarioCreation):
             ini_path = os.path.join(self._env_man.env_path, "additional_rover_files")
 
             copy_tree(ini_path, folder)
-
-    def create_additional_files(self):
-        pass

@@ -157,9 +157,12 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
     def par_iter(self, simulator=None):
 
-        if simulator is None:
+        df = self._points
+        number_of_levels = len(df.columns.levels)
+
+        if number_of_levels == 2:  # vadere only
             df = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR]
-        else:
+        elif number_of_levels == 3:
             df = self._points[(ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator)]
 
         for (par_id, run_id), row in df.iterrows():
