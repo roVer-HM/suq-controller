@@ -23,8 +23,6 @@ class AbstractConsoleWrapper(object):
     @classmethod
     def infer_model(cls, model):
 
-        # discuss: replace if else statements
-
         if isinstance(model, str):
             if model == "Coupled":
                 return CoupledConsoleWrapper(model)
@@ -34,6 +32,10 @@ class AbstractConsoleWrapper(object):
             model, CoupledConsoleWrapper
         ):
             return model
+        else:
+            raise ValueError(
+                "Model must be of type string or VadereConsoleWrapper or CoupledConsoleWrapper"
+            )
 
 
 class CoupledConsoleWrapper(AbstractConsoleWrapper):
@@ -50,7 +52,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         print(f"{t}\t Call {os.path.basename(dirname)}/{start_file} ")
         os.chdir(dirname)
 
-        os.system("chmod u+x run_script.py")
+        os.system(f"chmod u+x {start_file}")
         return_code = subprocess.check_call(
             terminal_command,
             env=os.environ,
@@ -436,7 +438,6 @@ class EnvironmentManager(AbstractEnvironmentManager):
 
 
 class CoupledEnvironmentManager(AbstractEnvironmentManager):
-    # discuss
 
     PREFIX_BASIS_SCENARIO = ""
     VADERE_SCENARIO_FILE_TYPE = ".scenario"
@@ -641,13 +642,12 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         return scenario_variation_path
 
     def get_scenario_name(cls):
-        # discuss
         scenario_name = cls.basis_scenario_name
         scenario_name = os.path.splitext(scenario_name)[0]
         return scenario_name
 
     def get_name_run_script_file(self):
-        # discuss
+
         return CoupledEnvironmentManager.run_file
 
     def get_simulation_directory(self, par_id, run_id):

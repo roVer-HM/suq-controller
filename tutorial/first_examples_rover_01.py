@@ -3,7 +3,7 @@
 
 import sys
 
-from suqc.parameter.parameter import (
+from suqc.parameter.sampling import (
     DependentParameter,
     Parameter,
     RoverSamplingFullFactorial,

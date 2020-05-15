@@ -112,6 +112,8 @@ class Request(object):
         if len(request_item_list) == 0:
             raise ValueError("request_item_list has no entries.")
 
+        # TODO: ..
+
         self.model = AbstractConsoleWrapper.infer_model(model)
         self.request_item_list = request_item_list
         # Can be None, if this is the case, no output data will be parsed to pd.DataFrame
