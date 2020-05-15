@@ -28,7 +28,7 @@ def preprocessing_and_simulation_run(
 
     setup = CoupledDictVariation(
         ini_path=path2ini,
-        scenario_name="simple_detour_100x177_miat1.25.scenario",
+        config="final",
         parameter_dict_list=par_var,
         qoi=qoi,
         model=path2model,

@@ -7,6 +7,7 @@ import shutil
 import glob
 import time
 
+from opp.config_parser import OppConfigType
 from suqc.environment import (
     AbstractConsoleWrapper,
     AbstractEnvironmentManager,
@@ -397,7 +398,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
     def __init__(
         self,
         ini_path: str,
-        scenario_name: str,  # relative to ini_path
+        config: str,  # relative to ini_path
         parameter_dict_list: List[dict],
         qoi: Union[str, List[str]],
         model: Union[str, CoupledConsoleWrapper],
@@ -410,7 +411,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         remove_output=False,
     ):
 
-        scenario_path = self._get_scenario_path(ini_path, scenario_name)
+        scenario_path = self._get_scenario_path(ini_path, config=config)
 
         self.scenario_path = scenario_path
         self.ini_path = ini_path
@@ -462,12 +463,15 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         else:
             raise ValueError(f"qoi must be of type CoupledQuantityOfInterest")
 
-    def _get_scenario_path(self, ini_path, scenario_name):
+    def _get_scenario_path(self, ini_path, config="final"):
 
         ini_folder = os.path.dirname(ini_path)
-        scenario_rel_path = "vadere/scenarios"
-        scenario_path = os.path.join(ini_folder, scenario_rel_path)
-        scenario_path = os.path.join(scenario_path, scenario_name)
+        ini_file = OppConfigFileBase.from_path(
+            ini_path=ini_path, config=config, cfg_type=OppConfigType.EXT_DEL_LOCAL,
+        )
+
+        scenario_name = ini_file["*.manager.vadereScenarioPath"].strip('"')
+        scenario_path = os.path.join(ini_folder, scenario_name)
         return scenario_path
 
     def scenario_creation(self, njobs):
