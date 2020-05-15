@@ -18,7 +18,7 @@ from suqc.environment import (
 from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
-from suqc.qoi import QuantityOfInterest, CoupledQuantityOfInterest
+from suqc.qoi import VadereQuantityOfInterest, QuantityOfInterest
 from suqc.remote import ServerRequest
 from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
 
@@ -107,7 +107,7 @@ class Request(object):
         self,
         request_item_list: List[RequestItem],
         model: Union[str, AbstractConsoleWrapper],
-        qoi: Union[QuantityOfInterest, None],
+        qoi: Union[VadereQuantityOfInterest, None],
     ):
 
         if len(request_item_list) == 0:
@@ -275,7 +275,7 @@ class VariationBase(Request, ServerRequest):
         env_man: EnvironmentManager,
         parameter_variation: ParameterVariationBase,
         model: Union[str, AbstractConsoleWrapper],
-        qoi: Union[str, List[str], QuantityOfInterest],
+        qoi: Union[str, List[str], VadereQuantityOfInterest],
         post_changes: PostScenarioChangesBase = None,
         njobs: int = 1,
         remove_output=False,
@@ -301,13 +301,13 @@ class VariationBase(Request, ServerRequest):
 
     def set_qoi(self, qoi):
         if isinstance(qoi, (str, list)):
-            self.qoi = QuantityOfInterest(
+            self.qoi = VadereQuantityOfInterest(
                 basis_scenario=self.env_man.basis_scenario, requested_files=qoi
             )
-        elif isinstance(qoi, QuantityOfInterest):
+        elif isinstance(qoi, VadereQuantityOfInterest):
             self.qoi = qoi
         else:
-            raise ValueError(f"qoi must be of type QuantityOfInterest")
+            raise ValueError(f"qoi must be of type VadereQuantityOfInterest")
 
     def scenario_creation(self, njobs):
         scenario_creation = VadereScenarioCreation(
@@ -455,13 +455,11 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
     def set_qoi(self, qoi):
         if isinstance(qoi, (str, list)):
-            self.qoi = CoupledQuantityOfInterest(
-                basis_scenario=self.env_man.basis_scenario, requested_files=qoi
-            )
-        elif isinstance(qoi, CoupledQuantityOfInterest):
+            self.qoi = QuantityOfInterest(requested_files=qoi)
+        elif isinstance(qoi, QuantityOfInterest):
             self.qoi = qoi
         else:
-            raise ValueError(f"qoi must be of type CoupledQuantityOfInterest")
+            raise ValueError(f"qoi must be of type QuantityOfInterest")
 
     def _get_scenario_path(self, ini_path, config="final"):
 
@@ -780,7 +778,7 @@ class SingleExistScenario(Request, ServerRequest):
             if isinstance(qoi, (str, list)):
                 with open(path_scenario, "r") as f:
                     basis_scenario = json.load(f)
-                qoi = QuantityOfInterest(
+                qoi = VadereQuantityOfInterest(
                     basis_scenario=basis_scenario, requested_files=qoi
                 )
             else:

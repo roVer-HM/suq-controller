@@ -52,6 +52,77 @@ class FileDataInfo(object):
 
 
 class QuantityOfInterest(object):
+    def __init__(self, requested_files: Union[List[str], str]):
+
+        assert isinstance(requested_files, (list, str))
+
+        if isinstance(requested_files, str):
+            requested_files = [requested_files]
+
+        self.req_qois = self._requested_qoi(requested_files)
+
+    def _requested_qoi(self, requested_files):
+        req_qois = list()
+
+        for rf in requested_files:
+            pf = dict()
+            pf["filename"] = rf
+            pf["type"] = rf
+            # TODO: This has to exactly match, maybe make more robust to allow without the file-ending
+            req_qois.append(
+                FileDataInfo(process_file=pf, outputkey="GeneralOutputFile")
+            )
+
+        return req_qois
+
+    def _read_csv(self, req_qoi: FileDataInfo, filepath):
+
+        # make sure that Vadere writes
+        with open(filepath) as f:
+            first_line = f.readline()
+
+        try:
+            # Tries to use the meta-data line, extract the number of rows
+            nr_row_indices = re.search(r"ROW=(\d+)", first_line).group(1)
+            nr_row_indices = int(nr_row_indices)
+        except AttributeError or ValueError:  # AttributeError -> regex failed | ValueError -> converting to int failed
+            # Fallback mode, infer index from the hard-coded list.
+            nr_row_indices = req_qoi.nr_row_indices
+
+        df = pd.read_csv(filepath, delimiter=" ", header=[0], comment="#")
+
+        if req_qoi.nr_row_indices != 0:
+            idx_keys = df.columns[:nr_row_indices]
+            return df.set_index(idx_keys.tolist())
+        else:
+            return df
+
+    def _add_parid2idx(self, df, par_id, run_id):
+        # from https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex
+
+        original_column_order = df.index.names
+        df["id"] = par_id
+        df["run_id"] = run_id
+        df.set_index(["id", "run_id"], append=True, inplace=True)
+
+        df = df.reorder_levels(["id", "run_id"] + original_column_order)
+        return df
+
+    def read_and_extract_qois(self, par_id, run_id, output_path):
+
+        read_data = dict()
+
+        for k in self.req_qois:
+            filepath = os.path.join(output_path, k.filename)
+            df_data = self._read_csv(k, filepath)
+            read_data[k.filename] = self._add_parid2idx(
+                df_data, par_id, run_id
+            )  # filename is identifier for QoI
+
+        return read_data
+
+
+class VadereQuantityOfInterest(QuantityOfInterest):
     def __init__(self, basis_scenario: dict, requested_files: Union[List[str], str]):
 
         assert isinstance(requested_files, (list, str))
@@ -60,14 +131,22 @@ class QuantityOfInterest(object):
             requested_files = [requested_files]
 
         user_set_writers, _ = deep_dict_lookup(basis_scenario, "processWriters")
-        process_files = user_set_writers["files"]
-        processsors = user_set_writers["processors"]
+        self.process_files = user_set_writers["files"]
+        self.processsors = user_set_writers["processors"]
 
-        self.req_qois = self._requested_qoi(requested_files, process_files, processsors)
+        super().__init__(requested_files)
 
-    def _requested_qoi(self, requested_files, process_files, processsors):
+    def get_process_files(self):
+        return self.process_files
+
+    def get_processors(self):
+        return self.processsors
+
+    def _requested_qoi(self, requested_files):
 
         req_qois = list()
+        process_files = self.get_process_files()
+        processsors = self.get_processors()
 
         for pf in process_files:
 
@@ -118,75 +197,8 @@ class QuantityOfInterest(object):
 
         return selected_procs
 
-    def _read_csv(self, req_qoi: FileDataInfo, filepath):
-
-        # make sure that Vadere writes
-        with open(filepath) as f:
-            first_line = f.readline()
-
-        try:
-            # Tries to use the meta-data line, extract the number of rows
-            nr_row_indices = re.search(r"ROW=(\d+)", first_line).group(1)
-            nr_row_indices = int(nr_row_indices)
-        except AttributeError or ValueError:  # AttributeError -> regex failed | ValueError -> converting to int failed
-            # Fallback mode, infer index from the hard-coded list.
-            nr_row_indices = req_qoi.nr_row_indices
-
-        df = pd.read_csv(filepath, delimiter=" ", header=[0], comment="#")
-
-        if req_qoi.nr_row_indices != 0:
-            idx_keys = df.columns[:nr_row_indices]
-            return df.set_index(idx_keys.tolist())
-        else:
-            return df
-
-    def _add_parid2idx(self, df, par_id, run_id):
-        # from https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex
-
-        original_column_order = df.index.names
-        df["id"] = par_id
-        df["run_id"] = run_id
-        df.set_index(["id", "run_id"], append=True, inplace=True)
-
-        df = df.reorder_levels(["id", "run_id"] + original_column_order)
-        return df
-
-    def read_and_extract_qois(self, par_id, run_id, output_path):
-
-        read_data = dict()
-
-        for k in self.req_qois:
-            filepath = os.path.join(output_path, k.filename)
-            df_data = self._read_csv(k, filepath)
-            read_data[k.filename] = self._add_parid2idx(
-                df_data, par_id, run_id
-            )  # filename is identifier for QoI
-
-        return read_data
-
-
-class CoupledQuantityOfInterest(QuantityOfInterest):
-    def __init__(self, basis_scenario: dict, requested_files: Union[List[str], str]):
-        super().__init__(basis_scenario, requested_files)
-
-    def _requested_qoi(
-        self, requested_files, process_files, processsors,
-    ):
-        req_qois = list()
-
-        for rf in requested_files:
-            pf = dict()
-            pf["filename"] = rf
-            pf["type"] = rf
-            # TODO: This has to exactly match, maybe make more robust to allow without the file-ending
-            req_qois.append(
-                FileDataInfo(process_file=pf, outputkey="GeneralOutputFile")
-            )
-
-        return req_qois
-
 
 if __name__ == "__main__":
-    a = QuantityOfInterest("evacuationTimes.txt", EnvironmentManager("corner"))
+    a = VadereQuantityOfInterest("evacuationTimes.txt", EnvironmentManager("corner"))
 
     print(a.req_qois)
