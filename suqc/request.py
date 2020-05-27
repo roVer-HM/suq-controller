@@ -398,7 +398,6 @@ class CoupledDictVariation(VariationBase, ServerRequest):
     def __init__(
         self,
         ini_path: str,
-        config: str,  # relative to ini_path
         parameter_dict_list: List[dict],
         qoi: Union[str, List[str]],
         model: Union[str, CoupledConsoleWrapper],
@@ -409,6 +408,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         output_folder=None,
         env_remote=None,
         remove_output=False,
+        config="final",
     ):
 
         scenario_path = self._get_scenario_path(ini_path, config=config)
@@ -451,6 +451,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             qoi=qoi,
             post_changes=post_changes,
             njobs=njobs_create_scenarios,
+            remove_output=remove_output,
         )
 
     def set_qoi(self, qoi):
@@ -537,6 +538,10 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         request_item.add_qoi_result(result)
         request_item.add_meta_info(required_time=required_time, return_code=return_code)
         # Because of the multi-processor part, don't try to already add the results here to _results_df
+
+        if self.remove_output is True:
+            shutil.rmtree(dirname)
+
         return request_item
 
 

@@ -21,22 +21,20 @@ run_local = True
 
 
 def preprocessing_and_simulation_run(
-    par_var, path2ini, output_folder, qoi, repitions=1
+    par_var, path2ini, output_folder, qoi, repitions=1, remove=False
 ):
-
-    path2model = "Coupled"
 
     setup = CoupledDictVariation(
         ini_path=path2ini,
         config="final",
         parameter_dict_list=par_var,
         qoi=qoi,
-        model=path2model,
+        model="Coupled",
         scenario_runs=repitions,
         post_changes=PostScenarioChangesBase(apply_default=True),
         output_path=path2tutorial,
         output_folder=output_folder,
-        remove_output=False,
+        remove_output=remove,
     )
 
     if run_local:
@@ -423,33 +421,22 @@ def test_me():
 
     output_folder = os.path.join(path2tutorial, sys._getframe().f_code.co_name,)
 
-    qoi = ["Time95Informed.txt", "DegreeInformed_extract.txt"]  # qoi
+    qoi = [
+        "Time95Informed.txt",
+        "DegreeInformed_extract.txt",
+        "PoissonParameter.txt",
+    ]  # qoi
 
     # create sampling for rover - needs to be outsourced into Marions repo
     # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
     parameter = [
-        Parameter(name="number_of_agents_mean", simulator="dummy", stages=[30, 30.5],)
+        Parameter(name="number_of_agents_mean", simulator="dummy", stages=[0.2, 0.2, 0.2, 0.2],)
     ]
     dependent_parameters = [
         DependentParameter(
-            name="sources.[id==3001].distributionParameters",
+            name="sources.[id==5].distributionParameters",
             simulator="vadere",
-            equation=lambda args: [1000 / (args["number_of_agents_mean"])],
-        ),
-        DependentParameter(
-            name="sources.[id==3002].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [1000 / (args["number_of_agents_mean"])],
-        ),
-        DependentParameter(
-            name="sources.[id==3003].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [1000 / (args["number_of_agents_mean"])],
-        ),
-        DependentParameter(
-            name="sources.[id==3004].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [1000 / (args["number_of_agents_mean"])],
+            equation=lambda args: [(args["number_of_agents_mean"])],
         ),
         DependentParameter(name="sim-time-limit", simulator="omnet", equation="180s"),
         DependentParameter(
@@ -458,20 +445,23 @@ def test_me():
         DependentParameter(
             name="*.radioMedium.obstacleLoss.typename",
             simulator="omnet",
-            equation="IdealObstacleLoss",
+            equation="DielectricObstacleLoss",
         ),
         DependentParameter(
-            name="*.manager.useVadereSeed", simulator="omnet", equation="false",
+            name="*.manager.useVadereSeed", simulator="omnet", equation="true",
         ),
     ]
 
-    reps = [2, 1]
+    reps = [5, 10, 20, 50]
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
     par_var, data = preprocessing_and_simulation_run(
-        par_var, path2ini, output_folder, qoi, repitions=reps
+        par_var, path2ini, output_folder, qoi, repitions=reps, remove=True
     )
+
+    data["PoissonParameter.txt"].to_pickle("PoissonParameter.pkl")
+
 
     print("finished")
 

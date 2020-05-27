@@ -46,6 +46,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
 
         terminal_command = ["python3", start_file, "--qoi"]
         terminal_command.extend(required_files)
+        terminal_command.extend(["--run-name", f"{os.path.basename(dirname)}"])
 
         timeStarted = time.time()
         t = time.strftime("%H:%M:%S", time.localtime(timeStarted))
@@ -56,8 +57,8 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         return_code = subprocess.check_call(
             terminal_command,
             env=os.environ,
-            # stdout=subprocess.DEVNULL,
-            # stderr=subprocess.STDOUT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
         )
 
         os.chdir("..")
@@ -443,7 +444,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
     VADERE_SCENARIO_FILE_TYPE = ".scenario"
     simulation_runs_output_folder = "simulation_runs"
     simulation_runs_single_folder_name = "Sample_"
-    run_file = "run_script.py"
+    run_file = "run_script2.py"
 
     def __init__(self, base_path, env_name: str):
 
@@ -507,6 +508,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         env_name=None,
         handle_existing="ask_user_replace",
     ):
+
         cls.basis_scenario_name = os.path.basename(basis_scenario)
         # Check if environment already exists
         env_man = cls.create_new_environment(
