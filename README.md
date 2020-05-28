@@ -54,7 +54,7 @@ Here a few hints for your .scenario file for Vadere:
     Before running your scenario automatically on suqc, activate the ``ScenarioChecker`` (Project > Activate ScenarioChecker) and run it in the ``VadereGui``.
    The ScenarioChecker will point out potential problems with your scenario file. 
 2.  Default parameters  
-    Make sure to set ``realTimeSimTimeRatio`` to 0.0. (It slows down the simulation for the visualisation)  
+    Make sure to set ``realTimeSimTimeRatio`` to 0.0. (Values > 0.0 slow down the simulation for the visualisation)  
     Another point that may cost a lot of computation time is the ``optimizationType``, consider using ``DISCRETE`` (discrete optimization) instead of ``NELDER_MEAD``. Please note, that ``varyStepDirection`` should always be activated with discrete optimization.
 3.  Visual check   
     Visually check the results of your simulation, maybe check upper and lower parameter bounds. 
