@@ -24,27 +24,6 @@ def preprocessing_and_simulation_run(
     par_var, path2ini, output_folder, qoi, repitions=1, remove=False
 ):
 
-    setup = CoupledDictVariation(
-        ini_path=path2ini,
-        config="final",
-        parameter_dict_list=par_var,
-        qoi=qoi,
-        model="Coupled",
-        scenario_runs=repitions,
-        post_changes=PostScenarioChangesBase(apply_default=True),
-        output_path=path2tutorial,
-        output_folder=output_folder,
-        remove_output=remove,
-    )
-
-    if run_local:
-        par_var, data = setup.run(
-            4
-        )  # -1 indicates to use all cores available to parallelize the scenarios
-        # to do: allow -1 for rover containers
-    else:
-        par_var, data = setup.remote(-1)
-
     print("simulation runs: finished")
     return par_var, data
 
@@ -422,15 +401,17 @@ def test_me():
     output_folder = os.path.join(path2tutorial, sys._getframe().f_code.co_name,)
 
     qoi = [
-        "Time95Informed.txt",
-        "DegreeInformed_extract.txt",
-        "PoissonParameter.txt",
+        "degree_informed_extract.txt",
+        "poisson_parameter.txt",
+        "time_95_informed.txt",
     ]  # qoi
 
-    # create sampling for rover - needs to be outsourced into Marions repo
-    # example omnet:  Parameter("*.station[0].mobility.initialX", unit="m", simulator="omnet", range=[200, 201])
     parameter = [
-        Parameter(name="number_of_agents_mean", simulator="dummy", stages=[0.2, 0.2, 0.2, 0.2],)
+        Parameter(
+            name="number_of_agents_mean",
+            simulator="dummy",
+            stages=[0.2, 0.2, 0.2, 0.2],
+        )
     ]
     dependent_parameters = [
         DependentParameter(
@@ -453,26 +434,49 @@ def test_me():
     ]
 
     reps = [5, 10, 20, 50]
+    reps = 3
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-    par_var, data = preprocessing_and_simulation_run(
-        par_var, path2ini, output_folder, qoi, repitions=reps, remove=True
+
+    setup = CoupledDictVariation(
+        ini_path=path2ini,
+        config="final",
+        parameter_dict_list=par_var,
+        qoi=qoi,
+        model="Coupled",
+        scenario_runs=reps,
+        post_changes=PostScenarioChangesBase(apply_default=True),
+        output_path=path2tutorial,
+        output_folder=output_folder,
+        remove_output=True,
     )
 
-    data["PoissonParameter.txt"].to_pickle("PoissonParameter.pkl")
+    if run_local:
+        par_var, data = setup.run(4)
+    else:
+        par_var, data = setup.remote(-1)
 
+    summary = output_folder + "_dataframes"
+    shutil.rmtree(summary, ignore_errors=True)
+    os.makedirs(summary)
 
-    print("finished")
+    data["poisson_parameter.txt"].to_pickle(
+        os.path.join(summary, "poisson_parameter.pkl")
+    )
+    data["degree_informed_extract.txt"].to_pickle(
+        os.path.join(summary, "degree_informed_extract.pkl")
+    )
+    data["time_95_informed.txt"].to_pickle(
+        os.path.join(summary, "time_95_informed.pkl")
+    )
+    par_var.to_pickle(os.path.join(summary, "meta_data.pkl"))
+
+    print("Simulation study finished.")
 
 
 if __name__ == "__main__":
 
-    # os.environ["ROVER_MAIN"] = "/home/christina/repos/rover-main"
+    if os.environ["ROVER_MAIN"] is None:
+        print("Please provide ROVER_MAIN system variable.")
     test_me()
-
-    # fp_traffic_no__obstacle_no__seed_set()
-    # fp_traffic_no__obstacle_yes__seed_none()
-    # fp_traffic_no__obstacle_yes__seed_set()
-    # fp_traffic_yes__obstacle_no__seed_set()
-    # fp_traffic_yes__obstacle_yes__seed_set()
