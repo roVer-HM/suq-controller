@@ -56,7 +56,7 @@ Here a few hints for your .scenario file for Vadere:
 2.  Default parameters  
     Make sure to set ``realTimeSimTimeRatio`` to 0.0. (Values > 0.0 slow down the simulation for the visualisation)  
     Another point that may cost a lot of computation time is the ``optimizationType``, consider using ``DISCRETE`` (discrete optimization) instead of ``NELDER_MEAD``. Please note, that ``varyStepDirection`` should always be activated with discrete optimization.  
-    Remove ``attributesCar´´ from the .scenario file if you are not using any vehicles to avoid confusion of attributes. 
+    Remove ``attributesCar`` from the .scenario file if you are not using any vehicles to avoid confusion of attributes. 
 3.  Visual check   
     Visually check the results of your simulation, maybe check upper and lower parameter bounds. 
 4.  Clean topography  
