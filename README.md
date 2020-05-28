@@ -47,7 +47,7 @@ not installed successfully.
 See [SRC_PATH]/tutorial
 
 
-## Using SUQC and Vadere 
+#### Using SUQC and Vadere 
 Here a few hints for your .scenario file for Vadere:
 
 1.  ScenarioChecker  
