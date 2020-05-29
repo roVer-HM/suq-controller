@@ -407,11 +407,7 @@ def test_me():
     ]  # qoi
 
     parameter = [
-        Parameter(
-            name="number_of_agents_mean",
-            simulator="dummy",
-            stages=[0.2, 0.2, 0.2, 0.2],
-        )
+        Parameter(name="number_of_agents_mean", simulator="dummy", stages=[0.2, 0.2],)
     ]
     dependent_parameters = [
         DependentParameter(
@@ -434,7 +430,7 @@ def test_me():
     ]
 
     reps = [5, 10, 20, 50]
-    reps = 3
+    reps = 5
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()

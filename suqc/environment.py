@@ -523,7 +523,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         copytree(
             ini_path,
             new_path,
-            ignore=ignore_patterns("*.ini", "*.scenario", "results", "output"),
+            ignore=ignore_patterns("*.ini", "*.scenario", "results", "output", "*server-output*", "log.out", ".cmdenv-log", "*.sh"),
         )
 
         # Add vadere basis scenario used for the variation (i.e. sampling)
