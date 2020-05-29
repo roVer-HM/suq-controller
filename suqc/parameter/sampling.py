@@ -110,12 +110,17 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         #     [[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR], df.columns]
         # )
         #
-        #
-        #
-        dictionary = points[0]
-        check_nested = any(isinstance(i, dict) for i in dictionary.values())
 
-        if check_nested:
+        dictionary = points[0]
+        has_dict_sub_dicts_for_multiple_simulators = any(
+            isinstance(i, dict) for i in dictionary.values()
+        )
+
+        if has_dict_sub_dicts_for_multiple_simulators:
+            # if there are multiple simulators the dictionary is nested and looks like:
+            # dictionary = { vadere : { para1 : val1, para2 : val 2} , omnet : { para1 : val1, para2 : val 2} }
+            # The multiindex of the dataframe will contain the simulator name as additional level.
+            # The following step produces two multiindex levels: parameter name, simulator name
 
             keys = dictionary.keys()
             df = pd.DataFrame()
@@ -136,13 +141,19 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
             cols = df.columns.values
 
         else:
+            # if only vadere simulator is used, a simple dictionary like
+            # dictionary = { para1 : val1, para2 : val 2}
+            # is sufficient.
+            # The multiindex of the dataframe does not contain the simulator name as additional level.
+            # This refers to the original behavior of the suqc when only vadere was used as simulator.
+            # The following step produces one multiindex levels: parameter name
 
             df = pd.concat(
                 [self._points, pd.DataFrame(points)], ignore_index=True, axis=0
             )
             cols = [tuple([parameter]) for parameter in df.columns.values]
 
-        # add 'Parameter' on top
+        # Add an additional multiindex levels called "Parameter"
         for ii in range(len(cols)):
             col = list(cols[ii])
             col.insert(0, ParameterVariationBase.MULTI_IDX_LEVEL0_PAR)
@@ -208,6 +219,9 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
             yield (par_id, run_id, parameter_variation)
 
     def is_multiple_simulators(self):
+        df = self.points
+        number_of_levels = len(df.columns.levels)
+        return number_of_levels == 3
 
 
 class UserDefinedSampling(ParameterVariationBase):
