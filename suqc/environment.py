@@ -8,9 +8,16 @@ import time
 from shutil import copytree, ignore_patterns, rmtree
 from typing import *
 
+import utils
 from suqc.configuration import SuqcConfig
 from suqc.opp.config_parser import OppConfigFileBase, OppConfigType, OppParser
-from suqc.utils.general import get_current_suqc_state, str_timestamp, user_query_yes_no
+from suqc.utils.general import (
+    get_current_suqc_state,
+    str_timestamp,
+    user_query_yes_no,
+    include_patterns,
+    removeEmptyFolders,
+)
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {
@@ -488,12 +495,8 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         ini_path = os.path.dirname(ini_scenario)
 
         new_path = os.path.join(path_output_folder, "additional_rover_files")
-
-        copytree(
-            ini_path,
-            new_path,
-            ignore=ignore_patterns("*.ini", "*.scenario", "results", "output", "*server-output*", "log.out", ".cmdenv-log", "*.sh"),
-        )
+        copytree(ini_path, new_path, ignore=include_patterns("*.py", "*.xml"))
+        removeEmptyFolders(new_path)
 
         # Add vadere basis scenario used for the variation (i.e. sampling)
         if isinstance(basis_scenario, str):  # assume that this is a path

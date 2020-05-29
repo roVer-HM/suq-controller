@@ -20,8 +20,6 @@ run_local = True
 # corresponding parameter. Again, the Vadere output is deleted after all scenarios run.
 
 
-
-
 def fp_traffic_no__obstacle_yes__seed_none():
 
     # define roVer simulation
@@ -86,7 +84,6 @@ def fp_traffic_no__obstacle_yes__seed_none():
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-
 
 
 def fp_traffic_no__obstacle_yes__seed_set():
@@ -156,7 +153,6 @@ def fp_traffic_no__obstacle_yes__seed_set():
     ).get_sampling()
 
 
-
 def fp_traffic_no__obstacle_no__seed_set():
 
     # define roVer simulation
@@ -222,7 +218,6 @@ def fp_traffic_no__obstacle_no__seed_set():
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-
 
 
 def fp_traffic_yes__obstacle_yes__seed_set():
@@ -299,7 +294,6 @@ def fp_traffic_yes__obstacle_yes__seed_set():
     ).get_sampling()
 
 
-
 def fp_traffic_yes__obstacle_no__seed_set():
 
     # define roVer simulation
@@ -372,7 +366,6 @@ def fp_traffic_yes__obstacle_no__seed_set():
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-
 
 
 def test_me():
