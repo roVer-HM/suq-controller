@@ -14,8 +14,16 @@ from suqc.utils.general import create_folder, njobs_check_and_set, remove_folder
 
 
 class AbstractScenarioCreation(object):
-
-    __metaclass__ = abc.ABCMeta
+    def __init__(
+        self,
+        env_man: AbstractEnvironmentManager,
+        parameter_variation: ParameterVariationBase,
+        post_change: PostScenarioChangesBase = None,
+    ):
+        self._env_man = env_man
+        self._parameter_variation = parameter_variation
+        self._post_changes = post_change
+        self._sampling_check_selected_keys()
 
     @abc.abstractmethod
     def _sampling_check_selected_keys(self):
@@ -71,7 +79,7 @@ class AbstractScenarioCreation(object):
         parameter_variation = args[2]
 
         par_var_scenario = change_dict(
-            self._basis_scenario, changes=parameter_variation
+            self._env_man.vadere_basis_scenario, changes=parameter_variation
         )
 
         if self._post_changes is not None:
@@ -125,7 +133,9 @@ class AbstractScenarioCreation(object):
         run_id = args[1]
         parameter_variation = args[2]
 
-        par_var_scenario = change_dict_ini(self._basis_ini, changes=parameter_variation)
+        par_var_scenario = change_dict_ini(
+            self._env_man.omnet_basis_ini, changes=parameter_variation
+        )
         output_path = self._env_man.scenario_variation_path(
             parameter_id, run_id, simulator="omnet"
         )
@@ -138,7 +148,6 @@ class AbstractScenarioCreation(object):
         copy_tree(ini_path, folder)
 
 
-
 class VadereScenarioCreation(AbstractScenarioCreation):
     def __init__(
         self,
@@ -146,12 +155,7 @@ class VadereScenarioCreation(AbstractScenarioCreation):
         parameter_variation: ParameterVariationBase,
         post_change: PostScenarioChangesBase = None,
     ):
-        self._env_man = env_man
-        self._parameter_variation = parameter_variation
-        self._post_changes = post_change
-
-        self._basis_scenario = self._env_man.basis_scenario
-        self._sampling_check_selected_keys()
+        super().__init__(env_man, parameter_variation, post_change)
 
     def _sp_creation(self):
         """Single process loop to create all requested scenarios."""
@@ -171,7 +175,7 @@ class VadereScenarioCreation(AbstractScenarioCreation):
         return request_item_list
 
     def _sampling_check_selected_keys(self):
-        self._parameter_variation.check_vadere_keys(self._basis_scenario)
+        self._parameter_variation.check_vadere_keys(self._env_man.vadere_basis_scenario)
 
 
 class CoupledScenarioCreation(AbstractScenarioCreation):
@@ -181,13 +185,7 @@ class CoupledScenarioCreation(AbstractScenarioCreation):
         parameter_variation: ParameterVariationBase,
         post_change: PostScenarioChangesBase = None,
     ):
-        self._env_man = env_man
-        self._parameter_variation = parameter_variation
-        self._post_changes = post_change
-
-        self._basis_ini = env_man.basis_ini
-        self._basis_scenario = self._env_man.basis_scenario
-        self._sampling_check_selected_keys()
+        super().__init__(env_man, parameter_variation, post_change)
 
     def _sp_creation(self):
         """Single process loop to create all requested scenarios."""
@@ -220,5 +218,5 @@ class CoupledScenarioCreation(AbstractScenarioCreation):
 
     def _sampling_check_selected_keys(self):
 
-        self._parameter_variation.check_vadere_keys(self._basis_scenario)
-        self._parameter_variation.check_omnet_keys(self._basis_ini)
+        self._parameter_variation.check_vadere_keys(self._env_man.vadere_basis_scenario)
+        self._parameter_variation.check_omnet_keys(self._env_man.omnet_basis_ini)

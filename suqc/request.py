@@ -300,7 +300,7 @@ class VariationBase(Request, ServerRequest):
     def set_qoi(self, qoi):
         if isinstance(qoi, (str, list)):
             self.qoi = VadereQuantityOfInterest(
-                basis_scenario=self.env_man.basis_scenario, requested_files=qoi
+                basis_scenario=self.env_man.vadere_basis_scenario, requested_files=qoi
             )
         elif isinstance(qoi, VadereQuantityOfInterest):
             self.qoi = qoi
@@ -361,7 +361,7 @@ class VariationBase(Request, ServerRequest):
             "njobs": njobs,
         }
 
-        local_transfer_files = {"path_basis_scenario": self.env_man.path_basis_scenario}
+        local_transfer_files = {"path_basis_scenario": self.env_man.vadere_path_basis_scenario}
 
         remote_result = super(VariationBase, self)._remote_ssh_logic(
             local_env_man=self.env_man,

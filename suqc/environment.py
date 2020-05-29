@@ -178,19 +178,43 @@ class VadereConsoleWrapper(AbstractConsoleWrapper):
 
 
 class AbstractEnvironmentManager(object):
+    def __init__(self, base_path, env_name: str):
+
+        self.base_path, self.env_name = self.handle_path_and_env_input(
+            base_path, env_name
+        )
+
+        self.env_name = env_name
+        self.env_path = self.output_folder_path(self.base_path, self.env_name)
+
+        # output is usually of the following format:
+        # 000001_000002 for variation 1 and run_id 2
+        # Change these attributes externally, if less digits are required to have
+        # shorter/longer paths.
+        self.nr_digits_variation = 6
+        self.nr_digits_runs = 6
+
+        print(f"INFO: Set environment path to {self.env_path}")
+        if not os.path.exists(self.env_path):
+            raise FileNotFoundError(
+                f"Environment {self.env_path} does not exist. Use function "
+                f"'EnvironmentManager.create_new_environment'"
+            )
+        self._vadere_scenario_basis = None
+
     @property
-    def basis_scenario(self):
-        if self._scenario_basis is None:
-            path_basis_scenario = self.path_basis_scenario
+    def vadere_basis_scenario(self):
+        if self._vadere_scenario_basis is None:
+            path_basis_scenario = self.vadere_path_basis_scenario
 
             with open(path_basis_scenario, "r") as f:
                 basis_file = json.load(f)
-            self._scenario_basis = basis_file
+            self._vadere_scenario_basis = basis_file
 
-        return self._scenario_basis
+        return self._vadere_scenario_basis
 
     @property
-    def path_basis_scenario(self):
+    def vadere_path_basis_scenario(self):
         sc_files = glob.glob(
             os.path.join(self.env_path, f"*{self.VADERE_SCENARIO_FILE_TYPE}")
         )
@@ -341,36 +365,7 @@ class VadereEnvironmentManager(AbstractEnvironmentManager):
     simulation_runs_output_folder = "vadere_output"
 
     def __init__(self, base_path, env_name: str):
-
-        self.base_path, self.env_name = self.handle_path_and_env_input(
-            base_path, env_name
-        )
-
-        self.env_name = env_name
-        self.env_path = self.output_folder_path(self.base_path, self.env_name)
-
-        # output is usually of the following format:
-        # 000001_000002 for variation 1 and run_id 2
-        # Change these attributes externally, if less digits are required to have
-        # shorter/longer paths.
-        self.nr_digits_variation = 6
-        self.nr_digits_runs = 6
-
-        print(f"INFO: Set environment path to {self.env_path}")
-        if not os.path.exists(self.env_path):
-            raise FileNotFoundError(
-                f"Environment {self.env_path} does not exist. Use function "
-                f"'EnvironmentManager.create_new_environment'"
-            )
-        self._scenario_basis = None
-
-    @property
-    def basis_scenario(self):
-        return super().basis_scenario
-
-    @property
-    def path_basis_scenario(self):
-        return super().path_basis_scenario
+        super().__init__(base_path, env_name)
 
     @classmethod
     def create_variation_env(
@@ -447,52 +442,23 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
     run_file = "run_script2.py"
 
     def __init__(self, base_path, env_name: str):
-
-        self.base_path, self.env_name = self.handle_path_and_env_input(
-            base_path, env_name
-        )
-
-        self.env_name = env_name
-        self.env_path = self.output_folder_path(self.base_path, self.env_name)
-
-        # output is usually of the following format:
-        # 000001_000002 for variation 1 and run_id 2
-        # Change these attributes externally, if less digits are required to have
-        # shorter/longer paths.
-        self.nr_digits_variation = 6
-        self.nr_digits_runs = 6
-
-        print(f"INFO: Set environment path to {self.env_path}")
-        if not os.path.exists(self.env_path):
-            raise FileNotFoundError(
-                f"Environment {self.env_path} does not exist. Use function "
-                f"'EnvironmentManager.create_new_environment'"
-            )
-        self._scenario_basis = None
-        self._ini_basis = None
+        super().__init__(base_path, env_name)
+        self._omnet_ini_basis = None
 
     @property
-    def basis_scenario(self):
-        return super().basis_scenario
-
-    @property
-    def path_basis_scenario(self):
-        return super().path_basis_scenario
-
-    @property
-    def basis_ini(self):
-        if self._ini_basis is None:
-            path_basis_scenario = self.path_ini
+    def omnet_basis_ini(self):
+        if self._omnet_ini_basis is None:
+            path_basis_ini = self.omnet_path_ini
             ini_file = OppConfigFileBase.from_path(
-                ini_path=path_basis_scenario,
+                ini_path=path_basis_ini,
                 config="final",
                 cfg_type=OppConfigType.EXT_DEL_LOCAL,
             )
-            self._ini_basis = ini_file
-        return self._ini_basis
+            self._omnet_ini_basis = ini_file
+        return self._omnet_ini_basis
 
     @property
-    def path_ini(self):
+    def omnet_path_ini(self):
         sc_files = glob.glob(os.path.join(self.env_path, "*ini"))
 
         if len(sc_files) != 1:
@@ -628,7 +594,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         if simulator is None:
             subdirs = "vadere/scenarios"
-            original_name_scenario = os.path.basename(self.path_basis_scenario)
+            original_name_scenario = os.path.basename(self.vadere_path_basis_scenario)
         else:
             subdirs = ""
             original_name_scenario = "omnetpp.ini"
