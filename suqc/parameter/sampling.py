@@ -219,9 +219,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
             yield (par_id, run_id, parameter_variation)
 
     def is_multiple_simulators(self):
-        df = self.points
-        number_of_levels = len(df.columns.levels)
-        return number_of_levels == 3
+        return self.points.columns.nlevels == 3
 
 
 class UserDefinedSampling(ParameterVariationBase):
