@@ -5,12 +5,10 @@ import multiprocessing
 import os
 import shutil
 import glob
-import time
 
-from opp.config_parser import OppConfigType
+from suqc.opp.config_parser import OppConfigType
 from suqc.environment import (
     AbstractConsoleWrapper,
-    AbstractEnvironmentManager,
     CoupledConsoleWrapper,
     CoupledEnvironmentManager,
     VadereConsoleWrapper,
