@@ -34,7 +34,7 @@ class AbstractConsoleWrapper(object):
             return model
         else:
             raise ValueError(
-                "Model must be of type string or VadereConsoleWrapper or CoupledConsoleWrapper"
+                f"Model must be of type string or VadereConsoleWrapper or CoupledConsoleWrapper. Got type {type(model)}."
             )
 
 
