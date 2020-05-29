@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import platform
 import glob
 import json
 import os
@@ -42,28 +42,27 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
     def __init__(self, model):
         self.simulator = model
 
-    def run_simulation(self, dirname, start_file, required_files):
+    def run_simulation(
+        self, dirname, start_file, required_files: Union[str, List[str]]
+    ):
 
         terminal_command = ["python3", start_file, "--qoi"]
         terminal_command.extend(required_files)
-        terminal_command.extend(["--run-name", f"{os.path.basename(dirname)}"])
+        terminal_command.extend(["--run-name", os.path.basename(dirname)])
 
-        timeStarted = time.time()
-        t = time.strftime("%H:%M:%S", time.localtime(timeStarted))
+        time_started = time.time()
+        t = time.strftime("%H:%M:%S", time.localtime(time_started))
         print(f"{t}\t Call {os.path.basename(dirname)}/{start_file} ")
-        os.chdir(dirname)
 
-        os.system(f"chmod u+x {start_file}")
         return_code = subprocess.check_call(
             terminal_command,
             env=os.environ,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.DEVNULL,
+            cwd=dirname,
         )
 
-        os.chdir("..")
-
-        process_duration = time.time() - timeStarted
+        process_duration = time.time() - time_started
         output_subprocess = None
 
         return return_code, process_duration, output_subprocess
@@ -287,7 +286,7 @@ class AbstractEnvironmentManager(object):
 
     @staticmethod
     def output_folder_path(base_path, env_name):
-        base_path, env_name = EnvironmentManager.handle_path_and_env_input(
+        base_path, env_name = VadereEnvironmentManager.handle_path_and_env_input(
             base_path, env_name
         )
         assert os.path.isdir(base_path)
@@ -312,7 +311,7 @@ class AbstractEnvironmentManager(object):
 
     def get_env_outputfolder_path(self):
         rel_path = os.path.join(
-            self.env_path, EnvironmentManager.simulation_runs_output_folder
+            self.env_path, VadereEnvironmentManager.simulation_runs_output_folder
         )
         return os.path.abspath(rel_path)
 
@@ -335,7 +334,7 @@ class AbstractEnvironmentManager(object):
         return "".join([numbered_scenario_name, self.VADERE_SCENARIO_FILE_TYPE])
 
 
-class EnvironmentManager(AbstractEnvironmentManager):
+class VadereEnvironmentManager(AbstractEnvironmentManager):
 
     PREFIX_BASIS_SCENARIO = "BASIS_"
     VADERE_SCENARIO_FILE_TYPE = ".scenario"
@@ -431,7 +430,8 @@ class EnvironmentManager(AbstractEnvironmentManager):
         # Create the folder where all output is stored
         os.mkdir(
             os.path.join(
-                path_output_folder, EnvironmentManager.simulation_runs_output_folder
+                path_output_folder,
+                VadereEnvironmentManager.simulation_runs_output_folder,
             )
         )
 

@@ -6,7 +6,7 @@ import warnings
 from distutils.dir_util import copy_tree
 
 import suqc.request  # no "from suqc.request import ..." works because of circular imports
-from suqc.environment import AbstractEnvironmentManager, EnvironmentManager
+from suqc.environment import AbstractEnvironmentManager, VadereEnvironmentManager
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import ParameterVariationBase
 from suqc.utils.dict_utils import change_dict, change_dict_ini, deep_dict_lookup

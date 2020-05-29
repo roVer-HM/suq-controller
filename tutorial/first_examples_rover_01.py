@@ -434,7 +434,7 @@ def test_me():
     ]
 
     reps = [5, 10, 20, 50]
-    reps = 3
+    reps = 1
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()

@@ -6,7 +6,7 @@ import time
 from typing import *
 
 import pandas as pd
-from suqc.environment import EnvironmentManager
+from suqc.environment import VadereEnvironmentManager
 from suqc.utils.dict_utils import deep_dict_lookup
 
 
@@ -199,6 +199,6 @@ class VadereQuantityOfInterest(QuantityOfInterest):
 
 
 if __name__ == "__main__":
-    a = VadereQuantityOfInterest("evacuationTimes.txt", EnvironmentManager("corner"))
+    a = VadereQuantityOfInterest("evacuationTimes.txt", VadereEnvironmentManager("corner"))
 
     print(a.req_qois)

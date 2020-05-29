@@ -270,7 +270,7 @@ class Request(object):
 class VariationBase(Request, ServerRequest):
     def __init__(
         self,
-        env_man: EnvironmentManager,
+        env_man: VadereEnvironmentManager,
         parameter_variation: ParameterVariationBase,
         model: Union[str, AbstractConsoleWrapper],
         qoi: Union[str, List[str], VadereQuantityOfInterest],
@@ -338,7 +338,7 @@ class VariationBase(Request, ServerRequest):
     def _remote_run(cls, remote_pickle_arg_path):
 
         kwargs = cls.open_arg_pickle(remote_pickle_arg_path)
-        env_man = EnvironmentManager(base_path=None, env_name=kwargs["remote_env_name"])
+        env_man = VadereEnvironmentManager(base_path=None, env_name=kwargs["remote_env_name"])
 
         setup = cls(
             env_man=env_man,
@@ -567,7 +567,7 @@ class DictVariation(VariationBase, ServerRequest):
         ), "Filepath must exist and the file has to end with .scenario"
 
         if env_remote is None:
-            env = EnvironmentManager.create_variation_env(
+            env = VadereEnvironmentManager.create_variation_env(
                 basis_scenario=self.scenario_path,
                 base_path=output_path,
                 env_name=output_folder,
@@ -644,7 +644,7 @@ class FolderExistScenarios(Request, ServerRequest):
         assert os.path.exists(path_scenario_folder)
         self.path_scenario_folder = path_scenario_folder
 
-        self.env_man = EnvironmentManager.create_new_environment(
+        self.env_man = VadereEnvironmentManager.create_new_environment(
             base_path=output_path,
             env_name=output_folder,
             handle_existing=handle_existing,
@@ -770,7 +770,7 @@ class SingleExistScenario(Request, ServerRequest):
 
         scenario_name = os.path.basename(path_scenario).replace(".scenario", "")
 
-        self.env_man = EnvironmentManager.create_new_environment(
+        self.env_man = VadereEnvironmentManager.create_new_environment(
             base_path=output_path,
             env_name=output_folder,
             handle_existing=handle_existing,

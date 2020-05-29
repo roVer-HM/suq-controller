@@ -6,7 +6,7 @@ import pandas as pd
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid
-from suqc.environment import EnvironmentManager
+from suqc.environment import VadereEnvironmentManager
 from suqc.utils.dict_utils import *
 
 import abc
@@ -564,7 +564,7 @@ if __name__ == "__main__":
 
     pd.options.display.max_columns = 4
 
-    em = EnvironmentManager("corner")
+    em = VadereEnvironmentManager("corner")
 
     pv = BoxSamplingUlamMethod()
     pv.create_grid(
