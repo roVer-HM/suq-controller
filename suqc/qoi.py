@@ -199,6 +199,8 @@ class VadereQuantityOfInterest(QuantityOfInterest):
 
 
 if __name__ == "__main__":
-    a = VadereQuantityOfInterest("evacuationTimes.txt", VadereEnvironmentManager("corner"))
+    a = VadereQuantityOfInterest(
+        "evacuationTimes.txt", VadereEnvironmentManager("corner")
+    )
 
     print(a.req_qois)

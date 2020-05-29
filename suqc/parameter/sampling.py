@@ -40,11 +40,32 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         assert self.points.index.names[1] == "run_id"
         return nr_scenario_runs
 
-    def multiply_scenario_runs(self, scenario_runs):
+    def multiply_scenario_runs(self, scenario_runs: Union[int, List[int]]):
 
         # scenario_runs can be a scalar value or a list
         # if it is a scalar value, each sample is repeated the same number of time
         # if it is a list, the int values co
+        if isinstance(scenario_runs, list):
+            if (
+                all(
+                    isinstance(scenario_run, int) and scenario_run > 0
+                    for scenario_run in scenario_runs
+                )
+                == False
+            ):
+                raise ValueError(
+                    f"Expect a list of positive integers. Got {scenario_runs}."
+                )
+
+            information = f"scenario_runs must contain {len(self._points.index.values)} elements. Got {len(scenario_runs)} elements."
+
+            if len(scenario_runs) < len(self._points.index.values):
+                raise ValueError(information)
+            if len(scenario_runs) > len(self._points.index.values):
+                print(
+                    f"WARNING: {information}. Last {len(scenario_runs)-len(self._points.index.values)} element(s) are ignored."
+                )
+
         if isinstance(scenario_runs, int):
             scenario_runs = scenario_runs * np.ones(
                 (len(self._points.index.values),), dtype=int
@@ -139,7 +160,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
     def check_vadere_keys(self, scenario: dict, simulator="vadere"):
 
         keys = self._points.columns.get_level_values(-1)
-        if self.check_multiple_simulators():
+        if self.is_multiple_simulators():
             keys = keys[self._points.columns.get_level_values(1) == simulator]
 
         for k in keys:
@@ -153,7 +174,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
     def check_omnet_keys(self, inifile, simulator="omnet"):
         keys = self._points.columns.get_level_values(-1)
-        if self.check_multiple_simulators():
+        if self.is_multiple_simulators():
             keys = keys[self._points.columns.get_level_values(1) == simulator]
 
         for k in keys:
@@ -166,7 +187,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
     def par_iter(self, simulator=None):
 
-        if self.check_multiple_simulators():  # vadere only
+        if self.is_multiple_simulators():  # vadere only
             df = self._points[(ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator)]
         else:
             df = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR]
@@ -186,8 +207,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
             yield (par_id, run_id, parameter_variation)
 
-    def check_multiple_simulators(self):
-        return self.points.columns.ndim == 3
+    def is_multiple_simulators(self):
 
 
 class UserDefinedSampling(ParameterVariationBase):

@@ -338,7 +338,9 @@ class VariationBase(Request, ServerRequest):
     def _remote_run(cls, remote_pickle_arg_path):
 
         kwargs = cls.open_arg_pickle(remote_pickle_arg_path)
-        env_man = VadereEnvironmentManager(base_path=None, env_name=kwargs["remote_env_name"])
+        env_man = VadereEnvironmentManager(
+            base_path=None, env_name=kwargs["remote_env_name"]
+        )
 
         setup = cls(
             env_man=env_man,
@@ -361,7 +363,9 @@ class VariationBase(Request, ServerRequest):
             "njobs": njobs,
         }
 
-        local_transfer_files = {"path_basis_scenario": self.env_man.vadere_path_basis_scenario}
+        local_transfer_files = {
+            "path_basis_scenario": self.env_man.vadere_path_basis_scenario
+        }
 
         remote_result = super(VariationBase, self)._remote_ssh_logic(
             local_env_man=self.env_man,

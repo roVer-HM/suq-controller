@@ -334,10 +334,7 @@ class AbstractEnvironmentManager(object):
         return scenario_path
 
     def get_env_outputfolder_path(self):
-        rel_path = os.path.join(
-            self.env_path, VadereEnvironmentManager.simulation_runs_output_folder
-        )
-        return os.path.abspath(rel_path)
+        raise NotImplemented
 
     def get_variation_output_folder(self, parameter_id, run_id):
         scenario_filename = self._scenario_variation_filename(
@@ -431,6 +428,12 @@ class VadereEnvironmentManager(AbstractEnvironmentManager):
         )
 
         return cls(base_path, env_name)
+
+    def get_env_outputfolder_path(self):
+        rel_path = os.path.join(
+            self.env_path, VadereEnvironmentManager.simulation_runs_output_folder
+        )
+        return os.path.abspath(rel_path)
 
 
 class CoupledEnvironmentManager(AbstractEnvironmentManager):

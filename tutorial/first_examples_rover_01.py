@@ -20,12 +20,6 @@ run_local = True
 # corresponding parameter. Again, the Vadere output is deleted after all scenarios run.
 
 
-def preprocessing_and_simulation_run(
-    par_var, path2ini, output_folder, qoi, repitions=1, remove=False
-):
-
-    print("simulation runs: finished")
-    return par_var, data
 
 
 def fp_traffic_no__obstacle_yes__seed_none():
@@ -92,9 +86,7 @@ def fp_traffic_no__obstacle_yes__seed_none():
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-    preprocessing_and_simulation_run(
-        par_var, path2ini, output_folder, qoi, repitions=reps
-    )
+
 
 
 def fp_traffic_no__obstacle_yes__seed_set():
@@ -162,9 +154,7 @@ def fp_traffic_no__obstacle_yes__seed_set():
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-    preprocessing_and_simulation_run(
-        par_var, path2ini, output_folder, qoi, repitions=reps
-    )
+
 
 
 def fp_traffic_no__obstacle_no__seed_set():
@@ -232,9 +222,7 @@ def fp_traffic_no__obstacle_no__seed_set():
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-    preprocessing_and_simulation_run(
-        par_var, path2ini, output_folder, qoi, repitions=reps
-    )
+
 
 
 def fp_traffic_yes__obstacle_yes__seed_set():
@@ -309,9 +297,7 @@ def fp_traffic_yes__obstacle_yes__seed_set():
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-    preprocessing_and_simulation_run(
-        par_var, path2ini, output_folder, qoi, repitions=reps
-    )
+
 
 
 def fp_traffic_yes__obstacle_no__seed_set():
@@ -386,9 +372,7 @@ def fp_traffic_yes__obstacle_no__seed_set():
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
-    preprocessing_and_simulation_run(
-        par_var, path2ini, output_folder, qoi, repitions=reps
-    )
+
 
 
 def test_me():
@@ -407,11 +391,7 @@ def test_me():
     ]  # qoi
 
     parameter = [
-        Parameter(
-            name="number_of_agents_mean",
-            simulator="dummy",
-            stages=[0.2, 0.2, 0.2, 0.2],
-        )
+        Parameter(name="number_of_agents_mean", simulator="dummy", stages=[0.2, 0.2],)
     ]
     dependent_parameters = [
         DependentParameter(
@@ -433,8 +413,7 @@ def test_me():
         ),
     ]
 
-    reps = [5, 10, 20, 50]
-    reps = 1
+    reps = [5, 10, 20]
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
