@@ -2,6 +2,7 @@
 #!/usr/bin/python3
 
 import sys
+import random
 
 from suqc.parameter.sampling import (
     DependentParameter,
@@ -384,7 +385,7 @@ def test_me():
     ]  # qoi
 
     parameter = [
-        Parameter(name="number_of_agents_mean", simulator="dummy", stages=[0.2, 0.2],)
+        Parameter(name="number_of_agents_mean", simulator="dummy", stages=[0.2, 0.3],)
     ]
     dependent_parameters = [
         DependentParameter(
@@ -401,12 +402,17 @@ def test_me():
             simulator="omnet",
             equation="DielectricObstacleLoss",
         ),
-        DependentParameter(
-            name="*.manager.useVadereSeed", simulator="omnet", equation="true",
-        ),
+        # DependentParameter(
+        #     name="*.manager.useVadereSeed", simulator="omnet", equation="false",
+        # ),
+        # DependentParameter(
+        #     name="*.manager.seed",
+        #     simulator="omnet",
+        #     equation=lambda x: str(random.randint(2, 9)),
+        # ),
     ]
 
-    reps = [5, 10, 20]
+    reps = [1, 1, 20]
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
@@ -422,6 +428,8 @@ def test_me():
         output_path=path2tutorial,
         output_folder=output_folder,
         remove_output=True,
+        seed_config={"vadere": "fixed", "omnet": "random"},
+        env_remote= None
     )
 
     if run_local:
@@ -429,9 +437,9 @@ def test_me():
     else:
         par_var, data = setup.remote(-1)
 
-    summary = output_folder + "_dataframes"
-    shutil.rmtree(summary, ignore_errors=True)
-    os.makedirs(summary)
+    summary = output_folder
+
+    par_var.to_pickle(os.path.join(summary, "metainfo.pkl"))
 
     data["poisson_parameter.txt"].to_pickle(
         os.path.join(summary, "poisson_parameter.pkl")

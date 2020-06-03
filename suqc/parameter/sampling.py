@@ -3,6 +3,7 @@
 from typing import *
 
 import pandas as pd
+import random
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid
@@ -219,13 +220,60 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
             yield (par_id, run_id, parameter_variation)
 
     def is_multiple_simulators(self):
-        return self.points.columns.nlevels == 3
+        return self._points.columns.nlevels == 3
 
 
 class UserDefinedSampling(ParameterVariationBase):
     def __init__(self, points: List[dict]):
         super(UserDefinedSampling, self).__init__()
         self._add_dict_points(points)
+
+    def multiply_scenario_runs_using_seed(
+        self, scenario_runs: Union[int, List[int]], seed_config: Dict
+    ):
+        if set(seed_config.keys()) != {"vadere", "omnet"}:
+            raise ValueError(
+                f"Dictionary keys must be: omnet, vadere. Got {set(seed_config.keys())}."
+            )
+
+        super().multiply_scenario_runs(scenario_runs)
+        number_of_rows = self.points.shape[0]
+
+        # omnet seed
+        if seed_config["omnet"] != "fixed":
+            seeds = [str(random.randint(1, 255)) for _ in range(number_of_rows)]
+            self.points.insert(0, ("Parameter", "omnet", "seed-set"), seeds, True)
+
+        # vadere seed
+        self.points.insert(
+            0, ("Parameter", "omnet", "*.manager.useVadereSeed"), "false", True
+        )
+        if seed_config["vadere"] != "fixed":
+            seeds = [str(random.randint(1, 5000)) for _ in range(number_of_rows)]
+            self.points.insert(0, ("Parameter", "omnet", "*.manager.seed"), seeds, True)
+        else:
+            self.points.insert(0, ("Parameter", "omnet", "*.manager.seed"), "42", True)
+
+        # TODO use default vadere seed
+
+        # if seed_config["vadere"] == "fixed":
+        #     # use fixed seed defined in scenario file
+        #     self.points.insert(
+        #         0, ("Parameter", "omnet", "*.manager.useVadereSeed"), "true", True
+        #     )
+        #     self.points.insert(0, ("Parameter", "vadere", "attributesSimulation.useFixedSeed"), "true", True)
+        # else:
+        #     # use seed provided from omnet ini file
+        #     self.points.insert(
+        #         0, ("Parameter", "omnet", "*.manager.useVadereSeed"), "false", True
+        #     )
+        #     seeds = [str(random.randint(1, 100000)) for _ in range(number_of_rows)]
+        #     self.points.insert(0, ("Parameter", "omnet", "*.manager.seed"), seeds, True)
+        #
+
+        self._points = self.points.sort_index(axis=1)
+
+        return self
 
 
 class FullGridSampling(ParameterVariationBase):

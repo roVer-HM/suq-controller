@@ -12,7 +12,7 @@ from suqc.environment import (
     CoupledConsoleWrapper,
     CoupledEnvironmentManager,
     VadereConsoleWrapper,
-)
+    AbstractEnvironmentManager)
 from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
@@ -270,7 +270,7 @@ class Request(object):
 class VariationBase(Request, ServerRequest):
     def __init__(
         self,
-        env_man: VadereEnvironmentManager,
+        env_man: AbstractEnvironmentManager,
         parameter_variation: ParameterVariationBase,
         model: Union[str, AbstractConsoleWrapper],
         qoi: Union[str, List[str], VadereQuantityOfInterest],
@@ -327,10 +327,16 @@ class VariationBase(Request, ServerRequest):
         )
         lookup_df = pd.concat([self.parameter_variation.points, meta_info], axis=1)
         savepath_lookup_df = os.path.join(self.env_man.env_path, "metainfo.csv")
-        lookup_df.to_csv(savepath_lookup_df)
+        savepath_lookup_env = os.path.join(self.env_man.env_path, "info_env_manager.txt")
 
         if self.remove_output:
             self._remove_output()
+
+        if not os.path.exists(self.env_man.env_path):
+            os.makedirs(self.env_man.env_path)
+
+        lookup_df.to_csv(savepath_lookup_df)
+        self.env_man.write_data(savepath_lookup_env)
 
         return lookup_df, qoi_result_df
 
@@ -410,6 +416,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         output_folder=None,
         env_remote=None,
         remove_output=False,
+        seed_config=None,
         config="final",
     ):
 
@@ -442,8 +449,8 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             env = env_remote
 
         parameter_variation = UserDefinedSampling(parameter_dict_list)
-        parameter_variation = parameter_variation.multiply_scenario_runs(
-            scenario_runs=scenario_runs
+        parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
+            scenario_runs=scenario_runs, seed_config=seed_config
         )
 
         super(CoupledDictVariation, self).__init__(
