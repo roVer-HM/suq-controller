@@ -412,7 +412,7 @@ def test_me():
         # ),
     ]
 
-    reps = [1, 1, 20]
+    reps = [3, 1, 20]
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
@@ -429,7 +429,7 @@ def test_me():
         output_folder=output_folder,
         remove_output=True,
         seed_config={"vadere": "fixed", "omnet": "random"},
-        env_remote= None
+        env_remote=None,
     )
 
     if run_local:
@@ -450,7 +450,6 @@ def test_me():
     data["time_95_informed.txt"].to_pickle(
         os.path.join(summary, "time_95_informed.pkl")
     )
-    par_var.to_pickle(os.path.join(summary, "meta_data.pkl"))
 
     print("Simulation study finished.")
 

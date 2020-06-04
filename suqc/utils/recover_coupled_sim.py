@@ -1,4 +1,7 @@
+from typing import Union, List
+
 import pandas as pd
+import os
 
 from suqc import (
     CoupledEnvironmentManager,
@@ -8,51 +11,52 @@ from suqc import (
 )
 
 
-def recover_sim():
-    # TODO create single simulation from data
-    df = pd.read_csv(
-        "/home/christina/repos/suq-controller/tutorial/test_me/metainfo.csv",
-    )
+def recover_sim(
+    samples_to_repeat: Union[tuple, List[tuple]],
+    env=None,
+    meta_info_file="metainfo.pkl",
+    env_info_file = "info_env_manager.txt",
+):
 
-    cols = []
-    for col in df.columns:
-        col = col.replace("/","")
-        col = col.replace("'", "")
-        col = col.replace('"', "")
-        col = col.replace('(', "")
-        col = col.replace(')', "")
-        col = col.split(",")
-        cols.append(tuple(col))
+    if isinstance(samples_to_repeat, list):
+        if (
+            all(
+                isinstance(sampl_to_repeat, tuple)
+                for sampl_to_repeat in samples_to_repeat
+            )
+            is False
+        ):
+            raise ValueError(
+                f"Expect a list of tuples like (id,run_id). Got {samples_to_repeat}."
+            )
 
-    df.columns = pd.MultiIndex.from_tuples(cols)
+    if isinstance(samples_to_repeat, tuple):
+        samples_to_repeat = [samples_to_repeat]
 
-    # df = pd.read_pickle(
-    #     "/home/christina/repos/suq-controller/tutorial/test_me/metainfo.pkl"
-    # )
+    if os.path.splitext(meta_info_file)[1] != ".pkl":
+        raise ValueError(f"meta_info_file must be a *.pkl file. Got {meta_info_file}.")
+
+    df = pd.read_pickle(os.path.join(env, meta_info_file))
+    df.columns = pd.MultiIndex.from_tuples(df.columns.tolist())
+    df = df.iloc[:, df.columns.get_level_values(0) == "Parameter"]
+    df = df.loc[samples_to_repeat, :]
 
     env = CoupledEnvironmentManager.create_variation_env_from_info_file(
-        "/home/christina/repos/suq-controller/tutorial/test_me/info_env_manager.txt"
+       os.path.join(env,env_info_file)
     )
 
     par = ParameterVariationBase()
     par._add_df_points(df)
 
-    cou = CoupledScenarioCreation(
-        env_man=env,
-        parameter_variation=par,
-    )
-    #cou.generate_scenarios(1)
+    cou = CoupledScenarioCreation(env_man=env, parameter_variation=par,)
+    cou.generate_scenarios(1)
 
-    # var = VariationBase(
-    #     env_man=env,
-    #     parameter_variation=par,
-    #     model="Coupled",
-    #     qoi=["a"],
-    #     remove_output=False,
-    # )
-
-    print("finished")
+    print("Please start the simulations manually.")
 
 
 if __name__ == "__main__":
-    recover_sim()
+
+    recover_sim(
+        samples_to_repeat=(1, 0),
+        env="/home/christina/repos/suq-controller/tutorial/test_me",
+    )
