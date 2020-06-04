@@ -12,7 +12,8 @@ from suqc.environment import (
     CoupledConsoleWrapper,
     CoupledEnvironmentManager,
     VadereConsoleWrapper,
-    AbstractEnvironmentManager)
+    AbstractEnvironmentManager,
+)
 from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
@@ -327,16 +328,10 @@ class VariationBase(Request, ServerRequest):
         )
         lookup_df = pd.concat([self.parameter_variation.points, meta_info], axis=1)
         savepath_lookup_df = os.path.join(self.env_man.env_path, "metainfo.csv")
-        savepath_lookup_env = os.path.join(self.env_man.env_path, "info_env_manager.txt")
+        lookup_df.to_csv(savepath_lookup_df)
 
         if self.remove_output:
             self._remove_output()
-
-        if not os.path.exists(self.env_man.env_path):
-            os.makedirs(self.env_man.env_path)
-
-        lookup_df.to_csv(savepath_lookup_df)
-        self.env_man.write_data(savepath_lookup_env)
 
         return lookup_df, qoi_result_df
 
@@ -382,6 +377,9 @@ class VariationBase(Request, ServerRequest):
             transfer_output=not self.remove_output,
         )
         return remote_result
+
+    def get_env_man_info(self):
+        return self.env_man.get_env_info()
 
 
 @DeprecationWarning

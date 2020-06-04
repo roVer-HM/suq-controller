@@ -8,6 +8,8 @@ import time
 from shutil import copytree, ignore_patterns, rmtree
 from typing import *
 
+import pandas as pd
+
 from suqc.configuration import SuqcConfig
 from suqc.opp.config_parser import OppConfigFileBase, OppConfigType, OppParser
 from suqc.utils.general import (
@@ -233,6 +235,10 @@ class AbstractEnvironmentManager(object):
         return sc_files[0]
 
     @classmethod
+    def create_variation_env_from_info_file(cls, path_info_file):
+        raise NotImplemented
+
+    @classmethod
     def create_new_environment(
         cls, base_path=None, env_name=None, handle_existing="ask_user_replace"
     ):
@@ -323,10 +329,6 @@ class AbstractEnvironmentManager(object):
         output_folder_path = os.path.join(base_path, env_name)
         return output_folder_path
 
-    def write_data(self, path):
-        with open(path, "w+") as f:
-            f.write(self.get_info_string())
-
     def scenario_variation_path(self, par_id, run_id):
         return os.path.join(
             self.get_env_outputfolder_path(),
@@ -364,12 +366,21 @@ class AbstractEnvironmentManager(object):
 
         return "".join([numbered_scenario_name, self.VADERE_SCENARIO_FILE_TYPE])
 
-    def get_info_string(self):
+    def get_env_info(self):
+        return self.env_info_df
 
-        if self.info_string is None:
-            return f"No information provided from {type(self)}."
-        else:
-            return self.info_string
+    @classmethod
+    def set_env_info(cls, basis_scenario, base_path, env_name, ini_scenario):
+
+        info = {
+            "basis_scenario": basis_scenario,
+            "ini_path": ini_scenario,
+            "base_path": base_path,
+            "env_name": env_name,
+        }
+
+        info = pd.DataFrame(data=info, index=[0])
+        cls.env_info_df = info
 
 
 class VadereEnvironmentManager(AbstractEnvironmentManager):
@@ -389,6 +400,13 @@ class VadereEnvironmentManager(AbstractEnvironmentManager):
         env_name=None,
         handle_existing="ask_user_replace",
     ):
+
+        cls.set_env_info(
+            basis_scenario=basis_scenario,
+            base_path=base_path,
+            env_name=env_name,
+            ini_scenario="",
+        )
 
         # Check if environment already exists
         env_man = cls.create_new_environment(
@@ -459,7 +477,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
     VADERE_SCENARIO_FILE_TYPE = ".scenario"
     simulation_runs_output_folder = "simulation_runs"
     simulation_runs_single_folder_name = "Sample_"
-    run_file = "run_script2.py"
+    run_file = "run_script.py"
 
     def __init__(self, base_path, env_name: str):
         super().__init__(base_path, env_name)
@@ -485,31 +503,20 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             raise RuntimeError(f"None or too many 'ini' files " "found in environment.")
         return sc_files[0]
 
-
     @classmethod
-    def create_variation_env_from_info_file(
-            cls,
-            path_info_file
-    ):
+    def create_variation_env_from_info_file(cls, path_info_file):
 
-        d = {}
-        with open(path_info_file) as f:
-            for line in f:
-                (key, val) = line.split()
-                d[key] = val
+        d = pd.read_pickle(path_info_file)
 
         env = cls.create_variation_env(
-            basis_scenario = d["basis_scenario"],
-            ini_scenario =d["ini_path"],
-            base_path =d["base_path"],
-            env_name =d["env_name"],
-            handle_existing = "write_in")
+            basis_scenario=d["basis_scenario"].values[0],
+            ini_scenario=d["ini_path"].values[0],
+            base_path=d["base_path"].values[0],
+            env_name=d["env_name"].values[0],
+            handle_existing="write_in",
+        )
 
         return env
-
-
-
-
 
     @classmethod
     def create_variation_env(
@@ -521,7 +528,12 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         handle_existing="ask_user_replace",
     ):
 
-        cls.set_info_string(basis_scenario, ini_scenario, base_path, env_name)
+        cls.set_env_info(
+            basis_scenario=basis_scenario,
+            base_path=base_path,
+            env_name=env_name,
+            ini_scenario=ini_scenario,
+        )
 
         cls.basis_scenario_name = os.path.basename(basis_scenario)
         # Check if environment already exists
@@ -602,9 +614,8 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         # Create the folder where all output is stored
 
         path_output_folder_rover = os.path.join(
-                path_output_folder,
-                CoupledEnvironmentManager.simulation_runs_output_folder,
-            )
+            path_output_folder, CoupledEnvironmentManager.simulation_runs_output_folder,
+        )
 
         if os.path.exists(path_output_folder_rover) is False:
             os.mkdir(path_output_folder_rover)
@@ -669,11 +680,3 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
     def get_simulation_directory(self, par_id, run_id):
         prefix = CoupledEnvironmentManager.simulation_runs_single_folder_name
         return f"{prefix}_{par_id}_{run_id}"
-
-    @classmethod
-    def set_info_string(cls, basis_scenario, ini_path, base_path, env_name):
-        info = f"basis_scenario {basis_scenario}\n"
-        info = info + f"ini_path {ini_path}\n"
-        info = info + f"base_path {base_path}\n"
-        info = info + f"env_name {env_name}\n"
-        cls.info_string = info
