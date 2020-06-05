@@ -16,7 +16,6 @@ run_local = True
 
 if __name__ == "__main__":
 
-
     # define roVer simulation
     path2ini = os.path.join(
         os.environ["ROVER_MAIN"], "rover/simulations/simple_detoure_suqc/omnetpp.ini"
@@ -50,7 +49,7 @@ if __name__ == "__main__":
         ),
     ]
 
-    reps = [2, 3]
+    reps = [2, 2]
     par_var = RoverSamplingFullFactorial(
         parameters=parameter, parameters_dependent=dependent_parameters
     ).get_sampling()
@@ -66,19 +65,14 @@ if __name__ == "__main__":
         output_path=path2tutorial,
         output_folder=output_folder,
         remove_output=False,
-        seed_config={"vadere": "fixed", "omnet": "random"},
+        seed_config={"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
 
     if os.environ["ROVER_MAIN"] is None:
-        raise SystemError("Please add ROVER_MAIN to your system variables to run a rover simulation.")
-
-    if run_local:
-        par_var, data = setup.run(4)
-    else:
-        par_var, data = setup.remote(-1)
-
-    env_man_info = setup.get_env_man_info()
+        raise SystemError(
+            "Please add ROVER_MAIN to your system variables to run a rover simulation."
+        )
 
     summary = output_folder + "_df"
 
@@ -87,8 +81,15 @@ if __name__ == "__main__":
 
     os.makedirs(summary)
 
-    par_var.to_pickle(os.path.join(summary, "metainfo.pkl"))
+    env_man_info = setup.get_env_man_info()
     env_man_info.to_pickle(os.path.join(summary, "envinfo.pkl"))
+
+    if run_local:
+        par_var, data = setup.run(4)
+    else:
+        par_var, data = setup.remote(-1)
+
+    par_var.to_pickle(os.path.join(summary, "metainfo.pkl"))
 
     data["poisson_parameter.txt"].to_pickle(
         os.path.join(summary, "poisson_parameter.pkl")
