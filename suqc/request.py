@@ -464,6 +464,64 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             remove_output=remove_output,
         )
 
+    def run(self, njobs: int = 1):
+        try:
+            par_var, data = super(CoupledDictVariation, self).run(njobs)
+        except:
+            print("INFO: Simulation failed. Proceed succesful data only.")
+            par_var, data = self.get_sim_results_from_temp()
+
+        return par_var, data
+
+    def get_sim_results_from_temp(self):
+
+        temp_folder = self.env_man.get_temp_folder()
+        planned_simulations = self.get_simulations()
+
+        files = os.listdir(temp_folder)
+
+        for qo in files:
+            if os.path.splitext(qo)[1] != ".pkl":
+                raise ValueError(
+                    f"Only .pkl files produced with suqc are allowed. Got **_qoi_{qo}"
+                )
+
+        df = pd.DataFrame()
+        for f in files:
+            df_new = pd.read_pickle(os.path.join(temp_folder, f))
+            df = pd.concat([df, df_new])
+
+        if planned_simulations is not None:
+            ii = set(df.index.droplevel(level=-1).to_list())
+            iii = set(planned_simulations.index.to_list())
+            diff_list = list(iii.symmetric_difference(ii))
+
+            planned_simulations = planned_simulations.assign(sim_succesful=True)
+
+            if len(diff_list) == 0:
+                print("INFO: Got results for all planned simulations.")
+            else:
+                print(
+                    f"INFO: Got results for some of the planned simulations except for simulations {diff_list}."
+                )
+
+                for l in diff_list:
+                    planned_simulations.loc[l, "sim_succesful"] = False
+                    ind = l + (0,)
+                    df.loc[ind, :] = "No data available."
+
+        dict_keys = list(set(df.columns.get_level_values(0).to_list()))
+        dictionary = dict()
+
+        for k in dict_keys:
+            df_k = df.iloc[:, df.columns.get_level_values(0) == k]
+            df_k = df_k.dropna()
+            dictionary[k] = df_k
+
+        return planned_simulations, dictionary
+
+
+
     def set_qoi(self, qoi):
         if isinstance(qoi, (str, list)):
             self.qoi = QuantityOfInterest(requested_files=qoi)

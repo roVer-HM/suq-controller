@@ -69,7 +69,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             cwd=dirname,
-            ##timeout=30
+            timeout=10800 # stop simulation after 3h
         )
 
         process_duration = time.time() - time_started
@@ -346,6 +346,10 @@ class AbstractEnvironmentManager(object):
         with open(scenario_path, "w") as outfile:
             json.dump(content, outfile, indent=4)
         return scenario_path
+
+    def get_temp_folder(self):
+        raise NotImplemented
+
 
     def get_env_outputfolder_path(self):
         raise NotImplemented
