@@ -381,6 +381,9 @@ class VariationBase(Request, ServerRequest):
     def get_env_man_info(self):
         return self.env_man.get_env_info()
 
+    def get_simulations(self):
+        return self.parameter_variation.points
+
 
 @DeprecationWarning
 class SampleVariation(VariationBase, ServerRequest):
@@ -548,6 +551,17 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         if self.remove_output is True:
             shutil.rmtree(dirname)
+
+        temp_file = os.path.join(
+            self.env_man.get_temp_folder(), f"{par_id}__{run_id}.pkl"
+        )
+
+        k = result.keys()
+        df = pd.DataFrame()
+        for key, item in result.items():
+            item.columns = pd.MultiIndex.from_product([[key], item.columns.to_list()])
+            df = pd.concat([df, item], axis=1)
+        df.to_pickle(temp_file)
 
         return request_item
 

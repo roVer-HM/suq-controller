@@ -5,6 +5,8 @@ import sys
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
+from utils.rover import read_qoi_from_temp_folder
+
 sys.path.append(os.path.abspath("."))
 sys.path.append(os.path.abspath(".."))
 
@@ -12,6 +14,24 @@ run_local = True
 ###############################################################################################################
 # Usecase: Set yourself the parameters you want to change. Do this by defining a list of dictionaries with the
 # corresponding parameter. Again, the Vadere output is deleted after all scenarios run.
+
+
+def run_sims(setup: CoupledDictVariation):
+    ## Run simulations
+    if run_local:
+        par_var, data = setup.run(1)
+    else:
+        par_var, data = setup.remote(-1)
+    return par_var, data
+
+
+def get_sim_results_from_temp(output_folder, summary, simulations):
+
+    par_var, data = read_qoi_from_temp_folder(
+        os.path.join(output_folder, "temp"), summary, simulations
+    )
+
+    return par_var, data
 
 
 if __name__ == "__main__":
@@ -67,7 +87,7 @@ if __name__ == "__main__":
     ]
 
     # number of repitions for each sample
-    reps = [1, 4]
+    reps = [1, 5]
 
     # sampling
     par_var = RoverSamplingFullFactorial(
@@ -103,12 +123,6 @@ if __name__ == "__main__":
             "Please add ROVER_MAIN to your system variables to run a rover simulation."
         )
 
-    ## Run simulations
-    if run_local:
-        par_var, data = setup.run(4)
-    else:
-        par_var, data = setup.remote(-1)
-
     # Save results
     summary = output_folder + "_df"
     if os.path.exists(summary):
@@ -119,16 +133,12 @@ if __name__ == "__main__":
     env_man_info = setup.get_env_man_info()
     env_man_info.to_pickle(os.path.join(summary, "envinfo.pkl"))
 
-    par_var.to_pickle(os.path.join(summary, "metainfo.pkl"))
+    simulations = setup.get_simulations()
+    simulations.to_pickle(os.path.join(summary, "simulations.pkl"))
 
-    data["poisson_parameter.txt"].to_pickle(
-        os.path.join(summary, "poisson_parameter.pkl")
-    )
-    data["degree_informed_extract.txt"].to_pickle(
-        os.path.join(summary, "degree_informed_extract.pkl")
-    )
-    data["time_95_informed.txt"].to_pickle(
-        os.path.join(summary, "time_95_informed.pkl")
-    )
+    try:
+        par_var, data = run_sims(setup)
+    except:
+        par_var, data = get_sim_results_from_temp(output_folder, summary, simulations)
 
     print("All simulation runs completed.")

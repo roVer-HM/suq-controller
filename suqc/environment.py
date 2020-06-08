@@ -3,6 +3,7 @@ import platform
 import glob
 import json
 import os
+import shutil
 import subprocess
 import time
 from shutil import copytree, ignore_patterns, rmtree
@@ -68,6 +69,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             cwd=dirname,
+            ##timeout=30
         )
 
         process_duration = time.time() - time_started
@@ -478,6 +480,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
     simulation_runs_output_folder = "simulation_runs"
     simulation_runs_single_folder_name = "Sample_"
     run_file = "run_script.py"
+    temp_folder_rover = "temp"
 
     def __init__(self, base_path, env_name: str):
         super().__init__(base_path, env_name)
@@ -620,7 +623,23 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         if os.path.exists(path_output_folder_rover) is False:
             os.mkdir(path_output_folder_rover)
 
+        temp_folder_rover = os.path.join(
+            path_output_folder, CoupledEnvironmentManager.temp_folder_rover,
+        )
+
+        if os.path.exists(temp_folder_rover):
+            shutil.rmtree(temp_folder_rover)
+
+        if os.path.exists(temp_folder_rover) is False:
+            os.mkdir(temp_folder_rover)
+
         return cls(base_path, env_name)
+
+    def get_temp_folder(self):
+        rel_path = os.path.join(
+            self.env_path, CoupledEnvironmentManager.temp_folder_rover
+        )
+        return os.path.abspath(rel_path)
 
     def get_env_outputfolder_path(self):
         rel_path = os.path.join(
