@@ -68,7 +68,7 @@ if __name__ == "__main__":
     ]
 
     # number of repitions for each sample
-    reps = [1, 2]
+    reps = [2, 1]
 
     # sampling
     par_var = RoverSamplingFullFactorial(
@@ -121,5 +121,17 @@ if __name__ == "__main__":
         par_var, data = setup.run(1)
     else:
         par_var, data = setup.remote(-1)
+
+    par_var.to_pickle(os.path.join(summary, "metainfo.pkl"))
+
+    data["poisson_parameter.txt"].to_pickle(
+        os.path.join(summary, "poisson_parameter.pkl")
+    )
+    data["degree_informed_extract.txt"].to_pickle(
+        os.path.join(summary, "degree_informed_extract.pkl")
+    )
+    data["time_95_informed.txt"].to_pickle(
+        os.path.join(summary, "time_95_informed.pkl")
+    )
 
     print("All simulation runs completed.")
