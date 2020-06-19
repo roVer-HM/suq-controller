@@ -231,7 +231,7 @@ class UserDefinedSampling(ParameterVariationBase):
     def add_vadere_server_id(self):
 
         ids = self.points.index.to_list()
-        ids = [f'"vadere_{id[0]}_{id[1]}"' for id in ids]
+        ids = [f'"vadere_Sample__{id[0]}_{id[1]}"' for id in ids]
         self.points.insert(0, ("Parameter", "omnet", "*.manager.host"), ids, True)
         self._points = self.points.sort_index(axis=1)
 
