@@ -228,6 +228,13 @@ class UserDefinedSampling(ParameterVariationBase):
         super(UserDefinedSampling, self).__init__()
         self._add_dict_points(points)
 
+    def add_vadere_server_id(self):
+
+        ids = self.points.index.to_list()
+        ids = [f'"vadere_{id[0]}_{id[1]}"' for id in ids]
+        self.points.insert(0, ("Parameter", "omnet", "*.manager.host"), ids, True)
+        self._points = self.points.sort_index(axis=1)
+
     def multiply_scenario_runs_using_seed(
         self, scenario_runs: Union[int, List[int]], seed_config: Dict
     ):
@@ -237,6 +244,7 @@ class UserDefinedSampling(ParameterVariationBase):
             )
 
         super().multiply_scenario_runs(scenario_runs)
+        self.add_vadere_server_id()
         number_of_rows = self.points.shape[0]
 
         # omnet seed

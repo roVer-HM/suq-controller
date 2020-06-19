@@ -58,6 +58,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         terminal_command = ["python3", start_file, "--qoi"]
         terminal_command.extend(required_files)
         terminal_command.extend(["--run-name", os.path.basename(dirname)])
+        terminal_command.extend(["--create-vadere-container"])
 
         time_started = time.time()
         t = time.strftime("%H:%M:%S", time.localtime(time_started))
