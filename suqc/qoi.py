@@ -12,8 +12,10 @@ from suqc.utils.dict_utils import deep_dict_lookup
 
 class FileDataInfo(object):
 
-    # Implemented in Vadere merge request !38, this is only a fallback mode and requires manual updating if there are
-    # changes in Vadere. See also vadere issue #199 and #201.
+    # Implemented in Vadere merge request !38, this is only a fallback mode and requires
+    # manual updating if there are changes in Vadere. See also Vadere issue #199 and #201.
+
+    # all output types are from Vadere BUT "GeneralOutputFile"
     map_outputtype2index = {
         "IdOutputFile": 1,
         "LogEventOutputFile": 1,

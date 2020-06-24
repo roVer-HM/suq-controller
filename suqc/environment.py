@@ -30,7 +30,7 @@ DEFAULT_SUQ_CONFIG = {
 
 class AbstractConsoleWrapper(object):
     @classmethod
-    def infer_model(cls, model):
+    def infer_model(cls, model) -> "AbstractConsoleWrapper":
 
         if isinstance(model, str):
             if model == "Coupled":
@@ -81,7 +81,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
 
 class VadereConsoleWrapper(AbstractConsoleWrapper):
 
-    # Current log level choices, requires to manually add, if there are changes
+    # Current log level choices, requires to manually add, if there are changes in Vadere
     ALLOWED_LOGLVL = [
         "OFF",
         "FATAL",
@@ -350,7 +350,6 @@ class AbstractEnvironmentManager(object):
 
     def get_temp_folder(self):
         raise NotImplemented
-
 
     def get_env_outputfolder_path(self):
         raise NotImplemented

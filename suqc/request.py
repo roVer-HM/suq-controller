@@ -112,8 +112,6 @@ class Request(object):
         if len(request_item_list) == 0:
             raise ValueError("request_item_list has no entries.")
 
-        # TODO: ..
-
         self.model = AbstractConsoleWrapper.infer_model(model)
         self.request_item_list = request_item_list
         # Can be None, if this is the case, no output data will be parsed to pd.DataFrame
@@ -151,7 +149,7 @@ class Request(object):
                 output_path=request_item.output_path,
             )
         elif not is_results and self.qoi is not None:
-            # something went wrong during run
+            # something went wrong during simulation run
             assert output_on_error is not None
 
             filename_stdout = "stdout_on_error.txt"
@@ -172,7 +170,8 @@ class Request(object):
         request_item.add_qoi_result(result)
         request_item.add_meta_info(required_time=required_time, return_code=return_code)
 
-        # Because of the multi-processor part, don't try to already add the results here to _results_df
+        # Because of the multi-processor part, don't try to already add the results here
+        # to request_item
         return request_item
 
     def _create_output_path(self, output_path):
@@ -193,19 +192,20 @@ class Request(object):
         filenames = None
         for ires in qoi_results:
             if ires is not None:
-                # it is assumed that the the keys for all elements in results are the same!
-                # TODO: this assumption may fail... possibly better to check for this!
+                # assumption: the keys for all elements in results are the same
+                # TODO: this assumption may fail... maybe better to check for this!
                 filenames = list(ires.keys())
                 break
 
         if filenames is None:
             print(
-                "WARNING: All simulations failed, only 'None' results. Look in the "
-                "output folder for error messages."
+                "WARNING: All simulations failed, only 'None' results. "
+                "Look in the output folder(s) for error messages."
             )
             final_results = None
         else:
-            # Successful runs are collected and are concatenated into a single pd.DataFrame below
+            # Successful runs are collected and are concatenated into a single
+            # pd.DataFrame below
             final_results = dict()
 
             for filename in filenames:
@@ -255,12 +255,16 @@ class Request(object):
         return meta_info
 
     def _sp_query(self):
-        # enumerate returns tuple(par_id, scenario filepath) see ParameterVariation.generate_vadere_scenarios and
+        # single process query
+
+        # enumerate returns tuple(par_id, scenario filepath) see
+        # ParameterVariation.generate_vadere_scenarios and
         # ParameterVariation._vars_object()
         for i, request_item in enumerate(self.request_item_list):
             self.request_item_list[i] = self._single_request(request_item)
 
     def _mp_query(self, njobs):
+        # multi process query
         pool = multiprocessing.Pool(processes=njobs)
         self.request_item_list = pool.map(self._single_request, self.request_item_list)
 
@@ -302,8 +306,8 @@ class VariationBase(Request, ServerRequest):
 
         if qoi is None and remove_output:
             raise ValueError(
-                "it does not make sense: not collecting a qoi (qoi=None and "
-                "not keeping the output (remove_output=False)."
+                "Invalid parameter configuration: not collecting a qoi (qoi=None) and "
+                "to not keep any output (remove_output=False)."
             )
 
         self.set_qoi(qoi)
@@ -320,7 +324,7 @@ class VariationBase(Request, ServerRequest):
         elif isinstance(qoi, VadereQuantityOfInterest):
             self.qoi = qoi
         else:
-            raise ValueError(f"qoi must be of type VadereQuantityOfInterest")
+            raise ValueError(f"Failed to set qoi. Check type(qoi)={type(qoi)}")
 
     def scenario_creation(self, njobs):
         scenario_creation = VadereScenarioCreation(
@@ -396,24 +400,6 @@ class VariationBase(Request, ServerRequest):
 
     def get_simulations(self):
         return self.parameter_variation.points
-
-
-@DeprecationWarning
-class SampleVariation(VariationBase, ServerRequest):
-    def __init__(
-        self,
-        scenario_path: str,
-        parameter_sampling: ParameterVariationBase,
-        qoi: Union[str, List[str]],
-        model: Union[str, VadereConsoleWrapper],
-        scenario_runs=1,
-        output_path=None,
-        output_folder=None,
-        remove_output=False,
-        env_remote=None,
-    ):
-        # TODO
-        pass
 
 
 class CoupledDictVariation(VariationBase, ServerRequest):
