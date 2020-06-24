@@ -14,7 +14,6 @@ import abc
 import copy
 
 import numpy as np
-from pyDOE import lhs
 
 
 class ParameterVariationBase(metaclass=abc.ABCMeta):
@@ -622,52 +621,6 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
         plt.tight_layout()
         plt.show()
 
-
-if __name__ == "__main__":
-    par = BoxSamplingUlamMethod()
-    par.create_grid(
-        [
-            "dynamicElements.[id==1].position.x",
-            "dynamicElements.[id==1].position.y",
-            None,
-        ],
-        lb=[0, 0, 0],
-        rb=[20, 10, 0],
-        nr_boxes=[20, 10, 0],
-        nr_testf=[1, 1, 0],
-    )
-
-    par.plot_states(initial_cond)
-
-    exit()
-
-    di = {"speedDistributionStandardDeviation": [0.0, 0.1, 0.2]}
-
-    pd.options.display.max_columns = 4
-
-    em = VadereEnvironmentManager("corner")
-
-    pv = BoxSamplingUlamMethod()
-    pv.create_grid(
-        ["speedDistributionStandardDeviation", "speedDistributionMean", "minimumSpeed"],
-        [0, 1, 2],
-        [1, 2, 3],
-        [2, 2, 2],
-        [2, 2, 2],
-    )
-
-    # pv = FullGridSampling()
-    # pv.add_dict_grid({"speedDistributionStandardDeviation": [0.1, 0.2, 0.3, 0.4]})
-    # print(pv.points)
-
-    # pv = RandomSampling(em)
-    # pv.add_parameter("speedDistributionStandardDeviation", np.random.normal)
-    # pv.add_parameter("speedDistributionMean", np.random.normal)
-    # pv.create_grid()
-    #
-    # print(pv._points)
-
-
 class RoverSampling(metaclass=abc.ABCMeta):
     def __init__(self, parameters=None, parameters_dependent=None):
         self.parameters = parameters
@@ -761,6 +714,8 @@ class RoverSamplingLatinHyperCube(RoverSampling):
         )
 
     def get_sampling_vals(self):
+
+        from pyDOE import lhs
 
         number = 0
         for para in self.parameters:
