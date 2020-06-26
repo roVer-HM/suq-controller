@@ -24,13 +24,15 @@ def check_setup(_paths_class):
 
     if not os.path.exists(_paths_class.path_suq_config_file()):
         print(
-            f"INFO: Setting up default configuration file located at {_paths_class.path_suq_config_file()}"
+            f"INFO: Setting up default configuration file located at "
+            f"{_paths_class.path_suq_config_file()}"
         )
         _paths_class.store_config(DEFAULT_SUQC_CONFIG)
 
     if not os.path.exists(_paths_class.path_container_folder()):
         print(
-            f"INFO: Setting up the default container path (which will store output of simulation runs). "
+            f"INFO: Setting up the default container path "
+            f"(which will store output of simulation runs). "
             f"Location {_paths_class.path_container_folder()}"
         )
         os.mkdir(_paths_class.path_container_folder())

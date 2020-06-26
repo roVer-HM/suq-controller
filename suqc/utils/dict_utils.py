@@ -6,6 +6,7 @@ from functools import reduce
 from typing import List
 
 import numpy as np
+from suqc.opp.config_parser import OppConfigFileBase
 
 SYMBOL_KEY_CHAINING = "."
 
@@ -313,11 +314,8 @@ def change_value(d: dict, path: list, last_key: str, exist_val, new_value):
             new_value = _avoid_numpy_types(new_value)
 
             # pass cases, where numpy floating point wrappers were removed
-            if (
-                (isinstance(exist_val, float)
-                and isinstance(new_value, float))
-                or (isinstance(exist_val, int)
-                and isinstance(new_value, int))
+            if (isinstance(exist_val, float) and isinstance(new_value, float)) or (
+                isinstance(exist_val, int) and isinstance(new_value, int)
             ):
                 pass  # all good now
             else:  # print warning in cases where e.g. the existing value is an int and the new value is a float
@@ -341,6 +339,14 @@ def change_value(d: dict, path: list, last_key: str, exist_val, new_value):
     return set_dict_value_keylist(d, path, last_key, new_value)
 
 
+def change_dict_ini(ini_object: OppConfigFileBase, changes: dict):
+
+    for key, value in changes.items():
+        ini_object[key] = value
+
+    return ini_object
+
+
 def change_dict(json_dict: dict, changes: dict):
 
     # dictionaries are mutable! Make a deepcopy for security:
@@ -355,9 +361,11 @@ def change_dict(json_dict: dict, changes: dict):
 
         # Security check:
         check_val, _ = deep_dict_lookup(json_dict, key_chain)
-        assert check_val == new_val, f"Something went wrong with setting a new value " \
-                                     f"in the scenario! " \
-                                     f"Check val={check_val} vs. new_val={new_val}."
+        assert check_val == new_val, (
+            f"Something went wrong with setting a new value "
+            f"in the scenario! "
+            f"Check val={check_val} vs. new_val={new_val}."
+        )
         check_val, _ = deep_dict_lookup(json_dict, key_chain)
         assert check_val == new_val, (
             f"Something went wrong with setting a new value "

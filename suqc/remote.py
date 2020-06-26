@@ -87,7 +87,7 @@ class ServerConnection(object):
                 "WARNING: local and remote version of dependencies do not match. "
                 "This can result in incompatbility issues \n"
                 f"(local) numpy=={np.__version__} vs. (remote) numpy=={numpy_version} \n"
-                f"(local) pandas={pd.__version__} vs. (remote) numpy=={pandas_version}"
+                f"(local) pandas={pd.__version__} vs. (remote) pandas=={pandas_version}"
             )
 
         print(

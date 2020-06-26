@@ -4,17 +4,27 @@ import json
 import multiprocessing
 import os
 import shutil
+import glob
 
-from suqc.environment import VadereConsoleWrapper
-from suqc.parameter.create import VadereScenarioCreation
+from suqc.opp.config_parser import OppConfigType
+from suqc.environment import (
+    AbstractConsoleWrapper,
+    CoupledConsoleWrapper,
+    CoupledEnvironmentManager,
+    VadereConsoleWrapper,
+    AbstractEnvironmentManager,
+)
+from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
-from suqc.qoi import QuantityOfInterest
+from suqc.qoi import VadereQuantityOfInterest, QuantityOfInterest
 from suqc.remote import ServerRequest
 from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
 
 
-def read_from_existing_output(env_path, qoi_filename, extract_ids=True):
+def read_from_existing_output(
+    env_path, qoi_filename, extract_ids=True, parentfolder_level=1
+):
 
     read_data = []
 
@@ -25,7 +35,12 @@ def read_from_existing_output(env_path, qoi_filename, extract_ids=True):
             if file == qoi_filename:
 
                 filepath = os.path.join(root, file)
-                parentfolder = os.path.basename(os.path.dirname(filepath))
+                # default vals: vadere (1), rover/omnet (5)
+                filepath0 = filepath
+                for level_up in range(parentfolder_level):
+                    filepath0 = os.path.dirname(filepath0)
+
+                parentfolder = os.path.basename(filepath0)
 
                 # TODO: it'd be better to use QuantityOfInterest.read_and_extract_qois
                 #  here, as this is the "central unit" to read files of interest
@@ -59,7 +74,11 @@ def read_from_existing_output(env_path, qoi_filename, extract_ids=True):
 
     read_data = pd.concat(read_data, axis=0)
 
-    return read_data
+    meta_data = pd.read_csv(
+        os.path.join(env_path, "metainfo.csv"), header=[0]
+    ).set_index(["id", "run_id"])
+
+    return read_data, meta_data
 
 
 class RequestItem(object):
@@ -88,14 +107,14 @@ class Request(object):
     def __init__(
         self,
         request_item_list: List[RequestItem],
-        model: Union[str, VadereConsoleWrapper],
-        qoi: Union[QuantityOfInterest, None],
+        model: Union[str, AbstractConsoleWrapper],
+        qoi: Union[VadereQuantityOfInterest, None],
     ):
 
         if len(request_item_list) == 0:
             raise ValueError("request_item_list has no entries.")
 
-        self.model = VadereConsoleWrapper.infer_model(model)
+        self.model = AbstractConsoleWrapper.infer_model(model)
         self.request_item_list = request_item_list
         # Can be None, if this is the case, no output data will be parsed to pd.DataFrame
         self.qoi = qoi
@@ -132,7 +151,7 @@ class Request(object):
                 output_path=request_item.output_path,
             )
         elif not is_results and self.qoi is not None:
-            # something went wrong during run
+            # something went wrong during simulation run
             assert output_on_error is not None
 
             filename_stdout = "stdout_on_error.txt"
@@ -153,7 +172,8 @@ class Request(object):
         request_item.add_qoi_result(result)
         request_item.add_meta_info(required_time=required_time, return_code=return_code)
 
-        # Because of the multi-processor part, don't try to already add the results here to _results_df
+        # Because of the multi-processor part, don't try to already add the results here
+        # to request_item
         return request_item
 
     def _create_output_path(self, output_path):
@@ -174,19 +194,20 @@ class Request(object):
         filenames = None
         for ires in qoi_results:
             if ires is not None:
-                # it is assumed that the the keys for all elements in results are the same!
-                # TODO: this assumption may fail... possibly better to check for this!
+                # assumption: the keys for all elements in results are the same
+                # TODO: this assumption may fail... maybe better to check for this!
                 filenames = list(ires.keys())
                 break
 
         if filenames is None:
             print(
-                "WARNING: All simulations failed, only 'None' results. Look in the "
-                "output folder for error messages."
+                "WARNING: All simulations failed, only 'None' results. "
+                "Look in the output folder(s) for error messages."
             )
             final_results = None
         else:
-            # Successful runs are collected and are concatenated into a single pd.DataFrame below
+            # Successful runs are collected and are concatenated into a single
+            # pd.DataFrame below
             final_results = dict()
 
             for filename in filenames:
@@ -204,11 +225,18 @@ class Request(object):
 
         return final_results
 
-    def _compile_run_info(self):
-        data = [
-            (item_.parameter_id, item_.run_id, item_.required_time, item_.return_code)
-            for item_ in self.request_item_list
-        ]
+    def _compile_run_info(self, data=None):
+
+        if data is None:
+            data = [
+                (
+                    item_.parameter_id,
+                    item_.run_id,
+                    item_.required_time,
+                    item_.return_code,
+                )
+                for item_ in self.request_item_list
+            ]
         df = pd.DataFrame(
             data,
             columns=[
@@ -219,15 +247,26 @@ class Request(object):
             ],
         )
         df.set_index(keys=[self.PARAMETER_ID, self.RUN_ID], inplace=True)
+
         return df
 
+    def _add_meta_info_multiindex(self, meta_info):
+        meta_info.columns = pd.MultiIndex.from_arrays(
+            [["MetaInfo"] * meta_info.shape[1], meta_info.columns]
+        )
+        return meta_info
+
     def _sp_query(self):
-        # enumerate returns tuple(par_id, scenario filepath) see ParameterVariation.generate_vadere_scenarios and
+        # single process query
+
+        # enumerate returns tuple(par_id, scenario filepath) see
+        # ParameterVariation.generate_vadere_scenarios and
         # ParameterVariation._vars_object()
         for i, request_item in enumerate(self.request_item_list):
             self.request_item_list[i] = self._single_request(request_item)
 
     def _mp_query(self, njobs):
+        # multi process query
         pool = multiprocessing.Pool(processes=njobs)
         self.request_item_list = pool.map(self._single_request, self.request_item_list)
 
@@ -244,18 +283,18 @@ class Request(object):
 
         if self.qoi is not None:
             self.compiled_qoi_data = self._compile_qoi()
+            self.compiled_run_info = self._compile_run_info()
 
-        self.compiled_run_info = self._compile_run_info()
         return self.compiled_qoi_data, self.compiled_run_info
 
 
 class VariationBase(Request, ServerRequest):
     def __init__(
         self,
-        env_man: EnvironmentManager,
+        env_man: AbstractEnvironmentManager,
         parameter_variation: ParameterVariationBase,
-        model: str,
-        qoi: Union[str, List[str], QuantityOfInterest],
+        model: Union[str, AbstractConsoleWrapper],
+        qoi: Union[str, List[str], VadereQuantityOfInterest],
         post_changes: PostScenarioChangesBase = None,
         njobs: int = 1,
         remove_output=False,
@@ -269,24 +308,32 @@ class VariationBase(Request, ServerRequest):
 
         if qoi is None and remove_output:
             raise ValueError(
-                "it does not make sense: not collecting a qoi (qoi=None and "
-                "not keeping the output (remove_output=False)."
+                "Invalid parameter configuration: not collecting a qoi (qoi=None) and "
+                "to not keep any output (remove_output=False)."
             )
 
-        if isinstance(qoi, (str, list)):
-            self.qoi = QuantityOfInterest(
-                basis_scenario=self.env_man.basis_scenario, requested_files=qoi
-            )
-        else:
-            self.qoi = qoi
-
-        scenario_creation = VadereScenarioCreation(
-            self.env_man, self.parameter_variation, self.post_changes
-        )
-        request_item_list = scenario_creation.generate_vadere_scenarios(njobs)
+        self.set_qoi(qoi)
+        request_item_list = self.scenario_creation(njobs)
 
         super(VariationBase, self).__init__(request_item_list, self.model, self.qoi)
         ServerRequest.__init__(self)
+
+    def set_qoi(self, qoi):
+        if isinstance(qoi, (str, list)):
+            self.qoi = VadereQuantityOfInterest(
+                basis_scenario=self.env_man.vadere_basis_scenario, requested_files=qoi
+            )
+        elif isinstance(qoi, VadereQuantityOfInterest):
+            self.qoi = qoi
+        else:
+            raise ValueError(f"Failed to set qoi. Check type(qoi)={type(qoi)}")
+
+    def scenario_creation(self, njobs):
+        scenario_creation = VadereScenarioCreation(
+            self.env_man, self.parameter_variation, self.post_changes
+        )
+        request_item_list = scenario_creation.generate_scenarios(njobs)
+        return request_item_list
 
     def _remove_output(self):
         if self.env_man.env_path is not None:
@@ -296,13 +343,10 @@ class VariationBase(Request, ServerRequest):
         qoi_result_df, meta_info = super(VariationBase, self).run(njobs)
 
         # add another level to distinguish the columns with the parameter lookup
-        meta_info.columns = pd.MultiIndex.from_arrays(
-            [["MetaInfo"] * meta_info.shape[1], meta_info.columns]
-        )
+        meta_info = self._add_meta_info_multiindex(meta_info)
+
         lookup_df = pd.concat([self.parameter_variation.points, meta_info], axis=1)
-
         savepath_lookup_df = os.path.join(self.env_man.env_path, "metainfo.csv")
-
         lookup_df.to_csv(savepath_lookup_df)
 
         if self.remove_output:
@@ -314,7 +358,9 @@ class VariationBase(Request, ServerRequest):
     def _remote_run(cls, remote_pickle_arg_path):
 
         kwargs = cls.open_arg_pickle(remote_pickle_arg_path)
-        env_man = EnvironmentManager(base_path=None, env_name=kwargs["remote_env_name"])
+        env_man = VadereEnvironmentManager(
+            base_path=None, env_name=kwargs["remote_env_name"]
+        )
 
         setup = cls(
             env_man=env_man,
@@ -337,7 +383,9 @@ class VariationBase(Request, ServerRequest):
             "njobs": njobs,
         }
 
-        local_transfer_files = {"path_basis_scenario": self.env_man.path_basis_scenario}
+        local_transfer_files = {
+            "path_basis_scenario": self.env_man.vadere_path_basis_scenario
+        }
 
         remote_result = super(VariationBase, self)._remote_ssh_logic(
             local_env_man=self.env_man,
@@ -349,23 +397,265 @@ class VariationBase(Request, ServerRequest):
         )
         return remote_result
 
+    def get_env_man_info(self):
+        return self.env_man.get_env_info()
 
-@DeprecationWarning
-class SampleVariation(VariationBase, ServerRequest):
+    def get_simulations(self):
+        return self.parameter_variation.points
+
+
+class CoupledDictVariation(VariationBase, ServerRequest):
     def __init__(
         self,
-        scenario_path: str,
-        parameter_sampling: ParameterVariationBase,
+        ini_path: str,
+        parameter_dict_list: List[dict],
         qoi: Union[str, List[str]],
-        model: Union[str, VadereConsoleWrapper],
-        scenario_runs=1,
+        model: Union[str, CoupledConsoleWrapper],
+        scenario_runs=Union[int, List[int]],
+        post_changes=PostScenarioChangesBase(apply_default=True),
+        njobs_create_scenarios=1,
         output_path=None,
         output_folder=None,
-        remove_output=False,
         env_remote=None,
+        remove_output=False,
+        seed_config=None,
+        config="final",
     ):
-        # TODO
-        pass
+
+        scenario_path = self._get_scenario_path(ini_path, config=config)
+
+        self.scenario_path = scenario_path
+        self.ini_path = ini_path
+        self.ini_dir = os.path.dirname(ini_path)
+
+        assert os.path.exists(ini_path) and ini_path.endswith(
+            ".ini"
+        ), "Filepath must exist and the file has to end with .ini"
+
+        assert os.path.exists(scenario_path) and scenario_path.endswith(
+            ".scenario"
+        ), "Filepath must exist and the file has to end with .scenario"
+
+        if env_remote is None:
+            env = CoupledEnvironmentManager.create_variation_env(
+                basis_scenario=self.scenario_path,
+                ini_scenario=self.ini_path,
+                base_path=output_path,
+                env_name=output_folder,
+                handle_existing="ask_user_replace",
+            )
+            self.env_path = env.env_path
+        else:
+            self.env_path = env_remote.env_path
+            self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
+            env = env_remote
+
+        parameter_variation = UserDefinedSampling(parameter_dict_list)
+        parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
+            scenario_runs=scenario_runs, seed_config=seed_config
+        )
+
+        super(CoupledDictVariation, self).__init__(
+            env_man=env,
+            parameter_variation=parameter_variation,
+            model=model,
+            qoi=qoi,
+            post_changes=post_changes,
+            njobs=njobs_create_scenarios,
+            remove_output=remove_output,
+        )
+
+    def run(self, njobs: int = 1):
+        # TODO use finally
+        # try:
+        #     par_var, data = super(CoupledDictVariation, self).run(njobs)
+        #     success = True
+        # except ValueError as e:
+        #     raise e
+        # finally:
+        #     if not success:
+        #         print("INFO: Simulation failed. Proceed succesful data only.")
+        #         par_var, data = self.get_sim_results_from_temp()
+        try:
+            par_var, data = super(CoupledDictVariation, self).run(njobs)
+        except:
+            print("INFO: Simulation failed. Proceed succesful data only.")
+            par_var, data = self.get_sim_results_from_temp()
+
+        return par_var, data
+
+    def get_sim_results_from_temp(self):
+
+        # get planned simulations
+        par_var = self.get_simulations()
+
+        # get pickle files from successful simulation runs
+        temp_folder = self.env_man.get_temp_folder()
+        files = os.listdir(temp_folder)
+
+        # read data and build a dataframe which contains all data
+        df = pd.DataFrame()
+        for f in files:
+            if os.path.splitext(f)[1] != ".pkl":
+                raise ValueError(
+                    f"Only .pkl files allowed (generated by suqc). Got file: {f}."
+                )
+            df_new = pd.read_pickle(os.path.join(temp_folder, f))
+            df = pd.concat([df, df_new])
+
+        # separate meta info and qoi
+        meta = df.iloc[:, df.columns.get_level_values(0) == "MetaInfo"]
+        meta = meta.dropna()
+        meta.columns = meta.columns.droplevel(0)
+        meta.index = meta.index.droplevel(-1)
+        qoi = df.iloc[:, df.columns.get_level_values(0) != "MetaInfo"]
+
+        # find failed simulation runs
+        ii = set(qoi.index.droplevel(level=-1).to_list())
+        iii = set(par_var.index.to_list())
+        failed_simulation_runs = list(iii.symmetric_difference(ii))
+
+        # save samples and meta information to par_var
+        meta_data = list()
+        for sim in par_var.index.to_list():
+            parameter_id = sim[0]
+            run_id = sim[1]
+
+            if sim in failed_simulation_runs:
+                return_code = -1
+                required_time = -1
+            else:
+                return_code = meta.loc[sim, "return_code"]
+                required_time = meta.loc[sim, "required_wallclock_time"]
+
+            meta_data.append((parameter_id, run_id, required_time, return_code,))
+
+        meta_info = self._compile_run_info(data=meta_data)
+        meta_info = self._add_meta_info_multiindex(meta_info)
+        par_var = pd.concat([par_var, meta_info], axis=1)
+
+        # save qoi to data dict
+        dict_keys = list(set(df.columns.get_level_values(0).to_list()))
+        data = dict()
+        for k in dict_keys:
+            df_k = df.iloc[:, df.columns.get_level_values(0) == k]
+            df_k = df_k.dropna()
+            #df_k.columns = df_k.columns.droplevel(0) not sure
+            data[k] = df_k
+
+        return par_var, data
+
+    def set_qoi(self, qoi):
+        if isinstance(qoi, (str, list)):
+            self.qoi = QuantityOfInterest(requested_files=qoi)
+        elif isinstance(qoi, QuantityOfInterest):
+            self.qoi = qoi
+        else:
+            raise ValueError(f"qoi must be of type QuantityOfInterest")
+
+    def _get_scenario_path(self, ini_path, config="final"):
+
+        ini_folder = os.path.dirname(ini_path)
+        ini_file = OppConfigFileBase.from_path(
+            ini_path=ini_path, config=config, cfg_type=OppConfigType.EXT_DEL_LOCAL,
+        )
+
+        scenario_name = ini_file["*.manager.vadereScenarioPath"].strip('"')
+        scenario_path = os.path.join(ini_folder, scenario_name)
+        return scenario_path
+
+    def scenario_creation(self, njobs):
+        parameter_variation = self.parameter_variation
+
+        # if parameter_variation.check_multiple_simulators() is False:
+        #    raise Exception("Dataframe must contain parameters of multiple simulators.")
+
+        scenario_creation = CoupledScenarioCreation(
+            self.env_man, parameter_variation, self.post_changes
+        )
+        request_item_list = scenario_creation.generate_scenarios(njobs)
+
+        return request_item_list
+
+    def _single_request(self, request_item: RequestItem) -> RequestItem:
+
+        par_id = request_item.parameter_id
+        run_id = request_item.run_id
+        start_file = self.env_man.get_name_run_script_file()
+
+        dirname = os.path.join(
+            self.env_man.get_env_outputfolder_path(),
+            self.env_man.get_simulation_directory(par_id, run_id),
+        )
+        required_files = [k.filename for k in self.qoi.req_qois]
+
+        return_code, required_time, output_on_error = self.model.run_simulation(
+            dirname, start_file, required_files
+        )
+
+        filepath = f"{dirname}/results/**/*.scenario"
+        file = glob.glob(filepath, recursive=True)
+        dirpath = os.path.dirname(file[0])
+
+        is_results = self._interpret_return_value(
+            return_code, request_item.parameter_id
+        )
+
+        if is_results and self.qoi is not None:
+            result = self.qoi.read_and_extract_qois(
+                par_id=request_item.parameter_id,
+                run_id=request_item.run_id,
+                output_path=dirpath,
+            )
+        elif not is_results and self.qoi is not None:
+            # something went wrong during run
+            assert output_on_error is not None
+
+            filename_stdout = "stdout_on_error.txt"
+            filename_stderr = "stderr_on_error.txt"
+            self._write_console_output(
+                output_on_error["stdout"], request_item.output_path, filename_stdout
+            )
+            self._write_console_output(
+                output_on_error["stderr"], request_item.output_path, filename_stderr
+            )
+            result = None
+        else:
+            result = None
+
+        if self.qoi is not None and not is_results:
+            required_time = np.nan
+
+        request_item.add_qoi_result(result)
+        request_item.add_meta_info(required_time=required_time, return_code=return_code)
+        # Because of the multi-processor part, don't try to already add the results here to _results_df
+
+        if self.remove_output is True:
+            shutil.rmtree(dirname)
+
+        temp_file = os.path.join(
+            self.env_man.get_temp_folder(), f"{par_id}__{run_id}.pkl"
+        )
+
+        k = result.keys()
+        df = pd.DataFrame()
+        for key, item in result.items():
+            item.columns = pd.MultiIndex.from_product([[key], item.columns.to_list()])
+            df = pd.concat([df, item], axis=1)
+
+        # add meta data information to pickle in temp dir
+        df_meta = pd.DataFrame(
+            {
+                ("MetaInfo", "return_code"): return_code,
+                ("MetaInfo", "required_wallclock_time"): required_time,
+            },
+            index=[(par_id, run_id, 0,)],
+        )
+
+        df = pd.concat([df, df_meta], axis=1, sort=True)
+        df.to_pickle(temp_file)
+
+        return request_item
 
 
 class DictVariation(VariationBase, ServerRequest):
@@ -392,7 +682,7 @@ class DictVariation(VariationBase, ServerRequest):
         ), "Filepath must exist and the file has to end with .scenario"
 
         if env_remote is None:
-            env = EnvironmentManager.create_variation_env(
+            env = VadereEnvironmentManager.create_variation_env(
                 basis_scenario=self.scenario_path,
                 base_path=output_path,
                 env_name=output_folder,
@@ -469,7 +759,7 @@ class FolderExistScenarios(Request, ServerRequest):
         assert os.path.exists(path_scenario_folder)
         self.path_scenario_folder = path_scenario_folder
 
-        self.env_man = EnvironmentManager.create_new_environment(
+        self.env_man = VadereEnvironmentManager.create_new_environment(
             base_path=output_path,
             env_name=output_folder,
             handle_existing=handle_existing,
@@ -595,7 +885,7 @@ class SingleExistScenario(Request, ServerRequest):
 
         scenario_name = os.path.basename(path_scenario).replace(".scenario", "")
 
-        self.env_man = EnvironmentManager.create_new_environment(
+        self.env_man = VadereEnvironmentManager.create_new_environment(
             base_path=output_path,
             env_name=output_folder,
             handle_existing=handle_existing,
@@ -606,7 +896,7 @@ class SingleExistScenario(Request, ServerRequest):
             if isinstance(qoi, (str, list)):
                 with open(path_scenario, "r") as f:
                     basis_scenario = json.load(f)
-                qoi = QuantityOfInterest(
+                qoi = VadereQuantityOfInterest(
                     basis_scenario=basis_scenario, requested_files=qoi
                 )
             else:

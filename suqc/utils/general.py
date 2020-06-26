@@ -14,6 +14,7 @@ import pandas as pd
 
 import suqc
 from suqc.configuration import SuqcConfig
+from fnmatch import fnmatch, filter
 
 
 def get_current_suqc_state():
@@ -193,3 +194,50 @@ def user_query_numbered_list(elements: list):
                 return elements[choice]
         except ValueError:
             print("The number has to be an integer.")
+
+
+def include_patterns(*patterns):
+
+    # https://stackoverflow.com/questions/42487578/python-shutil-copytree-use-ignore-function-to-keep-specific-files-types
+
+    """Factory function that can be used with copytree() ignore parameter.
+
+    Arguments define a sequence of glob-style patterns
+    that are used to specify what files to NOT ignore.
+    Creates and returns a function that determines this for each directory
+    in the file hierarchy rooted at the source directory when used with
+    shutil.copytree().
+    """
+
+    def _ignore_patterns(path, names):
+
+        keep = set(name for pattern in patterns for name in filter(names, pattern))
+        ignore = set(
+            name
+            for name in names
+            if name not in keep and not os.path.isdir(os.path.join(path, name))
+        )
+        return ignore
+
+    return _ignore_patterns
+
+
+def removeEmptyFolders(path):
+
+    # https://metinsaylan.com/7974/gist-python-script-to-delete-all-empty-folders/
+
+    for root, dirs, files in os.walk(path, topdown=False):
+        for name in dirs:
+            try:
+                if (
+                    len(os.listdir(os.path.join(root, name))) == 0
+                ):  # check whether the directory is empty
+                    try:
+                        os.rmdir(os.path.join(root, name))
+                    except:
+                        print("FAILED :", os.path.join(root, name))
+                        pass
+            except:
+                pass
+
+    return

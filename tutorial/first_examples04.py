@@ -22,7 +22,7 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     # EnvironmentManager handles the "environment" (contains all Vadere output and basis scenario). It is also suited
     # to store the results.
-    env_man = EnvironmentManager.create_variation_env(
+    env_man = VadereEnvironmentManager.create_variation_env(
         basis_scenario=path2scenario,
         base_path=None,
         env_name="test_remote",
