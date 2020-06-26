@@ -42,6 +42,8 @@ def read_from_existing_output(
 
                 parentfolder = os.path.basename(filepath0)
 
+                # TODO: it'd be better to use QuantityOfInterest.read_and_extract_qois
+                #  here, as this is the "central unit" to read files of interest
                 df_data = pd.read_csv(filepath, delimiter=" ", header=[0], comment="#")
 
                 if extract_ids:
