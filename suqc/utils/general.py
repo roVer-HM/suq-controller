@@ -17,6 +17,13 @@ from suqc.configuration import SuqcConfig
 from fnmatch import fnmatch, filter
 
 
+def get_info_vadere_repo():
+    if not os.getenv("VADERE"):
+        raise EnvironmentError(
+            "Please provide system variable VADERE.\nVADERE is the absolute path to your local vadere git repository.\nSee https://gitlab.lrz.de/vadere/vadere for getting vadere."
+        )
+
+
 def get_current_suqc_state():
     # message only for developer, -- if the installed package is running
     if not SuqcConfig.is_package_paths():
