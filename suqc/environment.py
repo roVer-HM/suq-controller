@@ -27,6 +27,54 @@ DEFAULT_SUQ_CONFIG = {
     "server": {"host": "", "user": "", "port": -1},
 }
 
+class VadereJarFile(object):
+
+    def __init__(self,path, git_commit_hash, branch = "master"):
+        self.git_commit_hash = git_commit_hash
+        self.branch = branch
+        self.path = path
+
+    def get_path(self):
+        jar_file_name = f"vadere-console_{self.branch}_{self.git_commit_hash}"
+        return os.path.join(self.path,jar_file_name)
+
+    def get_jar_file_from_vadere_repo(self):
+
+        print(f"Branch: {self.branch}, commit hash: {self.git_commit_hash}")
+
+        if (platform.system() != "Linux"):
+            raise NotImplemented
+
+        vadere = os.environ["VADERE"]
+
+        vadere_jar_file = self.get_path()
+        vadere_commit = self.git_commit_hash
+        if os.path.exists(vadere_jar_file) is False:
+
+            return_code = subprocess.check_call(
+                ["git", "-C", vadere, "pull", "origin", self.branch]
+            )
+            if vadere_commit:
+                return_code = subprocess.check_call(
+                    ["git", "-C", vadere, "checkout", vadere_commit]
+                )
+
+            command = ["mvn", "clean", "-f", os.path.join(vadere, "pom.xml")]
+            return_code = subprocess.check_call(command)
+            command = [
+                "mvn",
+                "package",
+                "-f",
+                os.path.join(vadere, "pom.xml"),
+                "-Dmaven.test.skip=true",
+            ]
+            return_code = subprocess.check_call(command)
+
+            jar_file = os.path.join(vadere, "VadereSimulator/target/vadere-console.jar")
+
+            shutil.copyfile(jar_file, vadere_jar_file)
+
+
 
 class AbstractConsoleWrapper(object):
     @classmethod
@@ -94,18 +142,27 @@ class VadereConsoleWrapper(AbstractConsoleWrapper):
 
     def __init__(
         self,
-        model_path: str,
+        model_path: Union[str,VadereJarFile],
         loglvl="INFO",
         jvm_flags: Optional[List] = None,
         timeout_sec=None,
     ):
 
+
+        if not isinstance(model_path,str):
+            if not os.path.exists(model_path.get_path()):
+                model_path.get_jar_file_from_vadere_repo()
+
+            model_path = model_path.get_path()
+
         self.jar_path = os.path.abspath(model_path)
+
 
         if not os.path.exists(self.jar_path):
             raise FileNotFoundError(
                 f"Vadere console .jar file {self.jar_path} does not exist."
             )
+
 
         loglvl = loglvl.upper()
         if loglvl not in self.ALLOWED_LOGLVL:
