@@ -36,7 +36,7 @@ class VadereJarFile(object):
         self.path = path
 
     def get_path(self):
-        jar_file_name = f"vadere-console_{self.branch}_{self.git_commit_hash}"
+        jar_file_name = f"vadere-console_{self.branch}_{self.git_commit_hash}.jar"
         return os.path.join(self.path, jar_file_name)
 
     def get_jar_file_from_vadere_repo(self):
