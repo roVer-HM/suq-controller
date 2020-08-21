@@ -19,6 +19,7 @@ from suqc.utils.general import (
     user_query_yes_no,
     include_patterns,
     removeEmptyFolders,
+    get_info_vadere_repo,
 )
 
 # configuration of the suq-controller
@@ -26,6 +27,56 @@ DEFAULT_SUQ_CONFIG = {
     "default_vadere_src_path": "TODO",
     "server": {"host": "", "user": "", "port": -1},
 }
+
+
+class VadereJarFile(object):
+    def __init__(self, path, git_commit_hash, branch="master"):
+        self.git_commit_hash = git_commit_hash
+        self.branch = branch
+        self.path = path
+
+    def get_path(self):
+        jar_file_name = f"vadere-console_{self.branch}_{self.git_commit_hash}.jar"
+        return os.path.join(self.path, jar_file_name)
+
+    def get_jar_file_from_vadere_repo(self):
+        # checkout commit and make a package
+        # copy the generated jar-file to the user-defined path
+
+        print(f"Branch: {self.branch}, commit hash: {self.git_commit_hash}")
+
+        if platform.system() != "Linux":
+            raise NotImplemented
+
+        get_info_vadere_repo()
+
+        vadere = os.environ["VADERE"]
+        vadere_jar_file = self.get_path()
+        vadere_commit = self.git_commit_hash
+        if os.path.exists(vadere_jar_file) is False:
+
+            return_code = subprocess.check_call(
+                ["git", "-C", vadere, "pull", "origin", self.branch]
+            )
+            if vadere_commit:
+                return_code = subprocess.check_call(
+                    ["git", "-C", vadere, "checkout", vadere_commit]
+                )
+
+            command = ["mvn", "clean", "-f", os.path.join(vadere, "pom.xml")]
+            return_code = subprocess.check_call(command)
+            command = [
+                "mvn",
+                "package",
+                "-f",
+                os.path.join(vadere, "pom.xml"),
+                "-Dmaven.test.skip=true",
+            ]
+            return_code = subprocess.check_call(command)
+
+            jar_file = os.path.join(vadere, "VadereSimulator/target/vadere-console.jar")
+
+            shutil.copyfile(jar_file, vadere_jar_file)
 
 
 class AbstractConsoleWrapper(object):
@@ -70,7 +121,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             cwd=dirname,
-            timeout=10800 # stop simulation after 3h
+            timeout=10800,  # stop simulation after 3h
         )
 
         process_duration = time.time() - time_started
@@ -94,11 +145,17 @@ class VadereConsoleWrapper(AbstractConsoleWrapper):
 
     def __init__(
         self,
-        model_path: str,
+        model_path: Union[str, VadereJarFile],
         loglvl="INFO",
         jvm_flags: Optional[List] = None,
         timeout_sec=None,
     ):
+
+        if not isinstance(model_path, str):
+            if not os.path.exists(model_path.get_path()):
+                model_path.get_jar_file_from_vadere_repo()
+
+            model_path = model_path.get_path()
 
         self.jar_path = os.path.abspath(model_path)
 
