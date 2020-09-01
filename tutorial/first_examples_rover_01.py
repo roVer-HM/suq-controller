@@ -84,12 +84,17 @@ if __name__ == "__main__":
         "time_95_informed.txt",
     ]
 
+    # define tag of omnet and vadere docker images, see https://sam-dev.cs.hm.edu/rover/rover-main/container_registry/
+    model = CoupledConsoleWrapper(
+        model="Coupled", vadere_tag="200527-1424", omnetpp_tag="200221-1642"
+    )
+
     setup = CoupledDictVariation(
         ini_path=path2ini,
         config="final",
         parameter_dict_list=par_var,
         qoi=qoi,
-        model="Coupled",
+        model=model,
         scenario_runs=reps,
         post_changes=PostScenarioChangesBase(apply_default=True),
         output_path=path2tutorial,

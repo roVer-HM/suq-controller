@@ -99,8 +99,10 @@ class AbstractConsoleWrapper(object):
 
 
 class CoupledConsoleWrapper(AbstractConsoleWrapper):
-    def __init__(self, model):
+    def __init__(self, model, vadere_tag="latest", omnetpp_tag="lastest"):
         self.simulator = model
+        self.vadere_tag = vadere_tag
+        self.omnetpp_tag = omnetpp_tag
 
     def run_simulation(
         self, dirname, start_file, required_files: Union[str, List[str]]
@@ -110,6 +112,8 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         terminal_command.extend(required_files)
         terminal_command.extend(["--run-name", os.path.basename(dirname)])
         terminal_command.extend(["--create-vadere-container"])
+        terminal_command.extend(["--vadere-tag", self.vadere_tag])
+        terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
 
         time_started = time.time()
         t = time.strftime("%H:%M:%S", time.localtime(time_started))
