@@ -112,6 +112,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         terminal_command.extend(required_files)
         terminal_command.extend(["--run-name", os.path.basename(dirname)])
         terminal_command.extend(["--create-vadere-container"])
+        terminal_command.extend(["--delete-existing-containers"])
         terminal_command.extend(["--vadere-tag", self.vadere_tag])
         terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
 
@@ -449,6 +450,11 @@ class AbstractEnvironmentManager(object):
         info = pd.DataFrame(data=info, index=[0])
         cls.env_info_df = info
 
+    def write_parameter_info(self, parameter):
+        print("write parameter.pkl")
+        file_path = os.path.join(self.get_temp_folder(), "parameter.pkl")
+        parameter.to_pickle(file_path)
+
 
 class VadereEnvironmentManager(AbstractEnvironmentManager):
 
@@ -605,6 +611,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         cls.basis_scenario_name = os.path.basename(basis_scenario)
         # Check if environment already exists
+
         env_man = cls.create_new_environment(
             base_path=base_path, env_name=env_name, handle_existing=handle_existing
         )
@@ -692,11 +699,13 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             path_output_folder, CoupledEnvironmentManager.temp_folder_rover,
         )
 
-        if os.path.exists(temp_folder_rover):
-            shutil.rmtree(temp_folder_rover)
-
-        if os.path.exists(temp_folder_rover) is False:
+        if handle_existing != "write_in":
+            if os.path.exists(temp_folder_rover):
+                shutil.rmtree(temp_folder_rover)
             os.mkdir(temp_folder_rover)
+
+        df = cls.env_info_df
+        df.to_pickle(os.path.join(temp_folder_rover, "env_info.pkl"))
 
         return cls(base_path, env_name)
 

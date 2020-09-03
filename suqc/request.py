@@ -19,7 +19,12 @@ from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
 from suqc.qoi import VadereQuantityOfInterest, QuantityOfInterest
 from suqc.remote import ServerRequest
-from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
+from suqc.utils.general import (
+    create_folder,
+    njobs_check_and_set,
+    parent_folder_clean,
+    user_query_yes_no,
+)
 
 
 def read_from_existing_output(
@@ -400,11 +405,11 @@ class VariationBase(Request, ServerRequest):
     def get_env_man_info(self):
         return self.env_man.get_env_info()
 
-    def get_simulations(self):
-        return self.parameter_variation.points
-
 
 class CoupledDictVariation(VariationBase, ServerRequest):
+
+    METAINFOFILE = "parameter.pkl"
+
     def __init__(
         self,
         ini_path: str,
@@ -436,24 +441,45 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             ".scenario"
         ), "Filepath must exist and the file has to end with .scenario"
 
-        if env_remote is None:
-            env = CoupledEnvironmentManager.create_variation_env(
-                basis_scenario=self.scenario_path,
-                ini_scenario=self.ini_path,
-                base_path=output_path,
-                env_name=output_folder,
-                handle_existing="ask_user_replace",
-            )
-            self.env_path = env.env_path
-        else:
-            self.env_path = env_remote.env_path
-            self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
-            env = env_remote
+        temp_dir = os.path.join(output_path, output_folder)
+        temp_dir = os.path.join(temp_dir, "temp")
 
-        parameter_variation = UserDefinedSampling(parameter_dict_list)
-        parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
-            scenario_runs=scenario_runs, seed_config=seed_config
-        )
+        is_finish_existing = False
+        if os.path.isdir(temp_dir):
+            is_finish_existing = user_query_yes_no(
+                question=f"Parts of simulation found in {temp_dir}. \nDo you want to finish the existing simulation?"
+            )
+
+        if is_finish_existing is False:
+            if env_remote is None:
+                env = CoupledEnvironmentManager.create_variation_env(
+                    basis_scenario=self.scenario_path,
+                    ini_scenario=self.ini_path,
+                    base_path=output_path,
+                    env_name=output_folder,
+                    handle_existing="ask_user_replace",
+                )
+                self.env_path = env.env_path
+            else:
+                self.env_path = env_remote.env_path
+                self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
+                env = env_remote
+
+            parameter_variation = UserDefinedSampling(parameter_dict_list)
+            parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
+                scenario_runs=scenario_runs, seed_config=seed_config
+            )
+        else:
+
+            parameter_variation = ParameterVariationBase()
+            parameter_variation._add_df_points(
+                self.read_from_temp_folder(temp_dir, option="select")
+            )
+
+            man_file = os.path.join(temp_dir, "env_info.pkl")
+            env = CoupledEnvironmentManager.create_variation_env_from_info_file(
+                man_file
+            )
 
         super(CoupledDictVariation, self).__init__(
             env_man=env,
@@ -464,6 +490,38 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             njobs=njobs_create_scenarios,
             remove_output=remove_output,
         )
+
+    def get_simulations(self):
+
+        file_path = os.path.join(self.env_man.get_temp_folder(), "parameter.pkl")
+
+        if os.path.isfile(file_path):
+            df = self.read_from_temp_folder(
+                self.env_man.get_temp_folder(), option="all"
+            )
+        else:
+            df = self.parameter_variation.points
+        return df
+
+    def __get_temp_dir(self):
+        dir_path = os.path.join(self.env_man.env_name, "temp")
+        return dir_path
+
+    def __write_to_temp_folder(self, par_var):
+        self.env_man.write_parameter_info(par_var)
+
+    def read_from_temp_folder(self, temp_folder, option="all"):
+
+        para = os.path.join(temp_folder, "parameter.pkl")
+        df = pd.read_pickle(para)
+        df.columns = pd.MultiIndex.from_tuples(df.columns.tolist())
+
+        if option != "all":
+            df = df[df.iloc[:, -1] != 0]
+
+        parameter = df.iloc[:, df.columns.get_level_values(0) == "Parameter"]
+
+        return parameter
 
     def run(self, njobs: int = 1):
         # TODO use finally
@@ -492,8 +550,14 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         # get pickle files from successful simulation runs
         temp_folder = self.env_man.get_temp_folder()
         files = os.listdir(temp_folder)
+        files.remove("env_info.pkl")
+
+        path_parameter_file = os.path.join(temp_folder, "parameter.pkl")
+        if os.path.isfile(path_parameter_file):
+            files.remove("parameter.pkl")
 
         # read data and build a dataframe which contains all data
+
         df = pd.DataFrame()
         for f in files:
             if os.path.splitext(f)[1] != ".pkl":
@@ -540,8 +604,12 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         for k in dict_keys:
             df_k = df.iloc[:, df.columns.get_level_values(0) == k]
             df_k = df_k.dropna()
-            #df_k.columns = df_k.columns.droplevel(0) not sure
+            # df_k.columns = df_k.columns.droplevel(0) not sure
             data[k] = df_k
+        print("write par_var")
+        print(par_var)
+
+        self.__write_to_temp_folder(par_var)
 
         return par_var, data
 
