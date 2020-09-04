@@ -583,7 +583,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         meta = meta.dropna()
         meta.columns = meta.columns.droplevel(0)
         for x in range(2, len(meta.index.levels)):
-            meta = meta.droplevel(f"unkonwn_index_{x-2}")
+            meta = meta.droplevel(f"unknown_index_{x-2}")
 
         qoi = df.iloc[:, df.columns.get_level_values(0) != "MetaInfo"]
 
@@ -721,6 +721,12 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         if self.remove_output is True:
             shutil.rmtree(dirname)
 
+        self.write_temp_data(par_id, run_id, result, return_code, required_time)
+
+        return request_item
+
+    def write_temp_data(self, par_id, run_id, result, return_code, required_time):
+
         temp_file = os.path.join(
             self.env_man.get_temp_folder(), f"{par_id}__{run_id}.pkl"
         )
@@ -728,8 +734,9 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         k = result.keys()
         df = pd.DataFrame()
         for key, item in result.items():
-            item.columns = pd.MultiIndex.from_product([[key], item.columns.to_list()])
-            df = pd.concat([df, item], axis=1)
+            item_ = item.copy()
+            item_.columns = pd.MultiIndex.from_product([[key], item_.columns.to_list()])
+            df = pd.concat([df, item_], axis=1)
 
         # add meta data information to pickle in temp dir
         df_meta = pd.DataFrame(
@@ -746,11 +753,9 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         names[1] = "run_id"
 
         for x in range(2, len(df.index.levels)):
-            names[x] = f"unkonwn_index_{x-2}"
+            names[x] = f"unknown_index_{x-2}"
         df.index.names = names
         df.to_pickle(temp_file)
-
-        return request_item
 
 
 class DictVariation(VariationBase, ServerRequest):

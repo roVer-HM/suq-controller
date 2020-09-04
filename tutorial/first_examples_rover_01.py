@@ -34,7 +34,7 @@ if __name__ == "__main__":
         Parameter(
             name="number_of_agents_mean",
             simulator="dummy",
-            stages=[15, 20, 30, 35, 40, 45],
+            stages=[15, 20, 25, 30, 35],
         )  # number of agtens to be generated in 100s
     ]
     dependent_parameters = [
