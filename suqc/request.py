@@ -432,6 +432,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         self.scenario_path = scenario_path
         self.ini_path = ini_path
         self.ini_dir = os.path.dirname(ini_path)
+        self.read_old_data = False
 
         assert os.path.exists(ini_path) and ini_path.endswith(
             ".ini"
@@ -470,7 +471,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
                 scenario_runs=scenario_runs, seed_config=seed_config
             )
         else:
-
+            self.read_old_data = True
             parameter_variation = ParameterVariationBase()
             parameter_variation._add_df_points(
                 self.read_from_temp_folder(temp_dir, option="select")
@@ -490,6 +491,9 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             njobs=njobs_create_scenarios,
             remove_output=remove_output,
         )
+
+    def is_read_old_data(self):
+        return self.read_old_data
 
     def get_simulations(self):
 
@@ -535,7 +539,11 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         #         print("INFO: Simulation failed. Proceed succesful data only.")
         #         par_var, data = self.get_sim_results_from_temp()
         try:
+            # print("INFO: Simulation succeeded.")
             par_var, data = super(CoupledDictVariation, self).run(njobs)
+            # print("INFO: Simulation succeeded. Proceed old and new data.")
+            # par_var, data = self.get_sim_results_from_temp()
+
         except:
             print("INFO: Simulation failed. Proceed succesful data only.")
             par_var, data = self.get_sim_results_from_temp()
