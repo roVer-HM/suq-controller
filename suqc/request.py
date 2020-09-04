@@ -571,11 +571,13 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         meta = df.iloc[:, df.columns.get_level_values(0) == "MetaInfo"]
         meta = meta.dropna()
         meta.columns = meta.columns.droplevel(0)
-        meta.index = meta.index.droplevel(-1)
+        for x in range(2, len(meta.index.levels)):
+            meta = meta.droplevel(f"unkonwn_index_{x-2}")
+
         qoi = df.iloc[:, df.columns.get_level_values(0) != "MetaInfo"]
 
         # find failed simulation runs
-        ii = set(qoi.index.droplevel(level=-1).to_list())
+        ii = set(meta.index.to_list())
         iii = set(par_var.index.to_list())
         failed_simulation_runs = list(iii.symmetric_difference(ii))
 
@@ -597,17 +599,20 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         meta_info = self._compile_run_info(data=meta_data)
         meta_info = self._add_meta_info_multiindex(meta_info)
         par_var = pd.concat([par_var, meta_info], axis=1)
+        par_var = par_var.sort_index()
 
         # save qoi to data dict
-        dict_keys = list(set(df.columns.get_level_values(0).to_list()))
+        failed_simulation_runs = [x + (0,) for x in failed_simulation_runs]
+        dict_keys = list(set(qoi.columns.get_level_values(0).to_list()))
         data = dict()
         for k in dict_keys:
-            df_k = df.iloc[:, df.columns.get_level_values(0) == k]
+            df_k = qoi.iloc[:, qoi.columns.get_level_values(0) == k]
             df_k = df_k.dropna()
-            # df_k.columns = df_k.columns.droplevel(0) not sure
+            df_nan = pd.DataFrame(index=failed_simulation_runs, columns=df_k.columns)
+            df_k = pd.concat([df_k, df_nan], axis=0)
+            df_k = df_k.sort_index()
+            df_k.columns = df_k.columns.droplevel(0)
             data[k] = df_k
-        print("write par_var")
-        print(par_var)
 
         self.__write_to_temp_folder(par_var)
 
@@ -721,6 +726,13 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         )
 
         df = pd.concat([df, df_meta], axis=1, sort=True)
+        names = df.index.names.copy()
+        names[0] = "id"
+        names[1] = "run_id"
+
+        for x in range(2, len(df.index.levels)):
+            names[x] = f"unkonwn_index_{x-2}"
+        df.index.names = names
         df.to_pickle(temp_file)
 
         return request_item
