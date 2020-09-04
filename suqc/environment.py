@@ -451,8 +451,6 @@ class AbstractEnvironmentManager(object):
         cls.env_info_df = info
 
     def write_parameter_info(self, parameter):
-        print("write parameter.pkl")
-        print(parameter)
         file_path = os.path.join(self.get_temp_folder(), "parameter.pkl")
         parameter.to_pickle(file_path)
 

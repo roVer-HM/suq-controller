@@ -539,13 +539,16 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         #         print("INFO: Simulation failed. Proceed succesful data only.")
         #         par_var, data = self.get_sim_results_from_temp()
         try:
-            # print("INFO: Simulation succeeded.")
+            remove_output = self.remove_output
+            if self.is_read_old_data():
+                self.remove_output = False
             par_var, data = super(CoupledDictVariation, self).run(njobs)
-            # print("INFO: Simulation succeeded. Proceed old and new data.")
-            # par_var, data = self.get_sim_results_from_temp()
-
+            if self.is_read_old_data():
+                par_var, data = self.get_sim_results_from_temp()
+            if remove_output and self.is_read_old_data():
+                self._remove_output()
         except:
-            print("INFO: Simulation failed. Proceed succesful data only.")
+            print("INFO: Proceed succesful data only.")
             par_var, data = self.get_sim_results_from_temp()
 
         return par_var, data
@@ -588,6 +591,10 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         ii = set(meta.index.to_list())
         iii = set(par_var.index.to_list())
         failed_simulation_runs = list(iii.symmetric_difference(ii))
+
+        print(
+            f"INFO: {len(ii)}/{len(iii)} simulations succeeded ({int(100*len(ii)/len(iii))}%)."
+        )
 
         # save samples and meta information to par_var
         meta_data = list()

@@ -101,7 +101,7 @@ if __name__ == "__main__":
         post_changes=PostScenarioChangesBase(apply_default=True),
         output_path=path2tutorial,
         output_folder=output_folder,
-        remove_output=False,
+        remove_output=True,
         seed_config={"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
@@ -125,6 +125,6 @@ if __name__ == "__main__":
 
     par_var.to_csv(os.path.join(summary, "parameters.csv"))
     for q in qoi:
-        data[q].to_csv(os.path.join(summary, f"{q}.csv"))
+        data[q].to_csv(os.path.join(summary, f"{q}"))
 
     print("All simulation runs completed.")
