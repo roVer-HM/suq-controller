@@ -19,7 +19,12 @@ from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
 from suqc.qoi import VadereQuantityOfInterest, QuantityOfInterest
 from suqc.remote import ServerRequest
-from suqc.utils.general import create_folder, njobs_check_and_set, parent_folder_clean
+from suqc.utils.general import (
+    create_folder,
+    njobs_check_and_set,
+    parent_folder_clean,
+    user_query_yes_no,
+)
 
 
 def read_from_existing_output(
@@ -400,11 +405,11 @@ class VariationBase(Request, ServerRequest):
     def get_env_man_info(self):
         return self.env_man.get_env_info()
 
-    def get_simulations(self):
-        return self.parameter_variation.points
-
 
 class CoupledDictVariation(VariationBase, ServerRequest):
+
+    METAINFOFILE = "parameter.pkl"
+
     def __init__(
         self,
         ini_path: str,
@@ -427,6 +432,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         self.scenario_path = scenario_path
         self.ini_path = ini_path
         self.ini_dir = os.path.dirname(ini_path)
+        self.read_old_data = False
 
         assert os.path.exists(ini_path) and ini_path.endswith(
             ".ini"
@@ -436,24 +442,45 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             ".scenario"
         ), "Filepath must exist and the file has to end with .scenario"
 
-        if env_remote is None:
-            env = CoupledEnvironmentManager.create_variation_env(
-                basis_scenario=self.scenario_path,
-                ini_scenario=self.ini_path,
-                base_path=output_path,
-                env_name=output_folder,
-                handle_existing="ask_user_replace",
-            )
-            self.env_path = env.env_path
-        else:
-            self.env_path = env_remote.env_path
-            self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
-            env = env_remote
+        temp_dir = os.path.join(output_path, output_folder)
+        temp_dir = os.path.join(temp_dir, "temp")
 
-        parameter_variation = UserDefinedSampling(parameter_dict_list)
-        parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
-            scenario_runs=scenario_runs, seed_config=seed_config
-        )
+        is_finish_existing = False
+        if os.path.isdir(temp_dir):
+            is_finish_existing = user_query_yes_no(
+                question=f"Parts of simulation found in {temp_dir}. \nDo you want to finish the existing simulation?"
+            )
+
+        if is_finish_existing is False:
+            if env_remote is None:
+                env = CoupledEnvironmentManager.create_variation_env(
+                    basis_scenario=self.scenario_path,
+                    ini_scenario=self.ini_path,
+                    base_path=output_path,
+                    env_name=output_folder,
+                    handle_existing="ask_user_replace",
+                )
+                self.env_path = env.env_path
+            else:
+                self.env_path = env_remote.env_path
+                self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
+                env = env_remote
+
+            parameter_variation = UserDefinedSampling(parameter_dict_list)
+            parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
+                scenario_runs=scenario_runs, seed_config=seed_config
+            )
+        else:
+            self.read_old_data = True
+            parameter_variation = ParameterVariationBase()
+            parameter_variation._add_df_points(
+                self.read_from_temp_folder(temp_dir, option="select")
+            )
+
+            man_file = os.path.join(temp_dir, "env_info.pkl")
+            env = CoupledEnvironmentManager.create_variation_env_from_info_file(
+                man_file
+            )
 
         super(CoupledDictVariation, self).__init__(
             env_man=env,
@@ -464,6 +491,41 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             njobs=njobs_create_scenarios,
             remove_output=remove_output,
         )
+
+    def is_read_old_data(self):
+        return self.read_old_data
+
+    def get_simulations(self):
+
+        file_path = os.path.join(self.env_man.get_temp_folder(), "parameter.pkl")
+
+        if os.path.isfile(file_path):
+            df = self.read_from_temp_folder(
+                self.env_man.get_temp_folder(), option="all"
+            )
+        else:
+            df = self.parameter_variation.points
+        return df
+
+    def __get_temp_dir(self):
+        dir_path = os.path.join(self.env_man.env_name, "temp")
+        return dir_path
+
+    def __write_to_temp_folder(self, par_var):
+        self.env_man.write_parameter_info(par_var)
+
+    def read_from_temp_folder(self, temp_folder, option="all"):
+
+        para = os.path.join(temp_folder, "parameter.pkl")
+        df = pd.read_pickle(para)
+        df.columns = pd.MultiIndex.from_tuples(df.columns.tolist())
+
+        if option != "all":
+            df = df[df.iloc[:, -1] != 0]
+
+        parameter = df.iloc[:, df.columns.get_level_values(0) == "Parameter"]
+
+        return parameter
 
     def run(self, njobs: int = 1):
         # TODO use finally
@@ -477,9 +539,16 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         #         print("INFO: Simulation failed. Proceed succesful data only.")
         #         par_var, data = self.get_sim_results_from_temp()
         try:
+            remove_output = self.remove_output
+            if self.is_read_old_data():
+                self.remove_output = False
             par_var, data = super(CoupledDictVariation, self).run(njobs)
+            if self.is_read_old_data():
+                par_var, data = self.get_sim_results_from_temp()
+            if remove_output and self.is_read_old_data():
+                self._remove_output()
         except:
-            print("INFO: Simulation failed. Proceed succesful data only.")
+            print("INFO: Proceed succesful data only.")
             par_var, data = self.get_sim_results_from_temp()
 
         return par_var, data
@@ -492,8 +561,14 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         # get pickle files from successful simulation runs
         temp_folder = self.env_man.get_temp_folder()
         files = os.listdir(temp_folder)
+        files.remove("env_info.pkl")
+
+        path_parameter_file = os.path.join(temp_folder, "parameter.pkl")
+        if os.path.isfile(path_parameter_file):
+            files.remove("parameter.pkl")
 
         # read data and build a dataframe which contains all data
+
         df = pd.DataFrame()
         for f in files:
             if os.path.splitext(f)[1] != ".pkl":
@@ -507,13 +582,19 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         meta = df.iloc[:, df.columns.get_level_values(0) == "MetaInfo"]
         meta = meta.dropna()
         meta.columns = meta.columns.droplevel(0)
-        meta.index = meta.index.droplevel(-1)
+        for x in range(2, len(meta.index.levels)):
+            meta = meta.droplevel(f"unknown_index_{x-2}")
+
         qoi = df.iloc[:, df.columns.get_level_values(0) != "MetaInfo"]
 
         # find failed simulation runs
-        ii = set(qoi.index.droplevel(level=-1).to_list())
+        ii = set(meta.index.to_list())
         iii = set(par_var.index.to_list())
         failed_simulation_runs = list(iii.symmetric_difference(ii))
+
+        print(
+            f"INFO: {len(ii)}/{len(iii)} simulations succeeded ({int(100*len(ii)/len(iii))}%)."
+        )
 
         # save samples and meta information to par_var
         meta_data = list()
@@ -533,15 +614,22 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         meta_info = self._compile_run_info(data=meta_data)
         meta_info = self._add_meta_info_multiindex(meta_info)
         par_var = pd.concat([par_var, meta_info], axis=1)
+        par_var = par_var.sort_index()
 
         # save qoi to data dict
-        dict_keys = list(set(df.columns.get_level_values(0).to_list()))
+        failed_simulation_runs = [x + (0,) for x in failed_simulation_runs]
+        dict_keys = list(set(qoi.columns.get_level_values(0).to_list()))
         data = dict()
         for k in dict_keys:
-            df_k = df.iloc[:, df.columns.get_level_values(0) == k]
+            df_k = qoi.iloc[:, qoi.columns.get_level_values(0) == k]
             df_k = df_k.dropna()
-            #df_k.columns = df_k.columns.droplevel(0) not sure
+            df_nan = pd.DataFrame(index=failed_simulation_runs, columns=df_k.columns)
+            df_k = pd.concat([df_k, df_nan], axis=0)
+            df_k = df_k.sort_index()
+            df_k.columns = df_k.columns.droplevel(0)
             data[k] = df_k
+
+        self.__write_to_temp_folder(par_var)
 
         return par_var, data
 
@@ -633,6 +721,12 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         if self.remove_output is True:
             shutil.rmtree(dirname)
 
+        self.write_temp_data(par_id, run_id, result, return_code, required_time)
+
+        return request_item
+
+    def write_temp_data(self, par_id, run_id, result, return_code, required_time):
+
         temp_file = os.path.join(
             self.env_man.get_temp_folder(), f"{par_id}__{run_id}.pkl"
         )
@@ -640,8 +734,9 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         k = result.keys()
         df = pd.DataFrame()
         for key, item in result.items():
-            item.columns = pd.MultiIndex.from_product([[key], item.columns.to_list()])
-            df = pd.concat([df, item], axis=1)
+            item_ = item.copy()
+            item_.columns = pd.MultiIndex.from_product([[key], item_.columns.to_list()])
+            df = pd.concat([df, item_], axis=1)
 
         # add meta data information to pickle in temp dir
         df_meta = pd.DataFrame(
@@ -653,9 +748,14 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         )
 
         df = pd.concat([df, df_meta], axis=1, sort=True)
-        df.to_pickle(temp_file)
+        names = df.index.names.copy()
+        names[0] = "id"
+        names[1] = "run_id"
 
-        return request_item
+        for x in range(2, len(df.index.levels)):
+            names[x] = f"unknown_index_{x-2}"
+        df.index.names = names
+        df.to_pickle(temp_file)
 
 
 class DictVariation(VariationBase, ServerRequest):

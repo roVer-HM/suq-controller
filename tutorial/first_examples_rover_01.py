@@ -32,7 +32,9 @@ if __name__ == "__main__":
 
     parameter = [
         Parameter(
-            name="number_of_agents_mean", simulator="dummy", stages=[15, 20],
+            name="number_of_agents_mean",
+            simulator="dummy",
+            stages=[15, 20, 25, 30, 35],
         )  # number of agtens to be generated in 100s
     ]
     dependent_parameters = [
@@ -68,7 +70,7 @@ if __name__ == "__main__":
     ]
 
     # number of repitions for each sample
-    reps = [2, 1]
+    reps = 1
 
     # sampling
     par_var = RoverSamplingFullFactorial(
@@ -99,7 +101,7 @@ if __name__ == "__main__":
         post_changes=PostScenarioChangesBase(apply_default=True),
         output_path=path2tutorial,
         output_folder=output_folder,
-        remove_output=False,
+        remove_output=True,
         seed_config={"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
@@ -109,6 +111,11 @@ if __name__ == "__main__":
             "Please add ROVER_MAIN to your system variables to run a rover simulation."
         )
 
+    if run_local:
+        par_var, data = setup.run(1)
+    else:
+        par_var, data = setup.remote(-1)
+
     # Save results
     summary = output_folder + "_df"
     if os.path.exists(summary):
@@ -116,27 +123,8 @@ if __name__ == "__main__":
 
     os.makedirs(summary)
 
-    env_man_info = setup.get_env_man_info()
-    env_man_info.to_pickle(os.path.join(summary, "envinfo.pkl"))
-
-    simulations = setup.get_simulations()
-    simulations.to_pickle(os.path.join(summary, "simulations.pkl"))
-
-    if run_local:
-        par_var, data = setup.run(1)
-    else:
-        par_var, data = setup.remote(-1)
-
-    par_var.to_pickle(os.path.join(summary, "metainfo.pkl"))
-
-    data["poisson_parameter.txt"].to_pickle(
-        os.path.join(summary, "poisson_parameter.pkl")
-    )
-    data["degree_informed_extract.txt"].to_pickle(
-        os.path.join(summary, "degree_informed_extract.pkl")
-    )
-    data["time_95_informed.txt"].to_pickle(
-        os.path.join(summary, "time_95_informed.pkl")
-    )
+    par_var.to_csv(os.path.join(summary, "parameters.csv"))
+    for q in qoi:
+        data[q].to_csv(os.path.join(summary, f"{q}"))
 
     print("All simulation runs completed.")
