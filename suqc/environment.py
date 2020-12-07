@@ -126,7 +126,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             cwd=dirname,
-            timeout=10800,  # stop simulation after 3h
+            timeout=15000,  # stop simulation after 15000s
         )
 
         process_duration = time.time() - time_started
