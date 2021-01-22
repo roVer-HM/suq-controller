@@ -12,10 +12,11 @@ Note, that the project is a work in progress. Features are only implemented when
 
 Use Python's package mangement tool and install with
 
+**NOTE: there is currently a bug when installing with pip. We highly recomment to clone and then install with the setup.py file.**
 ```
 python3 -m pip install git+https://gitlab.lrz.de/vadere/suq-controller.git@master
 ```
-** NOTE: there is currently a bug when installing with pip. We highly recomment to clone and then install with the setup.py file.**
+
 
 
 Test if the installed package was installed successfully by running:
