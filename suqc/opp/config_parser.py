@@ -1,11 +1,55 @@
 import enum
 from collections.abc import MutableMapping
 from configparser import ConfigParser, NoOptionError
+import os
+from typing import TextIO
 
 
 class OppParser(ConfigParser):
     def optionxform(self, optionstr):
         return optionstr
+
+
+
+    def include_other_files(self, filename, ):
+
+        inc_file = None
+
+        with open(filename) as f:
+            lines = f.readlines()
+
+        for line in lines:
+            print(line)
+            if line.__contains__('include'):
+                l = line
+                print(line)
+                inc_file = line.split(" ")[-1].split("\n")[0]
+                text = self.include_other_files(inc_file)
+            else:
+                with open(filename) as f:
+                    content = f.read()
+                return content
+
+
+
+
+
+    def read(self, filenames, encoding=None):
+
+        if isinstance(filenames, (str, bytes, os.PathLike)):
+            filenames = [filenames]
+
+        for filename in filenames:
+            self.include_other_files(filename)
+
+
+
+
+        super().read(filenames)
+
+
+
+        return self
 
 
 class OppConfigType(enum.Enum):
@@ -119,6 +163,10 @@ class OppConfigFileBase(MutableMapping):
                 OppConfigFileBase(self._root, "General", is_parent=True)
             )
             self.section_hierarchy.append("General")
+
+    def read(self):
+        self.read()
+        pass
 
     def writer(self, fp):
         """ write the current state to the given file descriptor. Caller must close file."""
