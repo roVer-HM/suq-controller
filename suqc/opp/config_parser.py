@@ -6,32 +6,11 @@ from typing import TextIO
 
 
 class OppParser(ConfigParser):
+
+    TEMP = "temp"
+
     def optionxform(self, optionstr):
         return optionstr
-
-
-
-    def include_other_files(self, filename, ):
-
-        inc_file = None
-
-        with open(filename) as f:
-            lines = f.readlines()
-
-        for line in lines:
-            print(line)
-            if line.__contains__('include'):
-                l = line
-                print(line)
-                inc_file = line.split(" ")[-1].split("\n")[0]
-                text = self.include_other_files(inc_file)
-            else:
-                with open(filename) as f:
-                    content = f.read()
-                return content
-
-
-
 
 
     def read(self, filenames, encoding=None):
@@ -39,17 +18,88 @@ class OppParser(ConfigParser):
         if isinstance(filenames, (str, bytes, os.PathLike)):
             filenames = [filenames]
 
-        for filename in filenames:
-            self.include_other_files(filename)
+
+        filenames_temp = self.create_temp_file_with_includes(filenames)
+
+        read_ok = super().read(filenames_temp)
+
+        return read_ok
+
+    def create_temp_file_with_includes(self, filenames):
+
+        filenames_temp = list()
+
+        for f in filenames:
+
+            if self.has_file_include(f):
+                self.copy_includes_to_temp_file(f)
+
+                filenames_temp.append(self.get_temp_file_name(f))
+            else:
+                filenames_temp.append(f)
+
+        return filenames_temp
+
+    def get_lines_include(self, filename):
+
+        line_nrs = list()
+
+        with open(filename) as f:
+            lines = f.readlines()
+
+        for index in range(len(lines)):
+            if lines[index].__contains__('include'):
+                line_nrs.append(index)
+
+        return line_nrs
+
+
+    def has_file_include(self, filename):
+
+        line_nrs = self.get_lines_include(filename)
+        if len(line_nrs) == 0:
+            return False
+        else:
+            return True
+
+    def get_temp_file_name(self, f):
+        return f"{f}__temp"
+
+    def copy_includes_to_temp_file(self, f):
+
+        file_content = self.get_file_content_recursively(f)
+        temp_file = self.get_temp_file_name(f)
+        with open(temp_file, "w+") as temp:
+            temp.write(file_content)
+
+    def get_file_content_recursively(self, f):
+
+        with open(f) as f_:
+            file_content = f_.read()
+
+        if self.has_file_include(f):
+
+            lines = self.get_lines_include(f)
+
+            for l in lines:
+                inc_file_name, replace_string = self.get_inc_file_name(f, l)
+
+                return file_content.replace(replace_string ,self.get_file_content_recursively(inc_file_name))
+
+        else:
+            return file_content
 
 
 
+    def get_inc_file_name(self, filename, index):
 
-        super().read(filenames)
+        with open(filename) as f:
+            lines = f.readlines()
+
+        inc_file = lines[index].split(" ")[-1].split("\n")[0]
+        return inc_file, lines[index]
 
 
-
-        return self
 
 
 class OppConfigType(enum.Enum):
@@ -126,6 +176,8 @@ class OppConfigFileBase(MutableMapping):
     ):
         _root = OppParser(inline_comment_prefixes="#")
         _root.read(ini_path)
+        if _root.has_file_include(ini_path):
+            ini_path = _root.get_temp_file_name(ini_path)
         return cls(_root, config, cfg_type, is_parent)
 
     def __init__(

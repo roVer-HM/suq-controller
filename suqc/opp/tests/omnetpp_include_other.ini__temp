@@ -1,3 +1,6 @@
+[General]
+general_option = "VAL1"
+general_option_2 = "VAL2"
 [Config inc_1]
 *.node[*].numApps = 2
 *.node[*].app[0].typename = "AlertSender"
@@ -9,4 +12,11 @@
 *.node[*].app[1].typename = "AlertReceiver"
 *.node[*].app[1].localPort = 1000
 
-include appConfig2.ini
+*inc_2_without_config = "AlertSender"
+
+
+
+
+[Config SlottedAlohaBase]
+opt_1 = "val_1"
+
