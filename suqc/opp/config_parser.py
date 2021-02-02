@@ -6,18 +6,13 @@ from typing import TextIO
 
 
 class OppParser(ConfigParser):
-
-    TEMP = "temp"
-
     def optionxform(self, optionstr):
         return optionstr
-
 
     def read(self, filenames, encoding=None):
 
         if isinstance(filenames, (str, bytes, os.PathLike)):
             filenames = [filenames]
-
 
         filenames_temp = self.create_temp_file_with_includes(filenames)
 
@@ -48,11 +43,10 @@ class OppParser(ConfigParser):
             lines = f.readlines()
 
         for index in range(len(lines)):
-            if lines[index].__contains__('include'):
+            if lines[index].__contains__("include"):
                 line_nrs.append(index)
 
         return line_nrs
-
 
     def has_file_include(self, filename):
 
@@ -74,22 +68,25 @@ class OppParser(ConfigParser):
 
     def get_file_content_recursively(self, f):
 
+
         with open(f) as f_:
             file_content = f_.read()
 
-        if self.has_file_include(f):
+        lines = self.get_lines_include(f)
 
-            lines = self.get_lines_include(f)
+        for l in lines:
+            print(l)
+            inc_file_name, replace_string = self.get_inc_file_name(f, l)
 
-            for l in lines:
-                inc_file_name, replace_string = self.get_inc_file_name(f, l)
+            print(f"{f} has file include: {self.has_file_include(f)} ({inc_file_name})")
 
-                return file_content.replace(replace_string ,self.get_file_content_recursively(inc_file_name))
+            if self.has_file_include(f):
 
-        else:
-            return file_content
+                file_content = file_content.replace(
+                    replace_string, self.get_file_content_recursively(inc_file_name)
+                )
 
-
+        return file_content
 
     def get_inc_file_name(self, filename, index):
 
@@ -98,8 +95,6 @@ class OppParser(ConfigParser):
 
         inc_file = lines[index].split(" ")[-1].split("\n")[0]
         return inc_file, lines[index]
-
-
 
 
 class OppConfigType(enum.Enum):
