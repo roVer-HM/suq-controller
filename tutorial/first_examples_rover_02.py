@@ -71,7 +71,7 @@ if __name__ == "__main__":
         qoi=qoi,
         model=model,
         scenario_runs=reps,
-        post_changes=PostScenarioChangesBase(apply_default=True),
+        post_changes=None,
         output_path=path2tutorial,
         output_folder=output_folder,
         remove_output=True,
