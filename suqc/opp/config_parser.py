@@ -60,6 +60,7 @@ class OppParser(ConfigParser):
         return f"{f}__temp"
 
     def copy_includes_to_temp_file(self, f):
+        self.path_to_inifiles = os.path.dirname(f)
 
         file_content = self.get_file_content_recursively(f)
         temp_file = self.get_temp_file_name(f)
@@ -68,6 +69,7 @@ class OppParser(ConfigParser):
 
     def get_file_content_recursively(self, f):
 
+        f = os.path.join(self.path_to_inifiles, f)
 
         with open(f) as f_:
             file_content = f_.read()
@@ -75,7 +77,6 @@ class OppParser(ConfigParser):
         lines = self.get_lines_include(f)
 
         for l in lines:
-            print(l)
             inc_file_name, replace_string = self.get_inc_file_name(f, l)
 
             print(f"{f} has file include: {self.has_file_include(f)} ({inc_file_name})")

@@ -24,7 +24,7 @@ run_local = True
 if __name__ == "__main__":
     # Works on Linux operating system only
 
-    get_info_vadere_repo() # Provide system variable VADERE !
+    get_info_vadere_repo()  # Provide system variable VADERE !
 
     scenario_file = os.path.join(
         os.environ["VADERE"],

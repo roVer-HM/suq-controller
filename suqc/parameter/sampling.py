@@ -621,6 +621,7 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
         plt.tight_layout()
         plt.show()
 
+
 class RoverSampling(metaclass=abc.ABCMeta):
     def __init__(self, parameters=None, parameters_dependent=None):
         self.parameters = parameters
