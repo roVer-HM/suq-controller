@@ -17,55 +17,29 @@ run_local = True
 
 if __name__ == "__main__":
 
-    output_folder = os.path.join(os.getcwd(), "first_examples_rover_01")
+    output_folder = os.path.join(os.getcwd(), "first_examples_rover_02")
 
     ## Define the simulation to be used
     # A rover simulation is defined by an "omnetpp.ini" file and its corresponding directory.
     # Use following *.ini file:
 
     path2ini = os.path.join(
-        os.environ["CROWNET_HOME"],
-        "crownet/simulations/simple_detoure_suqc_traffic/omnetpp.ini",
+        os.environ["ROVER_MAIN"], "crownet/simulations/mucFreiheitLte/omnetpp.ini",
     )
 
     ## Define parameters and sampling method
     # parameters
 
     parameter = [
-        Parameter(
-            name="number_of_agents_mean", simulator="dummy", stages=[15, 20],
-        )  # number of agtens to be generated in 100s
+        Parameter(name="number_of_agents_mean", simulator="dummy", stages=[80, 100],)
     ]
     dependent_parameters = [
         DependentParameter(
-            name="sources.[id==1].distributionParameters",
+            name="sources.[id==1004].distributionParameters",
             simulator="vadere",
-            equation=lambda args: [(args["number_of_agents_mean"] * 0.01 / 4)],
-        ),
-        DependentParameter(
-            name="sources.[id==2].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [(args["number_of_agents_mean"] * 0.01 / 4)],
-        ),
-        DependentParameter(
-            name="sources.[id==5].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [(args["number_of_agents_mean"] * 0.01 / 4)],
-        ),
-        DependentParameter(
-            name="sources.[id==6].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [(args["number_of_agents_mean"] * 0.01 / 4)],
+            equation=lambda args: [(args["number_of_agents_mean"])],
         ),
         DependentParameter(name="sim-time-limit", simulator="omnet", equation="180s"),
-        DependentParameter(
-            name="*.station[0].app[0].incidentTime", simulator="omnet", equation="100s",
-        ),
-        DependentParameter(
-            name="*.radioMedium.obstacleLoss.typename",
-            simulator="omnet",
-            equation="DielectricObstacleLoss",
-        ),
     ]
 
     # number of repitions for each sample
@@ -101,11 +75,11 @@ if __name__ == "__main__":
         output_path=path2tutorial,
         output_folder=output_folder,
         remove_output=True,
-        seed_config=None,  # TODO ->  {"vadere": "random", "omnet": "random"},
+        seed_config= None, #{"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
 
-    if os.environ["CROWNET_HOME"] is None:
+    if os.environ["ROVER_MAIN"] is None:
         raise SystemError(
             "Please add ROVER_MAIN to your system variables to run a rover simulation."
         )

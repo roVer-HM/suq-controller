@@ -434,8 +434,16 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         self.ini_dir = os.path.dirname(ini_path)
         self.read_old_data = False
 
-        assert os.path.exists(ini_path) and ini_path.endswith(
-            ".ini"
+        ini_path_with_includes = f"{ini_path}__temp"
+        if os.path.isfile(ini_path_with_includes):
+            ini_path = ini_path_with_includes
+
+        is_file_ext = False
+        if ini_path.endswith(".ini__temp") or ini_path.endswith(".ini"):
+            is_file_ext = True
+
+        assert (
+            os.path.exists(ini_path) and is_file_ext
         ), "Filepath must exist and the file has to end with .ini"
 
         assert os.path.exists(scenario_path) and scenario_path.endswith(
@@ -647,8 +655,17 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         ini_file = OppConfigFileBase.from_path(
             ini_path=ini_path, config=config, cfg_type=OppConfigType.EXT_DEL_LOCAL,
         )
+        # scenarippath key changed .. handle different key types
+        scenario_path = [p for p in ini_file.keys() if "vadereScenarioPath" in p]
+        if len(scenario_path) == 1:
+            scenario_path = scenario_path[0]
+        else:
+            raise ValueError(
+                f"One scenario path must be defined. Got: {scenario_path}."
+            )
 
-        scenario_name = ini_file["*.manager.vadereScenarioPath"].strip('"')
+        scenario_name = ini_file[scenario_path].strip('"')
+
         scenario_path = os.path.join(ini_folder, scenario_name)
         return scenario_path
 

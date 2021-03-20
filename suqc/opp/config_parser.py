@@ -1,11 +1,101 @@
 import enum
 from collections.abc import MutableMapping
 from configparser import ConfigParser, NoOptionError
+import os
+from typing import TextIO
 
 
 class OppParser(ConfigParser):
     def optionxform(self, optionstr):
         return optionstr
+
+    def read(self, filenames, encoding=None):
+
+        if isinstance(filenames, (str, bytes, os.PathLike)):
+            filenames = [filenames]
+
+        filenames_temp = self.create_temp_file_with_includes(filenames)
+
+        read_ok = super().read(filenames_temp)
+
+        return read_ok
+
+    def create_temp_file_with_includes(self, filenames):
+
+        filenames_temp = list()
+
+        for f in filenames:
+
+            if self.has_file_include(f):
+                self.copy_includes_to_temp_file(f)
+
+                filenames_temp.append(self.get_temp_file_name(f))
+            else:
+                filenames_temp.append(f)
+
+        return filenames_temp
+
+    def get_lines_include(self, filename):
+
+        line_nrs = list()
+
+        with open(filename) as f:
+            lines = f.readlines()
+
+        for index in range(len(lines)):
+            if lines[index].__contains__("include"):
+                line_nrs.append(index)
+
+        return line_nrs
+
+    def has_file_include(self, filename):
+
+        line_nrs = self.get_lines_include(filename)
+        if len(line_nrs) == 0:
+            return False
+        else:
+            return True
+
+    def get_temp_file_name(self, f):
+        return f"{f}__temp"
+
+    def copy_includes_to_temp_file(self, f):
+        self.path_to_inifiles = os.path.dirname(f)
+
+        file_content = self.get_file_content_recursively(f)
+        temp_file = self.get_temp_file_name(f)
+        with open(temp_file, "w+") as temp:
+            temp.write(file_content)
+
+    def get_file_content_recursively(self, f):
+
+        f = os.path.join(self.path_to_inifiles, f)
+
+        with open(f) as f_:
+            file_content = f_.read()
+
+        lines = self.get_lines_include(f)
+
+        for l in lines:
+            inc_file_name, replace_string = self.get_inc_file_name(f, l)
+
+            print(f"{f} has file include: {self.has_file_include(f)} ({inc_file_name})")
+
+            if self.has_file_include(f):
+
+                file_content = file_content.replace(
+                    replace_string, self.get_file_content_recursively(inc_file_name)
+                )
+
+        return file_content
+
+    def get_inc_file_name(self, filename, index):
+
+        with open(filename) as f:
+            lines = f.readlines()
+
+        inc_file = lines[index].split(" ")[-1].split("\n")[0]
+        return inc_file, lines[index]
 
 
 class OppConfigType(enum.Enum):
@@ -82,6 +172,8 @@ class OppConfigFileBase(MutableMapping):
     ):
         _root = OppParser(inline_comment_prefixes="#")
         _root.read(ini_path)
+        if _root.has_file_include(ini_path):
+            ini_path = _root.get_temp_file_name(ini_path)
         return cls(_root, config, cfg_type, is_parent)
 
     def __init__(
@@ -119,6 +211,10 @@ class OppConfigFileBase(MutableMapping):
                 OppConfigFileBase(self._root, "General", is_parent=True)
             )
             self.section_hierarchy.append("General")
+
+    def read(self):
+        self.read()
+        pass
 
     def writer(self, fp):
         """ write the current state to the given file descriptor. Caller must close file."""

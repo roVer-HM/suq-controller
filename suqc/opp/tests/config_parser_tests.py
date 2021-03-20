@@ -9,6 +9,8 @@ class OppConfigFileBaseTest(unittest.TestCase):
     NEW_FILE = "omnetpp_2.ini"
     NEW_FILE_COMP = "omnetpp_compare.ini"
     NEW_FILE_DEL = "omnetpp_del.ini"
+    NEW_FILE_INC_OTHER = "omnetpp_include_other.ini"
+    INCLUDE = "appConfig.ini"
 
     @staticmethod
     def get_object(
@@ -157,3 +159,11 @@ class OppConfigFileBaseTest(unittest.TestCase):
             if not line.startswith("\n")
         ]
         self.assertListEqual(lines_new, lines_del)
+
+    def test_include_config_(self):
+        opp = self.get_object(
+            "General",
+            OppConfigType.READ_ONLY,
+            path="omnetpp_include_other.ini",
+        )
+        print()
