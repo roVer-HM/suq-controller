@@ -75,7 +75,7 @@ if __name__ == "__main__":
         output_path=path2tutorial,
         output_folder=output_folder,
         remove_output=True,
-        seed_config={"vadere": "random", "omnet": "random"},
+        seed_config= None, #{"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
 

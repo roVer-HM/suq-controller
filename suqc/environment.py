@@ -113,8 +113,9 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         terminal_command.extend(["--run-name", os.path.basename(dirname)])
         terminal_command.extend(["--create-vadere-container"])
         terminal_command.extend(["--delete-existing-containers"])
-        terminal_command.extend(["--vadere-tag", self.vadere_tag])
-        terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
+        # TODO allow different run arguements
+        # terminal_command.extend(["--vadere-tag", self.vadere_tag])
+        # terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
 
         time_started = time.time()
         t = time.strftime("%H:%M:%S", time.localtime(time_started))

@@ -231,50 +231,58 @@ class UserDefinedSampling(ParameterVariationBase):
 
         ids = self.points.index.to_list()
         ids = [f'"vadere_Sample__{id[0]}_{id[1]}"' for id in ids]
-        self.points.insert(0, ("Parameter", "omnet", "*.manager.host"), ids, True)
+        self.points.insert(
+            0, ("Parameter", "omnet", "*.traci.launcher.hostname"), ids, True
+        )
         self._points = self.points.sort_index(axis=1)
 
     def multiply_scenario_runs_using_seed(
         self, scenario_runs: Union[int, List[int]], seed_config: Dict
     ):
-        if set(seed_config.keys()) != {"vadere", "omnet"}:
-            raise ValueError(
-                f"Dictionary keys must be: omnet, vadere. Got {set(seed_config.keys())}."
-            )
 
         super().multiply_scenario_runs(scenario_runs)
         self.add_vadere_server_id()
-        number_of_rows = self.points.shape[0]
 
-        # omnet seed
-        if seed_config["omnet"] == "fixed":
-            pass  # use fixed seed defined in omnet ini file
-        else:
-            # use random seed for omnet
-            seeds = [str(random.randint(1, 255)) for _ in range(number_of_rows)]
-            self.points.insert(0, ("Parameter", "omnet", "seed-set"), seeds, True)
+        if seed_config != None:
 
-        # vadere seed
-        if seed_config["vadere"] == "fixed":
-            # use fixed seed defined in scenario file
-            self.points.insert(
-                0, ("Parameter", "omnet", "*.manager.useVadereSeed"), "true", True
-            )
-            self.points.insert(
-                0,
-                ("Parameter", "vadere", "attributesSimulation.useFixedSeed"),
-                True,  # make sure that vadere uses a fixed seed
-                True,
-            )
-        else:
-            # use random seed in vadere provided from omnet ini file
-            self.points.insert(
-                0, ("Parameter", "omnet", "*.manager.useVadereSeed"), "false", True
-            )
-            seeds = [str(random.randint(1, 100000)) for _ in range(number_of_rows)]
-            self.points.insert(0, ("Parameter", "omnet", "*.manager.seed"), seeds, True)
+            if set(seed_config.keys()) != {"vadere", "omnet"}:
+                raise ValueError(
+                    f"Dictionary keys must be: omnet, vadere. Got {set(seed_config.keys())}."
+                )
 
-        self._points = self.points.sort_index(axis=1)
+            number_of_rows = self.points.shape[0]
+
+            # omnet seed
+            if seed_config["omnet"] == "fixed":
+                pass  # use fixed seed defined in omnet ini file
+            else:
+                # use random seed for omnet
+                seeds = [str(random.randint(1, 255)) for _ in range(number_of_rows)]
+                self.points.insert(0, ("Parameter", "omnet", "seed-set"), seeds, True)
+
+            # vadere seed
+            if seed_config["vadere"] == "fixed":
+                # use fixed seed defined in scenario file
+                self.points.insert(
+                    0, ("Parameter", "omnet", "*.manager.useVadereSeed"), "true", True
+                )
+                self.points.insert(
+                    0,
+                    ("Parameter", "vadere", "attributesSimulation.useFixedSeed"),
+                    True,  # make sure that vadere uses a fixed seed
+                    True,
+                )
+            else:
+                # use random seed in vadere provided from omnet ini file
+                self.points.insert(
+                    0, ("Parameter", "omnet", "*.manager.useVadereSeed"), "false", True
+                )
+                seeds = [str(random.randint(1, 100000)) for _ in range(number_of_rows)]
+                self.points.insert(
+                    0, ("Parameter", "omnet", "*.manager.seed"), seeds, True
+                )
+
+            self._points = self.points.sort_index(axis=1)
 
         return self
 

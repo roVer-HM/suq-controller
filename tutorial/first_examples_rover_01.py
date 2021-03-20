@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # Use following *.ini file:
 
     path2ini = os.path.join(
-        os.environ["ROVER_MAIN"],
+        os.environ["CROWNET_HOME"],
         "crownet/simulations/simple_detoure_suqc_traffic/omnetpp.ini",
     )
 
@@ -33,9 +33,7 @@ if __name__ == "__main__":
 
     parameter = [
         Parameter(
-            name="number_of_agents_mean",
-            simulator="dummy",
-            stages=[15, 20, 25, 30, 35],
+            name="number_of_agents_mean", simulator="dummy", stages=[15, 20],
         )  # number of agtens to be generated in 100s
     ]
     dependent_parameters = [
@@ -103,11 +101,11 @@ if __name__ == "__main__":
         output_path=path2tutorial,
         output_folder=output_folder,
         remove_output=True,
-        seed_config={"vadere": "random", "omnet": "random"},
+        seed_config=None,  # TODO ->  {"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
 
-    if os.environ["ROVER_MAIN"] is None:
+    if os.environ["CROWNET_HOME"] is None:
         raise SystemError(
             "Please add ROVER_MAIN to your system variables to run a rover simulation."
         )
