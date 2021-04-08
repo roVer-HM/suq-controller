@@ -5,7 +5,6 @@ import importlib.util
 
 from setuptools import find_packages, setup
 
-from suqc.configuration import SuqcConfig
 
 def read_suqc_version():
     """This reads the version from suqc/_version.py without importing parts of
@@ -31,10 +30,14 @@ with open("requirements.txt", "r") as f:
 
 # Writes a file that gives information about the version such that "suqc.__version__" provides the current version,
 # which is a convention in Python:
-with open(SuqcConfig.path_package_indicator_file(), "w") as file:
+path_package_indicator_file = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "PACKAGE.txt"
+)
+
+with open(path_package_indicator_file, "w") as file:
     file.write(f"version={read_suqc_version()}")
 
-assert os.path.exists(SuqcConfig.path_package_indicator_file())
+assert os.path.exists(path_package_indicator_file)
 
 setup(
     name="suqc",
@@ -46,5 +49,5 @@ setup(
     data_files=[("suqc", ["suqc/PACKAGE.txt"])],
 )
 
-os.remove(SuqcConfig.path_package_indicator_file())
-assert not os.path.exists(SuqcConfig.path_package_indicator_file())
+os.remove(path_package_indicator_file)
+assert not os.path.exists(path_package_indicator_file)
