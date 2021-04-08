@@ -100,8 +100,8 @@ if __name__ == "__main__":
         post_changes=None,
         output_path=path2tutorial,
         output_folder=output_folder,
-        remove_output=True,
-        seed_config=None,  # TODO ->  {"vadere": "random", "omnet": "random"},
+        remove_output=False,
+        seed_config={"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
 
