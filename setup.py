@@ -31,7 +31,7 @@ with open("requirements.txt", "r") as f:
 # Writes a file that gives information about the version such that "suqc.__version__" provides the current version,
 # which is a convention in Python:
 path_package_indicator_file = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "PACKAGE.txt"
+    os.path.dirname(os.path.abspath(__file__)), "suqc", "PACKAGE.txt"
 )
 
 with open(path_package_indicator_file, "w") as file:
