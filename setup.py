@@ -18,7 +18,7 @@ def read_suqc_version():
     spec = importlib.util.spec_from_file_location("version", version_file)
     version = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(version)
-    return version.Version.v_short
+    return version.__version__
 
 
 # To generate a new requirements.txt file run in console (install vis 'pip3 install pipreqs'):
