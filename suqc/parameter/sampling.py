@@ -264,7 +264,7 @@ class UserDefinedSampling(ParameterVariationBase):
             if seed_config["vadere"] == "fixed":
                 # use fixed seed defined in scenario file
                 self.points.insert(
-                    0, ("Parameter", "omnet", "*.manager.useVadereSeed"), "true", True
+                    0, ("Parameter", "omnet", "*.traci.launcher.useVadereSeed"), "true", True
                 )
                 self.points.insert(
                     0,
@@ -275,11 +275,11 @@ class UserDefinedSampling(ParameterVariationBase):
             else:
                 # use random seed in vadere provided from omnet ini file
                 self.points.insert(
-                    0, ("Parameter", "omnet", "*.manager.useVadereSeed"), "false", True
+                    0, ("Parameter", "omnet", "*.traci.launcher.useVadereSeed"), "false", True
                 )
                 seeds = [str(random.randint(1, 100000)) for _ in range(number_of_rows)]
                 self.points.insert(
-                    0, ("Parameter", "omnet", "*.manager.seed"), seeds, True
+                    0, ("Parameter", "omnet", "*.traci.launcher.seed"), seeds, True
                 )
 
             self._points = self.points.sort_index(axis=1)
