@@ -46,7 +46,7 @@ setup(
     url="www.vadere.org",
     packages=find_packages(),
     install_requires=requirements,
-    data_files=[("suqc", ["suqc/PACKAGE.txt"])],
+    data_files=[("suqc", ["suqc/PACKAGE.txt"]), ("", ["requirements.txt"])],
 )
 
 os.remove(path_package_indicator_file)
