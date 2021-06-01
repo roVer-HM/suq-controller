@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-import platform
 import glob
 import json
 import os
+import platform
 import shutil
 import subprocess
 import time
-from shutil import copytree, ignore_patterns, rmtree
+from shutil import copytree, rmtree
 from typing import *
 
 import pandas as pd
 
 from suqc.configuration import SuqcConfig
-from suqc.opp.config_parser import OppConfigFileBase, OppConfigType, OppParser
+from suqc.opp.config_parser import OppConfigFileBase, OppConfigType
 from suqc.utils.general import (
     get_current_suqc_state,
     str_timestamp,
@@ -99,10 +99,21 @@ class AbstractConsoleWrapper(object):
 
 
 class CoupledConsoleWrapper(AbstractConsoleWrapper):
-    def __init__(self, model, vadere_tag="latest", omnetpp_tag="lastest"):
+    def __init__(self, model, vadere_tag="latest", omnetpp_tag="lastest", additional_settings = None):
         self.simulator = model
         self.vadere_tag = vadere_tag
         self.omnetpp_tag = omnetpp_tag
+        self.set_additional_arguements(additional_settings)
+
+    def set_additional_arguements(self, add_settings):
+        if isinstance( add_settings, str):
+            add_settings = list(add_settings)
+
+        for i in add_settings:
+            if isinstance(i, str) is False:
+                raise ValueError("Please provide a string or list of strings.")
+        self.add_settings = add_settings
+
 
     def run_simulation(
         self, dirname, start_file, required_files: Union[str, List[str]]
@@ -113,9 +124,11 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         terminal_command.extend(["--run-name", os.path.basename(dirname)])
         terminal_command.extend(["--create-vadere-container"])
         terminal_command.extend(["--delete-existing-containers"])
-        # TODO allow different run arguements
-        # terminal_command.extend(["--vadere-tag", self.vadere_tag])
-        # terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
+        terminal_command.extend(["--vadere-tag", self.vadere_tag])
+        terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
+
+        if self.add_settings is not None:
+            terminal_command.extend(self.add_settings)
 
         time_started = time.time()
         t = time.strftime("%H:%M:%S", time.localtime(time_started))
