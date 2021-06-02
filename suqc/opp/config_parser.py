@@ -18,8 +18,8 @@ class OppParser(ConfigParser):
 
         if len(file_contents) > 1:
             raise ValueError("Only one *.ini file allowed.")
-        # TODO allow multiple files
 
+        # TODO allow multiple files
         read_ok = super().read_string(file_contents[0])
         return read_ok
 
@@ -28,7 +28,6 @@ class OppParser(ConfigParser):
         file_contents = list()
 
         for f in filenames:
-            self.path_to_inifiles = os.path.dirname(f)
             file_content = self.get_file_content_recursively(f)
             file_contents.append(file_content)
 
@@ -55,21 +54,10 @@ class OppParser(ConfigParser):
         else:
             return True
 
-    def get_temp_file_name(self, f):
-        return f"{f}__temp"
 
-    def copy_includes_to_temp_file(self, f):
+    def get_file_content_recursively(self, f_):
 
-        self.path_to_inifiles = os.path.dirname(f)
-        file_content = self.get_file_content_recursively(f)
-
-        return file_content
-
-
-
-    def get_file_content_recursively(self, f):
-
-        f = os.path.join(self.path_to_inifiles, f)
+        f = os.path.join(os.path.abspath(f_))
 
         with open(f) as f_:
             file_content = f_.read()
