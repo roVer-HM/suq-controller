@@ -2,7 +2,7 @@ import enum
 from collections.abc import MutableMapping
 from configparser import ConfigParser, NoOptionError
 import os
-from typing import TextIO
+import tempfile
 
 
 class OppParser(ConfigParser):
@@ -14,26 +14,25 @@ class OppParser(ConfigParser):
         if isinstance(filenames, (str, bytes, os.PathLike)):
             filenames = [filenames]
 
-        filenames_temp = self.create_temp_file_with_includes(filenames)
+        file_contents = self.create_temp_file_with_includes(filenames)
 
-        read_ok = super().read(filenames_temp)
+        if len(file_contents) > 1:
+            raise ValueError("Only one *.ini file allowed.")
+        # TODO allow multiple files
 
+        read_ok = super().read_string(file_contents[0])
         return read_ok
 
     def create_temp_file_with_includes(self, filenames):
 
-        filenames_temp = list()
+        file_contents = list()
 
         for f in filenames:
+            self.path_to_inifiles = os.path.dirname(f)
+            file_content = self.get_file_content_recursively(f)
+            file_contents.append(file_content)
 
-            if self.has_file_include(f):
-                self.copy_includes_to_temp_file(f)
-
-                filenames_temp.append(self.get_temp_file_name(f))
-            else:
-                filenames_temp.append(f)
-
-        return filenames_temp
+        return file_contents
 
     def get_lines_include(self, filename):
 
@@ -60,12 +59,13 @@ class OppParser(ConfigParser):
         return f"{f}__temp"
 
     def copy_includes_to_temp_file(self, f):
-        self.path_to_inifiles = os.path.dirname(f)
 
+        self.path_to_inifiles = os.path.dirname(f)
         file_content = self.get_file_content_recursively(f)
-        temp_file = self.get_temp_file_name(f)
-        with open(temp_file, "w+") as temp:
-            temp.write(file_content)
+
+        return file_content
+
+
 
     def get_file_content_recursively(self, f):
 
@@ -172,8 +172,7 @@ class OppConfigFileBase(MutableMapping):
     ):
         _root = OppParser(inline_comment_prefixes="#")
         _root.read(ini_path)
-        if _root.has_file_include(ini_path):
-            ini_path = _root.get_temp_file_name(ini_path)
+
         return cls(_root, config, cfg_type, is_parent)
 
     def __init__(

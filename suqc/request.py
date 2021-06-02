@@ -427,10 +427,13 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         config="final",
     ):
 
-        scenario_path = self._get_scenario_path(ini_path, config=config)
+        self.ini_path = OppConfigFileBase.from_path(
+            ini_path=ini_path, config=config, cfg_type=OppConfigType.EXT_DEL_LOCAL,
+        )
 
+
+        scenario_path = self._get_scenario_path(ini_path, config=config)
         self.scenario_path = scenario_path
-        self.ini_path = ini_path
         self.ini_dir = os.path.dirname(ini_path)
         self.read_old_data = False
 

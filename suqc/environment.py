@@ -613,13 +613,14 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         base_path=None,
         env_name=None,
         handle_existing="ask_user_replace",
-    ):
+        dirname=None):
 
         cls.set_env_info(
             basis_scenario=basis_scenario,
             base_path=base_path,
             env_name=env_name,
             ini_scenario=ini_scenario,
+            dir_name=dirname,
         )
 
         cls.basis_scenario_name = os.path.basename(basis_scenario)
@@ -630,16 +631,11 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         )
         path_output_folder = env_man.env_path
 
-        ini_path = os.path.dirname(ini_scenario)
-
-        ini_scenario_include = f"{ini_scenario}__temp"
-        if os.path.isfile(ini_scenario_include):
-            ini_scenario = ini_scenario_include
 
         new_path = os.path.join(path_output_folder, "additional_rover_files")
 
         if os.path.exists(new_path) is False:
-            copytree(ini_path, new_path, ignore=include_patterns("*.py", "*.xml"))
+            copytree(dirname, new_path, ignore=include_patterns("*.py", "*.xml"))
 
             removeEmptyFolders(new_path)
 
@@ -678,9 +674,6 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
             with open(ini_scenario, "r") as file:
                 ini_scenario = file.read()
-            # delete temp file
-            if os.path.isfile(ini_scenario_include):
-                os.remove(ini_scenario_include)
 
         # add prefix to scenario file:
         basis_fp = os.path.join(path_output_folder, "omnetpp.ini")

@@ -166,4 +166,19 @@ class OppConfigFileBaseTest(unittest.TestCase):
             OppConfigType.READ_ONLY,
             path="omnetpp_include_other.ini",
         )
-        print()
+        self.assertEqual(opp['general_option'], '"VAL1"')
+
+        opp = self.get_object(
+            "inc_1",
+            OppConfigType.READ_ONLY,
+            path="omnetpp_include_other.ini",
+        )
+        self.assertEqual(opp['*.node[*].numApps'], '2')
+
+        opp = self.get_object(
+            "inc_1",
+            OppConfigType.READ_ONLY,
+            path="omnetpp_include_other.ini",
+        )
+        self.assertEqual(opp["*inc_2_without_config"], '"AlertSender"')
+
