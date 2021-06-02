@@ -78,11 +78,11 @@ if __name__ == "__main__":
         seed_config= None, #{"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
-    #
-    # if os.environ["ROVER_MAIN"] is None:
-    #     raise SystemError(
-    #         "Please add ROVER_MAIN to your system variables to run a rover simulation."
-    #     )
+
+    if os.environ["ROVER_MAIN"] is None:
+        raise SystemError(
+            "Please add ROVER_MAIN to your system variables to run a rover simulation."
+        )
 
     if run_local:
         par_var, data = setup.run(1)
