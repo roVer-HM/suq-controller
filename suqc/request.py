@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
+import glob
 import json
 import multiprocessing
 import os
 import shutil
-import glob
 
-from suqc.opp.config_parser import OppConfigType
 from suqc.environment import (
     AbstractConsoleWrapper,
     CoupledConsoleWrapper,
@@ -14,6 +13,7 @@ from suqc.environment import (
     VadereConsoleWrapper,
     AbstractEnvironmentManager,
 )
+from suqc.opp.config_parser import OppConfigType
 from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
@@ -427,26 +427,15 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         config="final",
     ):
 
-        self.ini_path = OppConfigFileBase.from_path(
-            ini_path=ini_path, config=config, cfg_type=OppConfigType.EXT_DEL_LOCAL,
-        )
-
-
         scenario_path = self._get_scenario_path(ini_path, config=config)
+
         self.scenario_path = scenario_path
+        self.ini_path = ini_path
         self.ini_dir = os.path.dirname(ini_path)
         self.read_old_data = False
 
-        ini_path_with_includes = f"{ini_path}__temp"
-        if os.path.isfile(ini_path_with_includes):
-            ini_path = ini_path_with_includes
-
-        is_file_ext = False
-        if ini_path.endswith(".ini__temp") or ini_path.endswith(".ini"):
-            is_file_ext = True
-
-        assert (
-            os.path.exists(ini_path) and is_file_ext
+        assert os.path.exists(ini_path) and ini_path.endswith(
+            ".ini"
         ), "Filepath must exist and the file has to end with .ini"
 
         assert os.path.exists(scenario_path) and scenario_path.endswith(
@@ -666,8 +655,6 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             raise ValueError(
                 f"One scenario path must be defined. Got: {scenario_path}."
             )
-
-        scenario_name = ini_file[scenario_path].strip('"')
 
         scenario_path = os.path.join(ini_folder, scenario_name)
         return scenario_path
