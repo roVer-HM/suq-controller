@@ -632,15 +632,10 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         ini_path = os.path.dirname(ini_scenario)
 
-        ini_scenario_include = f"{ini_scenario}__temp"
-        if os.path.isfile(ini_scenario_include):
-            ini_scenario = ini_scenario_include
-
         new_path = os.path.join(path_output_folder, "additional_rover_files")
 
         if os.path.exists(new_path) is False:
             copytree(ini_path, new_path, ignore=include_patterns("*.py", "*.xml"))
-
             removeEmptyFolders(new_path)
 
         # Add vadere basis scenario used for the variation (i.e. sampling)
@@ -673,14 +668,11 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         if isinstance(ini_scenario, str):  # assume that this is a path
             if not os.path.isfile(ini_scenario):
                 raise FileExistsError("Filepath to .ini does not exist")
-            elif ini_scenario.split(".")[-1] not in ["ini", "ini__temp"]:
+            elif ini_scenario.split(".")[-1] != "ini":
                 raise ValueError("omnet ini has to be a ini file")
 
             with open(ini_scenario, "r") as file:
                 ini_scenario = file.read()
-            # delete temp file
-            if os.path.isfile(ini_scenario_include):
-                os.remove(ini_scenario_include)
 
         # add prefix to scenario file:
         basis_fp = os.path.join(path_output_folder, "omnetpp.ini")
