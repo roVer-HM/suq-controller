@@ -6,7 +6,7 @@ from functools import reduce
 from typing import List
 
 import numpy as np
-from suqc.opp.config_parser import OppConfigFileBase
+from omnetinireader.config_parser import OppConfigFileBase
 
 SYMBOL_KEY_CHAINING = "."
 

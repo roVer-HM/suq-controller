@@ -12,7 +12,7 @@ from typing import *
 import pandas as pd
 
 from suqc.configuration import SuqcConfig
-from suqc.opp.config_parser import OppConfigFileBase, OppConfigType
+from omnetinireader.config_parser import OppConfigFileBase, OppConfigType
 from suqc.utils.general import (
     get_current_suqc_state,
     str_timestamp,

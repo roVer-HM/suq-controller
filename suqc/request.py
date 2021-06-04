@@ -13,7 +13,7 @@ from suqc.environment import (
     VadereConsoleWrapper,
     AbstractEnvironmentManager,
 )
-from suqc.opp.config_parser import OppConfigType
+from omnetinireader.config_parser import OppConfigType
 from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
