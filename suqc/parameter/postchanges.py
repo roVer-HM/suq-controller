@@ -114,7 +114,7 @@ class ChangeRandomNumber(PostScenarioChange):
             # 4294967295 = max unsigned 32 bit integer
             rnr = np.random.randint(0, 4294967295)
         else:  # --> self._isparid
-            rnr = parameter_id * 1e6 + run_id  # the 1E6 is required to not have
+            rnr = int(parameter_id * 1e6 + run_id)  # the 1E6 is required to not have
 
         return {
             ChangeRandomNumber.KEY_FIXED: True,
