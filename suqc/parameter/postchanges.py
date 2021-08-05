@@ -29,6 +29,7 @@ class PostScenarioChangesBase(object):
                 f"Scenario change with {scenario_change.name} is already present."
             )
         self._apply_scenario_changes[scenario_change.name] = scenario_change
+        return self
 
     def _collect_changes(self, scenario, parameter_id, run_id, parameter_variation):
         changes = {}
