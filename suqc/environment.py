@@ -165,7 +165,7 @@ class VadereConsoleWrapper(AbstractConsoleWrapper):
     def __init__(
         self,
         model_path: Union[str, VadereJarFile],
-        loglvl="INFO",
+        loglvl: Optional[str] = "INFO",  # if None --loglevel is not passed to .jar file
         jvm_flags: Optional[List] = None,
         timeout_sec=None,
     ):
@@ -177,35 +177,40 @@ class VadereConsoleWrapper(AbstractConsoleWrapper):
             model_path = model_path.get_path()
 
         self.jar_path = os.path.abspath(model_path)
+        self.loglvl = loglvl
 
+        # Additional Java Virtual Machine options / flags
+        self.jvm_flags = jvm_flags if jvm_flags is not None else []
+        self.timeout_sec = timeout_sec
+
+        self._check_init_setting()
+
+
+    def _check_init_setting(self):
         if not os.path.exists(self.jar_path):
             raise FileNotFoundError(
                 f"Vadere console .jar file {self.jar_path} does not exist."
             )
 
-        loglvl = loglvl.upper()
-        if loglvl not in self.ALLOWED_LOGLVL:
-            raise ValueError(
-                f"set loglvl={loglvl} not contained "
-                f"in allowed: {self.ALLOWED_LOGLVL}"
-            )
+        if self.loglvl is not None:
+            self.loglvl = self.loglvl.upper()
+            if self.loglvl not in self.ALLOWED_LOGLVL:
+                raise ValueError(
+                    f"set loglvl={self.loglvl} not contained "
+                    f"in allowed: {self.ALLOWED_LOGLVL}"
+                )
 
-        if jvm_flags is not None and not isinstance(jvm_flags, list):
+        if self.jvm_flags is not None and not isinstance(self.jvm_flags, list):
             raise TypeError(
-                f"jvm_flags are required to be a list. Got: {type(jvm_flags)}"
+                f"jvm_flags are required to be a list. Got: {type(self.jvm_flags)}"
             )
 
-        if timeout_sec is None:
+        if self.timeout_sec is None:
             pass  # do nothing, no timeout
-        elif not isinstance(timeout_sec, int) or timeout_sec <= 0:
+        elif not isinstance(self.timeout_sec, int) or self.timeout_sec <= 0:
             raise TypeError(
                 "vadere_run_timeout_sec must be of type int and positive " "value"
             )
-
-        self.loglvl = loglvl
-        # Additional Java Virtual Machine options / flags
-        self.jvm_flags = jvm_flags if jvm_flags is not None else []
-        self.timeout_sec = timeout_sec
 
     @classmethod
     def infer_model(cls, model):
@@ -225,8 +230,10 @@ class VadereConsoleWrapper(AbstractConsoleWrapper):
         subprocess_cmd = ["java"]
         subprocess_cmd += self.jvm_flags
         subprocess_cmd += ["-jar", self.jar_path]
+
         # Vadere console commands
-        subprocess_cmd += ["--loglevel", self.loglvl]
+        if self.loglvl is not None:
+            subprocess_cmd += ["--loglevel", self.loglvl]
         subprocess_cmd += ["suq", "-f", scenario_fp, "-o", output_path]
 
         output_subprocess = dict()
