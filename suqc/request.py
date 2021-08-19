@@ -171,7 +171,7 @@ class Request(object):
 
     def _write_console_output(self, msg, output_path, filename):
         _file = os.path.abspath(os.path.join(output_path, filename))
-
+        os.makedirs(os.path.dirname(_file), exist_ok=True)
         if msg is not None:
             with open(_file, "wb") as out:
                 out.write(msg)
@@ -1165,7 +1165,11 @@ class CrownetSumoRequest(Request):
         result = None
         if not is_results:
             # something went wrong during run
-            assert output_on_error is not None
+            if output_on_error is None:
+                output_on_error = {
+                    "stdout": b"no output found",
+                    "stderr": b"no output found"
+                }
 
             filename_stdout = "stdout_on_error.txt"
             filename_stderr = "stderr_on_error.txt"
