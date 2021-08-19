@@ -40,19 +40,15 @@ if __name__ == "__main__":
         config="mucSumo_120_maptypes",
         parameter_dict_list=[
             {"omnet": {
-                "sim-time-limit": "10s",
                 "*.pNode[*].app[2].app.mapTypeLog": '"ymf"',
                 "*.pNode[*].app[2].app.mapType": '"ymf"'}},
             {"omnet": {
-                "sim-time-limit": "10s",
                 "*.pNode[*].app[2].app.mapTypeLog": '"mean"',
                 "*.pNode[*].app[2].app.mapType": '"mean"'}},
             {"omnet": {
-                "sim-time-limit": "10s",
                 "*.pNode[*].app[2].app.mapTypeLog": '"median"',
                 "*.pNode[*].app[2].app.mapType": '"median"'}},
             {"omnet": {
-                "sim-time-limit": "10s",
                 "*.pNode[*].app[2].app.mapTypeLog": '"invSourceDist"',
                 "*.pNode[*].app[2].app.mapType": '"invSourceDist"'}},
         ],
@@ -63,7 +59,7 @@ if __name__ == "__main__":
         debug=True
     )
 
-    _, _ = setup.run(njobs=1)
+    _, _ = setup.run(njobs=4)
     # _, _ = setup.run(njobs=-1)
 
     print("All simulation runs completed.")

@@ -993,19 +993,23 @@ class CrownetSumoWrapper(AbstractConsoleWrapper):
         print(f"{t}\t Call {os.path.basename(dirname)}/{start_file} ")
 
         try:
+            output_subprocess = None
             return_code = subprocess.check_call(
                 terminal_command,
                 env=os.environ,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 cwd=dirname,
-                timeout=15000,  # stop simulation after 15000s
+                timeout=None,  # stop simulation after 15000s
             )
         except Exception as e:
             return_code = 255
-            print(e)
-
+            output_subprocess = {
+                 "stdout": b"no output found",
+                 "stderr": bytes(str(e), 'utf-8')
+                }
+            print(f"error in run_simulation: {str(e)}")
         process_duration = time.time() - time_started
-        output_subprocess = None
+
 
         return return_code, process_duration, output_subprocess
