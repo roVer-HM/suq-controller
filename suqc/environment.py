@@ -136,6 +136,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
         terminal_command.extend(required_files)
         terminal_command.extend(["--run-name", os.path.basename(dirname)])
+        terminal_command.extend(["--experiment-label", "out"])
 
         if self.add_settings is not None:
             terminal_command.extend(self.add_settings)
