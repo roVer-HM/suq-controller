@@ -123,14 +123,19 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
     def run_simulation(
         self, dirname, start_file, required_files: Union[str, List[str]]
     ):
+        if isinstance(required_files, str):
+            required_files = list(required_files)
+        required_files.insert(0, "--qoi")
 
-        terminal_command = ["python3", start_file, "--qoi"]
-        terminal_command.extend(required_files)
-        terminal_command.extend(["--run-name", os.path.basename(dirname)])
+        terminal_command = ["python3", start_file]
+        terminal_command.extend(["vadere-opp"])
         terminal_command.extend(["--create-vadere-container"])
-        terminal_command.extend(["--delete-existing-containers"])
+        terminal_command.extend(["--override-host-config"])
+        #TODO: ask Stefan -> terminal_command.extend(["--delete-existing-containers"])
         terminal_command.extend(["--vadere-tag", self.vadere_tag])
         terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
+        terminal_command.extend(required_files)
+        terminal_command.extend(["--run-name", os.path.basename(dirname)])
 
         if self.add_settings is not None:
             terminal_command.extend(self.add_settings)

@@ -232,13 +232,15 @@ class UserDefinedSampling(ParameterVariationBase):
         return f"{simulator}_Sample__{par_id}_{run_id}"
 
     def add_simulator_server_id(self, simulator="vadere"):
+        pass
+        #TODO remove
 
-        ids = self.points.index.to_list()
-        ids = [f'"{self.get_hostname(simulator, id[0], id[1])}"' for id in ids]
-        self.points.insert(
-            0, ("Parameter", "omnet", "*.traci.launcher.hostname"), ids, True
-        )
-        self._points = self.points.sort_index(axis=1)
+        # ids = self.points.index.to_list()
+        # ids = [f'"{self.get_hostname(simulator, id[0], id[1])}"' for id in ids]
+        # self.points.insert(
+        #     0, ("Parameter", "omnet", "*.traci.launcher.hostname"), ids, True
+        # )
+        # self._points = self.points.sort_index(axis=1)
 
     def apply_vadere_seed(self, seed_config: Dict):
         if seed_config["vadere"] == "fixed":
