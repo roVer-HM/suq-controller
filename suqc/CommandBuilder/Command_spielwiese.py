@@ -1,8 +1,8 @@
-from CommandBuilder.SumoCommand import SumoCommand
-from CommandBuilder.VadereCommand import VadereCommand
-from CommandBuilder.VadereControlCommand import VadereControlCommand
-from CommandBuilder.VadereOppCommand import VadereOppCommand
-from CommandBuilder.VadereOppControlCommand import VadereOppControlCommand
+from suqc.CommandBuilder.SumoCommand import SumoCommand
+from suqc.CommandBuilder.VadereCommand import VadereCommand
+from suqc.CommandBuilder.VadereControlCommand import VadereControlCommand
+from suqc.CommandBuilder.VadereOppCommand import VadereOppCommand
+from suqc.CommandBuilder.VadereOppControlCommand import VadereOppControlCommand
 
 if __name__ == "__main__":
     # return_value = VadereOppCommand().run_for_real()

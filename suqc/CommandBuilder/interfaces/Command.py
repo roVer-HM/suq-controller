@@ -1,7 +1,8 @@
 import abc
 import os
 import subprocess
-from suqc.CommandBuilder.interfaces import CommandArguments
+
+from suqc.CommandBuilder.interfaces.CommandArguments import CommandArguments
 
 
 class Command(abc.ABC):
