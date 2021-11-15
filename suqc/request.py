@@ -6,9 +6,11 @@ import multiprocessing
 import os
 import shutil
 
+from suqc.CommandBuilder.interfaces.Command import Command
+from suqc.CommandBuilder.interfaces.Python3Command import Python3Command
 from suqc.environment import (
     AbstractConsoleWrapper,
-    CoupledConsoleWrapper,
+    VadereOmnetWrapper,
     CoupledEnvironmentManager,
     VadereConsoleWrapper,
     AbstractEnvironmentManager,
@@ -30,9 +32,8 @@ from suqc.utils.general import (
 
 
 def read_from_existing_output(
-    env_path, qoi_filename, extract_ids=True, parentfolder_level=1
+        env_path, qoi_filename, extract_ids=True, parentfolder_level=1
 ):
-
     read_data = []
 
     id_counter = 0
@@ -57,8 +58,8 @@ def read_from_existing_output(
                     run_data = [int(i) for i in parentfolder.split("_") if i.isdigit()]
 
                     if (
-                        all(isinstance(item, int) == True for item in run_data)
-                        and len(run_data) == 2
+                            all(isinstance(item, int) == True for item in run_data)
+                            and len(run_data) == 2
                     ):
                         parameter_id, run_id = run_data
                     else:
@@ -89,17 +90,15 @@ def read_from_existing_output(
 
 
 class Request(object):
-
     PARAMETER_ID = "id"
     RUN_ID = "run_id"
 
     def __init__(
-        self,
-        request_item_list: List[RequestItem],
-        model: Union[str, AbstractConsoleWrapper],
-        qoi: Union[VadereQuantityOfInterest, None],
+            self,
+            request_item_list: List[RequestItem],
+            model: Union[str, AbstractConsoleWrapper],
+            qoi: Union[VadereQuantityOfInterest, None],
     ):
-
         if len(request_item_list) == 0:
             raise ValueError("request_item_list has no entries.")
 
@@ -200,7 +199,6 @@ class Request(object):
             final_results = dict()
 
             for filename in filenames:
-
                 collected_df = [
                     item_[filename] for item_ in qoi_results if item_ is not None
                 ]
@@ -245,6 +243,7 @@ class Request(object):
         )
         return meta_info
 
+    # TODO: MARIO Request
     def _sp_query(self):
         # single process query
 
@@ -259,6 +258,7 @@ class Request(object):
         pool = multiprocessing.Pool(processes=njobs)
         self.request_item_list = pool.map(self._single_request, self.request_item_list)
 
+    # TODO: MARIO Request
     def run(self, njobs: int = 1):
 
         # nr of rows = nr of parameter settings = #simulations
@@ -279,14 +279,14 @@ class Request(object):
 
 class VariationBase(Request, ServerRequest):
     def __init__(
-        self,
-        env_man: AbstractEnvironmentManager,
-        parameter_variation: ParameterVariationBase,
-        model: Union[str, AbstractConsoleWrapper],
-        qoi: Union[str, List[str], VadereQuantityOfInterest],
-        post_changes: PostScenarioChangesBase = None,
-        njobs: int = 1,
-        remove_output=False,
+            self,
+            env_man: AbstractEnvironmentManager,
+            parameter_variation: ParameterVariationBase,
+            model: Union[str, AbstractConsoleWrapper],
+            qoi: Union[str, List[str], VadereQuantityOfInterest],
+            post_changes: PostScenarioChangesBase = None,
+            njobs: int = 1,
+            remove_output=False,
     ):
 
         self.parameter_variation = parameter_variation
@@ -391,24 +391,23 @@ class VariationBase(Request, ServerRequest):
 
 
 class CoupledDictVariation(VariationBase, ServerRequest):
-
     METAINFOFILE = "parameter.pkl"
 
     def __init__(
-        self,
-        ini_path: str,
-        parameter_dict_list: List[dict],
-        qoi: Union[str, List[str]],
-        model: Union[str, CoupledConsoleWrapper],
-        scenario_runs=Union[int, List[int]],
-        post_changes=PostScenarioChangesBase(apply_default=True),
-        njobs_create_scenarios=1,
-        output_path=None,
-        output_folder=None,
-        env_remote=None,
-        remove_output=False,
-        seed_config=None,
-        config="final",
+            self,
+            ini_path: str,
+            parameter_dict_list: List[dict],
+            qoi: Union[str, List[str]],
+            model: Union[str, VadereOmnetWrapper],
+            scenario_runs=Union[int, List[int]],
+            post_changes=PostScenarioChangesBase(apply_default=True),
+            njobs_create_scenarios=1,
+            output_path=None,
+            output_folder=None,
+            env_remote=None,
+            remove_output=False,
+            seed_config=None,
+            config="final",
     ):
 
         scenario_path, simulator = self._get_scenario_path(ini_path, config=config)
@@ -569,7 +568,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         meta = meta.dropna()
         meta.columns = meta.columns.droplevel(0)
         for x in range(2, len(meta.index.levels)):
-            meta = meta.droplevel(f"unknown_index_{x-2}")
+            meta = meta.droplevel(f"unknown_index_{x - 2}")
 
         qoi = df.iloc[:, df.columns.get_level_values(0) != "MetaInfo"]
 
@@ -579,7 +578,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         failed_simulation_runs = list(iii.symmetric_difference(ii))
 
         print(
-            f"INFO: {len(ii)}/{len(iii)} simulations succeeded ({int(100*len(ii)/len(iii))}%)."
+            f"INFO: {len(ii)}/{len(iii)} simulations succeeded ({int(100 * len(ii) / len(iii))}%)."
         )
 
         # save samples and meta information to par_var
@@ -651,6 +650,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         return request_item_list
 
+    # TODO MARIO CoupldDictVariation
     def _single_request(self, request_item: RequestItem) -> RequestItem:
 
         par_id = request_item.parameter_id
@@ -739,25 +739,25 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         names[1] = "run_id"
 
         for x in range(2, len(df.index.levels)):
-            names[x] = f"unknown_index_{x-2}"
+            names[x] = f"unknown_index_{x - 2}"
         df.index.names = names
         df.to_pickle(temp_file)
 
 
 class DictVariation(VariationBase, ServerRequest):
     def __init__(
-        self,
-        scenario_path: str,
-        parameter_dict_list: List[dict],
-        qoi: Union[str, List[str]],
-        model: Union[str, VadereConsoleWrapper],
-        scenario_runs=1,
-        post_changes=PostScenarioChangesBase(apply_default=True),
-        njobs_create_scenarios=1,
-        output_path=None,
-        output_folder=None,
-        remove_output=False,
-        env_remote=None,
+            self,
+            scenario_path: str,
+            parameter_dict_list: List[dict],
+            qoi: Union[str, List[str]],
+            model: Union[str, VadereConsoleWrapper],
+            scenario_runs=1,
+            post_changes=PostScenarioChangesBase(apply_default=True),
+            njobs_create_scenarios=1,
+            output_path=None,
+            output_folder=None,
+            remove_output=False,
+            env_remote=None,
     ):
 
         self.scenario_path = scenario_path
@@ -798,20 +798,19 @@ class DictVariation(VariationBase, ServerRequest):
 
 class SingleKeyVariation(DictVariation, ServerRequest):
     def __init__(
-        self,
-        scenario_path: str,
-        key: str,
-        values: np.ndarray,
-        qoi: Union[str, List[str]],
-        model: Union[str, VadereConsoleWrapper],
-        scenario_runs=1,
-        post_changes=PostScenarioChangesBase(apply_default=True),
-        output_path=None,
-        output_folder=None,
-        remove_output=False,
-        env_remote=None,
+            self,
+            scenario_path: str,
+            key: str,
+            values: np.ndarray,
+            qoi: Union[str, List[str]],
+            model: Union[str, VadereConsoleWrapper],
+            scenario_runs=1,
+            post_changes=PostScenarioChangesBase(apply_default=True),
+            output_path=None,
+            output_folder=None,
+            remove_output=False,
+            env_remote=None,
     ):
-
         self.key = key
         self.values = values
 
@@ -832,13 +831,13 @@ class SingleKeyVariation(DictVariation, ServerRequest):
 
 class FolderExistScenarios(Request, ServerRequest):
     def __init__(
-        self,
-        path_scenario_folder,
-        model,
-        scenario_runs=1,
-        output_path=None,
-        output_folder=None,
-        handle_existing="ask_user_replace",
+            self,
+            path_scenario_folder,
+            model,
+            scenario_runs=1,
+            output_path=None,
+            output_folder=None,
+            handle_existing="ask_user_replace",
     ):
 
         self.scenario_runs = scenario_runs
@@ -889,7 +888,6 @@ class FolderExistScenarios(Request, ServerRequest):
         # generate request item for each scenario run
         scenario_request_items = list()
         for run in range(self.scenario_runs):
-
             item = RequestItem(
                 parameter_id=scenario_name,
                 run_id=run,
@@ -954,14 +952,14 @@ class ProjectOutput(FolderExistScenarios):
 
 class SingleExistScenario(Request, ServerRequest):
     def __init__(
-        self,
-        path_scenario,
-        qoi,
-        model,
-        scenario_runs=1,
-        output_path=None,
-        output_folder=None,
-        handle_existing="ask_user_replace",
+            self,
+            path_scenario,
+            qoi,
+            model,
+            scenario_runs=1,
+            output_path=None,
+            output_folder=None,
+            handle_existing="ask_user_replace",
     ):
 
         self.path_scenario = os.path.abspath(path_scenario)

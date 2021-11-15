@@ -13,6 +13,7 @@ import re
 
 import pandas as pd
 
+from suqc.CommandBuilder.VadereControlCommand import VadereControlCommand
 from suqc.requestitem import RequestItem
 from suqc.configuration import SuqcConfig
 from omnetinireader.config_parser import OppConfigFileBase, OppConfigType, OppParser
@@ -86,15 +87,17 @@ class VadereJarFile(object):
 class AbstractConsoleWrapper(object):
     @classmethod
     def infer_model(cls, model) -> "AbstractConsoleWrapper":
-
         if isinstance(model, str):
             if model == "Coupled":
-                return CoupledConsoleWrapper(model)
+                return VadereOmnetWrapper(model)
+            elif model == "VadereControl":
+                return VadereControlWrapper(model)
             else:
                 return VadereConsoleWrapper.infer_model(model)
         elif isinstance(model, VadereConsoleWrapper) or \
-                isinstance(model, CoupledConsoleWrapper) or \
-                isinstance(model, CrownetSumoWrapper):
+                isinstance(model, VadereOmnetWrapper) or \
+                isinstance(model, CrownetSumoWrapper) or \
+                isinstance(model, VadereControlWrapper):
             return model
         else:
             raise ValueError(
@@ -102,7 +105,7 @@ class AbstractConsoleWrapper(object):
             )
 
 
-class CoupledConsoleWrapper(AbstractConsoleWrapper):
+class VadereOmnetWrapper(AbstractConsoleWrapper):
     def __init__(self, model, vadere_tag="latest", omnetpp_tag="lastest", additional_settings=None):
         self.simulator = model
         self.vadere_tag = vadere_tag
@@ -125,35 +128,8 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
     ):
         if isinstance(required_files, str):
             required_files = list(required_files)
-        # required_files.insert(0, "--qoi")
 
-        terminal_command = ["python3", start_file]
-        terminal_command.extend(["vadere-opp"])
-        terminal_command.extend(["--create-vadere-container"])
-        terminal_command.extend(["--override-host-config"])
-        # TODO: ask Stefan -> terminal_command.extend(["--delete-existing-containers"])
-        terminal_command.extend(["--vadere-tag", self.vadere_tag])
-        terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
-        terminal_command.extend(required_files)
-        terminal_command.extend(["--run-name", os.path.basename(dirname)])
-        terminal_command.extend(["--experiment-label", "out"])
-        if self.add_settings is not None:
-            terminal_command.extend(self.add_settings)
-
-        time_started = time.time()
-        t = time.strftime("%H:%M:%S", time.localtime(time_started))
-        print(f"{t}\t Call {os.path.basename(dirname)}/{start_file} ")
-
-        # return_code = subprocess.check_call(
-        #     terminal_command,
-        #     env=os.environ,
-        #     stdout=subprocess.DEVNULL,
-        #     stderr=subprocess.DEVNULL,
-        #     cwd=dirname,
-        #     timeout=15000,  # stop simulation after 15000s
-        # )
-
-        return_code = VadereOppCommand(cwd=dirname, script=start_file) \
+        return_code, process_duration = VadereOppCommand(cwd=dirname) \
             .create_vadere_container() \
             .override_host_config() \
             .vadere_tag(self.vadere_tag) \
@@ -161,11 +137,47 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
             .qoi(required_files) \
             .run_name(os.path.basename(dirname)) \
             .experiment_label("out") \
-            .run(terminal_command)
+            .run(script_name=start_file)
 
-        process_duration = time.time() - time_started
         output_subprocess = None
+        return return_code, process_duration, output_subprocess
 
+
+class VadereControlWrapper(AbstractConsoleWrapper):
+    def __init__(self, model, vadere_tag="latest", controller_type="OpenLoop", additional_settings=None):
+        self.simulator = model
+        self.vadere_tag = vadere_tag
+        self.add_settings = None
+        self.controller_type = controller_type
+        if additional_settings is not None:
+            self.set_additional_arguements(additional_settings)
+
+    def set_additional_arguements(self, add_settings):
+        if isinstance(add_settings, str):
+            add_settings = list(add_settings)
+
+        for i in add_settings:
+            if isinstance(i, str) is False:
+                raise ValueError("Please provide a string or list of strings.")
+        self.add_settings = add_settings
+
+    def run_simulation(
+            self, dirname, start_file, required_files: Union[str, List[str]]
+    ):
+        if isinstance(required_files, str):
+            required_files = list(required_files)
+
+        return_code, process_duration = VadereControlCommand(cwd=dirname) \
+            .create_vadere_container() \
+            .override_host_config() \
+            .vadere_tag(self.vadere_tag) \
+            .qoi(required_files) \
+            .run_name(os.path.basename(dirname)) \
+            .experiment_label("out")\
+            .control_argument(key="controller-type", value=self.controller_type) \
+            .run(script_name=start_file)
+
+        output_subprocess = None
         return return_code, process_duration, output_subprocess
 
 

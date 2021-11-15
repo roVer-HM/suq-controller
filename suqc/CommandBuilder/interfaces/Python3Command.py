@@ -1,7 +1,9 @@
 import abc
 import os
 import subprocess
+import time
 from abc import ABC
+from typing import Tuple, List
 
 from suqc.CommandBuilder.interfaces.Command import Command
 
@@ -10,10 +12,9 @@ class Python3Command(Command, ABC):
     _sub_command: str = None
     _script: str = None
 
-    def __init__(self, cwd: str, script: str):
-        super().__init__(cwd)
+    def __init__(self, cwd: str):
+        super().__init__(cwd=cwd)
         self._set_sub_command()
-        self._script = script
 
     @abc.abstractmethod
     def _set_sub_command(self) -> None:
@@ -25,10 +26,17 @@ class Python3Command(Command, ABC):
     def _set_executable(self) -> None:
         self._executable = "python3"
 
-    def run(self):
-        print(f"(just print) Running: {str(self)}")
-        run_command = [self._executable, self._script, self._sub_command] + list(self._arguments)
-        return_code = subprocess.check_call(
+    def force_set_run_name(self, run_name: str):
+        self._arguments["--run-name"] = run_name
+        return self
+
+    def run(self, script_name: str) -> Tuple[int, float]:
+        time_started = time.time()
+        t: str = time.strftime("%H:%M:%S", time.localtime(time_started))
+        print(f"{t}\t Call {str(self)}")
+
+        run_command: List[str] = [self._executable, script_name, self._sub_command] + list(self._arguments)
+        return_code: int = subprocess.check_call(
             run_command,
             env=os.environ,
             stdout=subprocess.DEVNULL,
@@ -36,4 +44,5 @@ class Python3Command(Command, ABC):
             cwd=self._cwd,
             timeout=15000,  # stop simulation after 15000s
         )
-        return return_code
+        process_duration = time.time() - time_started
+        return return_code, process_duration
