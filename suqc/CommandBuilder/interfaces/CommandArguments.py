@@ -23,7 +23,8 @@ class CommandArguments(MutableMapping):
                 for ii in i[1]:
                     argument_list.append(str(ii))
             else:
-                argument_list.append(str(i[1]))
+                if i[1]:
+                    argument_list.append(str(i[1]))
         # return iter(self.store)
         return iter(argument_list)
 

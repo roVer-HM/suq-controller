@@ -8,8 +8,8 @@ from suqc.CommandBuilder.mixins.ControlMixin import ControlMixin
 
 class VadereOppControlCommand(Python3Command, BaseMixin, VadereMixin, OppMixin, ControlMixin):
 
-    def set_sub_command(self) -> None:
+    def _set_sub_command(self) -> None:
         self._sub_command = "vadere-opp-control"
 
-    def set_command_defaults(self) -> None:
-        self._arguments = CommandArguments([("--default_vadere_opp_control_key", "default_vadere_opp_control_value")])
+    # def _set_command_defaults(self) -> None:
+    #     self._arguments = CommandArguments([("--default_vadere_opp_control_key", "default_vadere_opp_control_value")])

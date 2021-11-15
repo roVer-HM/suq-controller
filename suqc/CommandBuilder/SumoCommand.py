@@ -6,8 +6,8 @@ from suqc.CommandBuilder.mixins.SumoMixin import SumoMixin
 
 class SumoCommand(Python3Command, BaseMixin, SumoMixin):
 
-    def set_sub_command(self) -> None:
+    def _set_sub_command(self) -> None:
         self._sub_command = "sumo"
 
-    def set_command_defaults(self) -> None:
-        self._arguments = CommandArguments([("--default_sumo_key", ["default_sumo_value_1", "default_sumo_value_2"])])
+    # def _set_command_defaults(self) -> None:
+    #     self._arguments = CommandArguments([("--default_sumo_key", ["default_sumo_value_1", "default_sumo_value_2"])])

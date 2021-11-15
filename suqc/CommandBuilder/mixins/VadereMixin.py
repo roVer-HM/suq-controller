@@ -6,8 +6,8 @@ class VadereMixin(ABC):
         self._arguments["--scenario-file"] = file
         return self
 
-    def create_vadere_container(self, create_container: bool = True):
-        self._arguments["--create-vadere-container"] = create_container
+    def create_vadere_container(self,):
+        self._arguments["--create-vadere-container"] = None
         return self
 
     def vadere_tag(self, tag: str):

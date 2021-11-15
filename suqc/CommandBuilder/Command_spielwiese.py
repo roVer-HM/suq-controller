@@ -6,11 +6,11 @@ from suqc.CommandBuilder.VadereOppControlCommand import VadereOppControlCommand
 
 if __name__ == "__main__":
     # return_value = VadereOppCommand().run_for_real()
-    c1 = SumoCommand()
-    c2 = VadereCommand()
-    c3 = VadereControlCommand()
-    c4 = VadereOppCommand()
-    c5 = VadereOppControlCommand()
+    c1 = SumoCommand("a")
+    c2 = VadereCommand("b")
+    c3 = VadereControlCommand("c")
+    c4 = VadereOppCommand("d")
+    c5 = VadereOppControlCommand("e")
     listed_arguments = list(c1)
     print(c1)
     print(c2)

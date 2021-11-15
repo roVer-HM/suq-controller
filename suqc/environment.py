@@ -24,6 +24,7 @@ from suqc.utils.general import (
     removeEmptyFolders,
     get_info_vadere_repo, check_simulator,
 )
+from suqc.CommandBuilder.VadereOppCommand import VadereOppCommand
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {
@@ -102,7 +103,7 @@ class AbstractConsoleWrapper(object):
 
 
 class CoupledConsoleWrapper(AbstractConsoleWrapper):
-    def __init__(self, model, vadere_tag="latest", omnetpp_tag="lastest", additional_settings = None):
+    def __init__(self, model, vadere_tag="latest", omnetpp_tag="lastest", additional_settings=None):
         self.simulator = model
         self.vadere_tag = vadere_tag
         self.omnetpp_tag = omnetpp_tag
@@ -111,7 +112,7 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
             self.set_additional_arguements(additional_settings)
 
     def set_additional_arguements(self, add_settings):
-        if isinstance( add_settings, str):
+        if isinstance(add_settings, str):
             add_settings = list(add_settings)
 
         for i in add_settings:
@@ -119,25 +120,23 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
                 raise ValueError("Please provide a string or list of strings.")
         self.add_settings = add_settings
 
-
     def run_simulation(
-        self, dirname, start_file, required_files: Union[str, List[str]]
+            self, dirname, start_file, required_files: Union[str, List[str]]
     ):
         if isinstance(required_files, str):
             required_files = list(required_files)
-        required_files.insert(0, "--qoi")
+        # required_files.insert(0, "--qoi")
 
         terminal_command = ["python3", start_file]
         terminal_command.extend(["vadere-opp"])
         terminal_command.extend(["--create-vadere-container"])
         terminal_command.extend(["--override-host-config"])
-        #TODO: ask Stefan -> terminal_command.extend(["--delete-existing-containers"])
+        # TODO: ask Stefan -> terminal_command.extend(["--delete-existing-containers"])
         terminal_command.extend(["--vadere-tag", self.vadere_tag])
         terminal_command.extend(["--omnet-tag", self.omnetpp_tag])
         terminal_command.extend(required_files)
         terminal_command.extend(["--run-name", os.path.basename(dirname)])
         terminal_command.extend(["--experiment-label", "out"])
-
         if self.add_settings is not None:
             terminal_command.extend(self.add_settings)
 
@@ -145,14 +144,24 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
         t = time.strftime("%H:%M:%S", time.localtime(time_started))
         print(f"{t}\t Call {os.path.basename(dirname)}/{start_file} ")
 
-        return_code = subprocess.check_call(
-            terminal_command,
-            env=os.environ,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            cwd=dirname,
-            timeout=15000,  # stop simulation after 15000s
-        )
+        # return_code = subprocess.check_call(
+        #     terminal_command,
+        #     env=os.environ,
+        #     stdout=subprocess.DEVNULL,
+        #     stderr=subprocess.DEVNULL,
+        #     cwd=dirname,
+        #     timeout=15000,  # stop simulation after 15000s
+        # )
+
+        return_code = VadereOppCommand(cwd=dirname, script=start_file) \
+            .create_vadere_container() \
+            .override_host_config() \
+            .vadere_tag(self.vadere_tag) \
+            .omnet_tag(self.omnetpp_tag) \
+            .qoi(required_files) \
+            .run_name(os.path.basename(dirname)) \
+            .experiment_label("out") \
+            .run(terminal_command)
 
         process_duration = time.time() - time_started
         output_subprocess = None
@@ -161,7 +170,6 @@ class CoupledConsoleWrapper(AbstractConsoleWrapper):
 
 
 class VadereConsoleWrapper(AbstractConsoleWrapper):
-
     # Current log level choices, requires to manually add, if there are changes in Vadere
     ALLOWED_LOGLVL = [
         "OFF",
@@ -174,11 +182,11 @@ class VadereConsoleWrapper(AbstractConsoleWrapper):
     ]
 
     def __init__(
-        self,
-        model_path: Union[str, VadereJarFile],
-        loglvl: Optional[str] = "INFO",  # if None --loglevel is not passed to .jar file
-        jvm_flags: Optional[List] = None,
-        timeout_sec=None,
+            self,
+            model_path: Union[str, VadereJarFile],
+            loglvl: Optional[str] = "INFO",  # if None --loglevel is not passed to .jar file
+            jvm_flags: Optional[List] = None,
+            timeout_sec=None,
     ):
 
         if not isinstance(model_path, str):
@@ -195,7 +203,6 @@ class VadereConsoleWrapper(AbstractConsoleWrapper):
         self.timeout_sec = timeout_sec
 
         self._check_init_setting()
-
 
     def _check_init_setting(self):
         if not os.path.exists(self.jar_path):
@@ -339,7 +346,7 @@ class AbstractEnvironmentManager(object):
 
     @classmethod
     def create_new_environment(
-        cls, base_path=None, env_name=None, handle_existing="ask_user_replace"
+            cls, base_path=None, env_name=None, handle_existing="ask_user_replace"
     ):
 
         base_path, env_name = cls.handle_path_and_env_input(base_path, env_name)
@@ -388,8 +395,8 @@ class AbstractEnvironmentManager(object):
         target_path = cls.output_folder_path(base_path, name)
 
         if force or user_query_yes_no(
-            question=f"Are you sure you want to remove the current environment? Path: \n "
-            f"{target_path}"
+                question=f"Are you sure you want to remove the current environment? Path: \n "
+                         f"{target_path}"
         ):
             try:
                 rmtree(target_path)
@@ -490,7 +497,6 @@ class AbstractEnvironmentManager(object):
 
 
 class VadereEnvironmentManager(AbstractEnvironmentManager):
-
     PREFIX_BASIS_SCENARIO = "BASIS_"
     VADERE_SCENARIO_FILE_TYPE = ".scenario"
     simulation_runs_output_folder = "vadere_output"
@@ -500,11 +506,11 @@ class VadereEnvironmentManager(AbstractEnvironmentManager):
 
     @classmethod
     def create_variation_env(
-        cls,
-        basis_scenario: Union[str, dict],
-        base_path=None,
-        env_name=None,
-        handle_existing="ask_user_replace",
+            cls,
+            basis_scenario: Union[str, dict],
+            base_path=None,
+            env_name=None,
+            handle_existing="ask_user_replace",
     ):
 
         cls.set_env_info(
@@ -553,7 +559,7 @@ class VadereEnvironmentManager(AbstractEnvironmentManager):
             cfg["suqc_state"] = get_current_suqc_state()
 
             with open(
-                os.path.join(path_output_folder, "suqc_commit_hash.json"), "w"
+                    os.path.join(path_output_folder, "suqc_commit_hash.json"), "w"
             ) as outfile:
                 s = "\n".join(
                     ["commit hash at creation", cfg["suqc_state"]["git_hash"]]
@@ -578,7 +584,6 @@ class VadereEnvironmentManager(AbstractEnvironmentManager):
 
 
 class CoupledEnvironmentManager(AbstractEnvironmentManager):
-
     PREFIX_BASIS_SCENARIO = ""
     simulation_runs_output_folder = "simulation_runs"
     simulation_runs_single_folder_name = "Sample_"
@@ -637,12 +642,12 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
     @classmethod
     def create_variation_env(
-        cls,
-        basis_scenario: Union[str, dict],
-        ini_scenario: Union[str, dict],
-        base_path=None,
-        env_name=None,
-        handle_existing="ask_user_replace",
+            cls,
+            basis_scenario: Union[str, dict],
+            ini_scenario: Union[str, dict],
+            base_path=None,
+            env_name=None,
+            handle_existing="ask_user_replace",
     ):
 
         cls.set_env_info(
@@ -718,7 +723,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             cfg["suqc_state"] = get_current_suqc_state()
 
             with open(
-                os.path.join(path_output_folder, "suqc_commit_hash.json"), "w"
+                    os.path.join(path_output_folder, "suqc_commit_hash.json"), "w"
             ) as outfile:
                 s = "\n".join(
                     ["commit hash at creation", cfg["suqc_state"]["git_hash"]]
@@ -1011,11 +1016,10 @@ class CrownetSumoWrapper(AbstractConsoleWrapper):
         except Exception as e:
             return_code = 255
             output_subprocess = {
-                 "stdout": b"no output found",
-                 "stderr": bytes(str(e), 'utf-8')
-                }
+                "stdout": b"no output found",
+                "stderr": bytes(str(e), 'utf-8')
+            }
             print(f"error in run_simulation: {str(e)}")
         process_duration = time.time() - time_started
-
 
         return return_code, process_duration, output_subprocess

@@ -15,16 +15,16 @@ class BaseMixin(ABC):
         self._arguments["--resultdir"] = result_dir
         return self
 
-    def write_container_log(self, write_log: bool = True):
-        self._arguments["--write-container-log"] = write_log
+    def write_container_log(self):
+        self._arguments["--write-container-log"] = None
         return self
 
     def experiment_label(self, label: str):
         self._arguments["--experiment-label"] = label
         return self
 
-    def override_host_config(self, ovrride_config: bool = True):
-        self._arguments["--override-host-config"] = ovrride_config
+    def override_host_config(self):
+        self._arguments["--override-host-config"] = None
         return self
 
     def run_name(self, run_name: str):
@@ -39,6 +39,6 @@ class BaseMixin(ABC):
         self._arguments["--reuse-policy"] = policy
         return self
 
-    def verbose(self, verbosity: str):
-        self._arguments["--verbose"] = verbosity
+    def verbose(self):
+        self._arguments["--verbose"] = None
         return self

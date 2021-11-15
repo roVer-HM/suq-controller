@@ -6,8 +6,8 @@ from suqc.CommandBuilder.mixins.VadereMixin import VadereMixin
 
 class VadereCommand(Python3Command, BaseMixin, VadereMixin):
 
-    def set_sub_command(self) -> None:
+    def _set_sub_command(self) -> None:
         self._sub_command = "vadere"
 
-    def set_command_defaults(self) -> None:
-        self._arguments = CommandArguments([("--default_vadere_key", "default_vadere_value")])
+    # def _set_command_defaults(self) -> None:
+    #     self._arguments = CommandArguments([("--default_vadere_key", "default_vadere_value")])
