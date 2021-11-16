@@ -10,8 +10,8 @@ class ControlMixin(ABC):
         self._arguments["--with-control"] = control_script
         return self
 
-    def control_use_local(self, use_local: bool = True):
-        self._arguments["--control-use-local"] = use_local
+    def control_use_local(self):
+        self._arguments["--control-use-local"] = None
         return self
 
     def control_argument(self, key: str, value: str):

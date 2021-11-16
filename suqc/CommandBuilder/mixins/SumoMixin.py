@@ -3,8 +3,8 @@ from abc import ABC
 
 class SumoMixin(ABC):
 
-    def create_sumo_container(self, create_container: bool = True):
-        self._arguments["--create-sumo-container"] = create_container
+    def create_sumo_container(self):
+        self._arguments["--create-sumo-container"] = None
         return self
 
     def sumo_tag(self, tag: str):

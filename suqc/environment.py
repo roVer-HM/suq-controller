@@ -90,8 +90,6 @@ class AbstractConsoleWrapper(object):
         if isinstance(model, str):
             if model == "Coupled":
                 return VadereOmnetWrapper(model)
-            elif model == "VadereControl":
-                return VadereControlWrapper(model)
             else:
                 return VadereConsoleWrapper.infer_model(model)
         elif isinstance(model, VadereConsoleWrapper) or \
@@ -173,7 +171,7 @@ class VadereControlWrapper(AbstractConsoleWrapper):
             .vadere_tag(self.vadere_tag) \
             .qoi(required_files) \
             .run_name(os.path.basename(dirname)) \
-            .experiment_label("out")\
+            .experiment_label("out") \
             .control_argument(key="controller-type", value=self.controller_type) \
             .run(script_name=start_file)
 
@@ -965,6 +963,137 @@ class CrownetSumoEnvironmentManager(CoupledEnvironmentManager):
                 dest_path = os.path.join(self.env_path, "additional_rover_files", rel_path)
                 os.makedirs(dest_path, exist_ok=True)
                 shutil.copy(src=f, dst=dest_path)
+
+
+# class CrownetVadereControlEnvironmentManager(CoupledEnvironmentManager):
+#
+#     def __init__(self,
+#                  base_path,
+#                  env_name: str,
+#                  opp_config: str = "final",
+#                  opp_basename: str = "omnetpp.ini",
+#                  output_folder="simulation_runs",
+#                  run_prefix="Sample_",
+#                  temp_folder="temp",
+#                  run_file="run_script.py",
+#                  mobility_sim=("vadere", "latest"),
+#                  debug: bool = False):
+#         super().__init__(base_path, env_name)
+#         self._output_folder = output_folder
+#         self.run_prefix = run_prefix
+#         self._temp_folder = temp_folder
+#         self._omnet_path_ini = os.path.join(self.env_path, opp_basename)
+#         self._opp_config = opp_config
+#         self._omnet_ini_basis = None  # e.g. omnetpp.ini
+#         self.mobility_sim = mobility_sim
+#         self.run_file = run_file
+#         self.debug = debug
+#
+#     @property
+#     def omnet_path_ini(self):
+#         return self._omnet_path_ini
+#
+#     def set_ini_filename(self, name):
+#         self._omnet_path_ini = os.path.join(self.env_path, name)
+#
+#     @property
+#     def omnet_basis_ini(self):
+#         if self._omnet_ini_basis is None:
+#             _file = OppConfigFileBase.from_path(
+#                 ini_path=self.omnet_path_ini,
+#                 config=self._opp_config,
+#                 cfg_type=OppConfigType.EXT_DEL_LOCAL,
+#             )
+#             self._omnet_ini_basis = _file
+#         return self._omnet_ini_basis
+#
+#     @property
+#     def ini_config(self):
+#         return self._opp_config
+#
+#     def set_ini_config(self, config):
+#         self._opp_config = config
+#
+#     def get_variation_output_folder(self, parameter_id, run_id):
+#
+#         return os.path.join(
+#             self.get_env_outputfolder_path(),
+#             "outputs",
+#             f"{self.run_prefix}{parameter_id}_{run_id}"
+#         )
+#
+#     def get_env_outputfolder_path(self):
+#         rel_path = os.path.join(
+#             self.env_path, self._output_folder
+#         )
+#         return os.path.abspath(rel_path)
+#
+#     def get_temp_folder(self):
+#         return os.path.join(
+#             self.env_path, self._temp_folder
+#         )
+#
+#     def get_simulation_directory(self, par_id, run_id):
+#         return f"{self.run_prefix}_{par_id}_{run_id}"
+#
+#     def copy_data(self, ini_path: str):
+#         """
+#         Copy environment *only* for selected configuration.
+#         Workflow:
+#           1.) set source_base as the directory where the ini-file (ini_path) resides
+#           2.) parse ini-file with given config (at source location to ensure relative paths are resolved correctly)
+#           3.) copy ini-file after resolving include directives to environment (String based. Will preserver comments).
+#           4.) add run_script to set of files to copy -> add to files
+#           5.) find all additional omnet files mentioned in the ini-file -> add to files
+#           6.) find sumo configuration from ini-file and parse xml for all files needed for sumo -> add to files
+#           7.) copy files to "additional_rover_files" in the current enviroment
+#
+#         """
+#         # 1.) set source_base as the directory where the ini-file (ini_path) resides
+#         source_base = os.path.dirname(ini_path)
+#         # 2.) read base ini file to ensure paths are correct.
+#         opp_cfg = OppConfigFileBase.from_path(
+#             ini_path=ini_path, config=self.ini_config, cfg_type=OppConfigType.EXT_DEL_LOCAL,
+#         )
+#         sumo_cfg, simulator = check_simulator(opp_cfg)
+#         if self.mobility_sim[0] != simulator:
+#             raise RuntimeError("config missmatch. Selected configuration in ini file "
+#                                f" does not match DockerEnvironmentManager setup. {self.mobility_sim[0]}!={simulator}")
+#
+#         # set ini file info
+#         self.set_ini_filename(os.path.basename(ini_path))
+#
+#         # 3.) copy ini file manually and ensure includes are resoved.
+#         OppParser.resolve_includes(ini_path=ini_path, output_path=self.omnet_path_ini)
+#
+#         # 4.) copy additional files (run_file, ...) and place in files set to copy into environment
+#         files = set()
+#         files.add(os.path.join(source_base, self.run_file))
+#
+#         # 5.) check selected config for used files
+#         pattern = re.compile('.*(absFilePath|xmldoc)\((?P<val>.*)\)')
+#         for k, v in opp_cfg:
+#             match = pattern.match(v)
+#             if match is not None:
+#                 file_name = match.group("val").strip('"')
+#                 files.add(os.path.join(source_base, file_name))
+#
+#         # 6.) add sumo specific files by parsing the sumo cfg file.
+#         files.add(sumo_cfg)
+#         sumo_xml = et.parse(sumo_cfg)
+#         inputs = sumo_xml.find("input")
+#         for i in inputs:
+#             files.add(os.path.join(os.path.dirname(sumo_cfg), i.get("value")))
+#
+#         # 7.) copy files
+#         for f in files:
+#             if os.path.isfile(f):
+#                 f_dir = os.path.dirname(f)
+#                 f_name = os.path.basename(f)
+#                 rel_path = os.path.relpath(f_dir, source_base)
+#                 dest_path = os.path.join(self.env_path, "additional_rover_files", rel_path)
+#                 os.makedirs(dest_path, exist_ok=True)
+#                 shutil.copy(src=f, dst=dest_path)
 
 
 class CrownetSumoWrapper(AbstractConsoleWrapper):

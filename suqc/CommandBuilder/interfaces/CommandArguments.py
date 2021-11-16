@@ -23,9 +23,8 @@ class CommandArguments(MutableMapping):
                 for ii in i[1]:
                     argument_list.append(str(ii))
             else:
-                if i[1]:
+                if i[1]: # skip bool flags (value == None, f.e. --verbose)
                     argument_list.append(str(i[1]))
-        # return iter(self.store)
         return iter(argument_list)
 
     def __len__(self):
