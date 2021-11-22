@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 
 import glob
-import json
 import multiprocessing
 import os
 import shutil
-import time
-from suqc.CommandBuilder.interfaces.Command import Command
-from suqc.CommandBuilder.interfaces.Python3Command import Python3Command
 from suqc.environment import (
     AbstractConsoleWrapper,
     VadereOmnetWrapper,
@@ -23,12 +19,14 @@ from suqc.parameter.sampling import *
 from suqc.qoi import VadereQuantityOfInterest, QuantityOfInterest
 from suqc.remote import ServerRequest
 from suqc.requestitem import RequestItem
+
 from suqc.utils.general import (
     create_folder,
     njobs_check_and_set,
     parent_folder_clean,
     user_query_yes_no, check_simulator,
 )
+from suqc.utils.CrownetSumoSeedManager import CrownetSumoSeedManager
 
 
 def read_from_existing_output(
@@ -451,10 +449,19 @@ class CoupledDictVariation(VariationBase, ServerRequest):
                 self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
                 env = env_remote
 
-            parameter_variation = UserDefinedSampling(parameter_dict_list)
+
+            parameter_variation = ParameterVariationBase()
+            # todo mario fix this after SeedManager is done:
+            #  - parameter_variation.addDataPoints(parameter_dict_list)
+
             parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
-                scenario_runs=scenario_runs, seed_config=seed_config
+                scenario_runs=scenario_runs
             )
+            # todo mario: fix this after SeedManager is done
+            # parameter_variation = SeedManager(parameter_dict_list)
+            # parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
+            #     scenario_runs=scenario_runs
+            # )
         else:
             self.read_old_data = True
             parameter_variation = ParameterVariationBase()
@@ -780,10 +787,10 @@ class DictVariation(VariationBase, ServerRequest):
             self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
             env = env_remote
 
-        parameter_variation = UserDefinedSampling(parameter_dict_list)
-        parameter_variation = parameter_variation.multiply_scenario_runs(
-            scenario_runs=scenario_runs
-        )
+        # parameter_variation = SeedManager(parameter_dict_list)
+        # parameter_variation = parameter_variation.multiply_scenario_runs(
+        #     scenario_runs=scenario_runs
+        # )
 
         super(DictVariation, self).__init__(
             env_man=env,
@@ -1238,7 +1245,7 @@ class CrownetSumoRequest(Request):
         env_man.copy_data(ini_path)
 
         # create sampling. Do not add host name 'dummy' parameters. The will be set correclty in the run_script.py
-        sampling = CrownetSumoUserDefinedSampling(parameter_dict_list)
+        sampling = CrownetSumoSeedManager(parameter_dict_list)
         sampling.multiply_scenario_runs_using_seed(repeat, seed_config)
 
         return cls(

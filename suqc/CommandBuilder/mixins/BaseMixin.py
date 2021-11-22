@@ -23,13 +23,14 @@ class BaseMixin(ABC):
         self._arguments["--experiment-label"] = label
         return self
 
-    def override_host_config(self):
+    def override_host_config(self, run_name: str):
         self._arguments["--override-host-config"] = None
-        return self
-
-    def run_name(self, run_name: str):
         self._arguments["--run-name"] = run_name
         return self
+
+    # def run_name(self, run_name: str):
+    #     self._arguments["--run-name"] = run_name
+    #     return self
 
     def cleanup_policy(self, policy: str):
         self._arguments["--cleanup-policy"] = policy
