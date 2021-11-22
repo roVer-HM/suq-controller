@@ -1,0 +1,58 @@
+stages:
+  - test
+  - deploy
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - ./venv
+
+before_script:
+    - virtualenv --system-site-packages --python py38 ./venv
+    - source venv/bin/activate
+    - python3 -V
+    - python3 -m pip install --upgrade pip
+    - python3 -m pip install --upgrade setuptools
+    - python3 -m pip install --upgrade twine
+    - pip3 install -q -I -r requirements-dev.txt
+
+
+unittests:
+  stage: test
+  before_script:
+    - source venv/bin/activate
+    - python -V
+  script:
+    -python3 -m unittest discover -v
+  allow_failure: false
+  artifacts:
+    paths:
+      - ./coverage/
+    expire_in: 1 week
+    when: on_success
+  interruptible: true
+
+
+# Requires to set the variables TWINE_USERNAME and TWINE_PASSWORD in gitlab CI/CD
+  stage: deploy
+  before_script:
+    - source venv/bin/activate
+  script:
+    - python3 setup.py sdist bdist_wheel
+    - python3 -m twine check dist/*
+    - python3 -m twine upload --verbose --repository testpypi dist/*
+  when: manual
+
+
+pypi_upload:
+  stage: deploy
+  before_script:
+    - source venv/bin/activate
+  script:
+    - python3 setup.py sdist bdist_wheel
+    - python3 -m twine check dist/*
+    - python3 -m twine upload --verbose dist/*
+  only:
+    - master
+  when: manual
+
