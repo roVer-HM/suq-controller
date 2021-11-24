@@ -1,24 +1,4 @@
-# # GitLab CI Job Configuration
-#
-# Goal: Run all jobs defined here on all available runners (GNU/Linux and
-# Windows).
-# 
-# Procedure: Use GitLab job templates prefixed with a "." and use them in the
-# actual job description with the "extends" keyword.
-#
-# ## Job Description Syntax
-#
-# <job_name>:                   # Job name which is displayed in web interface.
-#   stage: <stage_name>         # Run "script" commands in this stage. The
-#                               # stages are executed sequentially.
-#   script:
-#      - <arbitrary_commands>   # Here you can execute arbitratry terminal
-#                               # commands. If any of the commands return a
-#                               # non-zero exit code, the job fails.
-#
-# ## References
-#
-# - https://docs.gitlab.com/ee/ci/yaml/README.html
+
 
 # Variable Definitions
 variables:
@@ -27,6 +7,7 @@ variables:
     VADERE_PACKAGE_NAME_RELEASES: "vadere.${CI_COMMIT_TAG}.${CI_RUNNER_TAGS}.zip"
     EIKMESH_PACKAGE_NAME_BRANCHES: "eikmesh.${CI_COMMIT_REF_NAME}.${CI_RUNNER_TAGS}.zip"
 
+
 # Stage Definitions
 stages:
     - unit_test
@@ -34,32 +15,14 @@ stages:
     - seed_test
     - deploy
 
-# PLEASE, OMIT FOLLOWING GITLAB PITFALLS:
-#
-# 1. "include:" statement does not work properly and seems really buggy.
-#    Therefore, define all job templates and jobs directly here.
-#    "include: .gitlab/ci/templates/test_stage_templates.yml" does not work!
-# 2. Variables from "variables" section are not expanded correctly in "url"
-#    section of an "environment".
-
-# WATCH OUT:
-#
-# We use "scp -o StrictHostKeyChecking=no" to transfer data to
-# "webdev02-mwn.lrz.de"! Not checking the host key allows man-in-the-middle
-# attacks!
-#
-# Unfortunately, this workaround is necessary since LRZ moved Vadere's webspace
-# from "webdev-mwn.lrz.de" to "webdev02-mwn.lrz.de". Since then, scp sometimes
-# returns with following error: "host verification failed".
-# I.e., the key in CI worker's "~/.ssh/known_hosts" and returned host key from
-# "webdev02-mwn.lrz.de" do not match.
-#
-# Even deleting "~/.ssh/known_hosts" and re-adding "webdev02-mwn.lrz.de"'s key
-# does not work via "ssh-keyscan -H webdev02-mwn.lrz.de > ~/.ssh/known_hosts".
-#
-# Maybe, worker's SSH version (OpenSSH_7.6p1) and host's SSH versions
-# (OpenSSH_7.9p1) or LRZ has a severe problem because their servers always
-# return different / unrelieable SSH keys!
+before_script:
+    - virtualenv --system-site-packages -p python3.8 ./venv
+    - source venv/bin/activate
+    - python3 -V
+    - python3 -m pip install --upgrade pip
+    - python3 -m pip install --upgrade setuptools
+    - python3 -m pip install --upgrade twine
+    - pip3 install -q -I -r requirements-dev.txt
 
 # Job Template Definitions
 .template_unit_tests:
