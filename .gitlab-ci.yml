@@ -9,36 +9,37 @@ variables:
 
 # Stage Definitions
 stages:
+    - build
     - unit_test
-    - integration_test
     - seed_test
     - deploy
-
-
+    
+    
 # Job Template Definitions
-.template_unit_tests:
-    stage: unit_test
-    # Skip OpenCL tests by using "-Dtest=!Test1,!Test2,..." because GitLab
-    # runners do not support OpenCL.
+.builds:
+    stage: build
     script:
-        - rm -f ~/.config/vadere.conf
-        - mvn clean
-        - mvn -Dtest=!TestConvolution,!TestBitonicSort,!TestCLLinkedList,!TestCLOptimalStepsModel,!TestLWJGL test
-        - python3 Tools/ContinuousIntegration/collect_line_and_branch_coverage.py
+        - echo "Setup enviroment"
+        - virtualenv --system-site-packages -p python3.8 ./venv
+        - source venv/bin/activate
+        - python3 -m pip install --upgrade pip
+        - python3 -m pip install --upgrade setuptools
+        - pip3 install -q -I -r requirements.txt
+        - pip3 list
+        - echo "finished setting up the enviroment"
     artifacts:
-        when: on_success
+        when: always
         paths:
             - "*/target/coverage-reports"
         expire_in: 1 week
-    when: on_success
+    when: always
             
-.template_scenario_files:
-    stage: integration_test
+.template_unit_test:
+    stage: unit_test
     script:
-        - rm -f ~/.config/vadere.conf
-        - mvn clean
-        - mvn -Dmaven.test.skip=true package
-        - python3 Tools/ContinuousIntegration/run_vadere_console_with_all_scenario_files.py
+        - python3 -m unittest discover -v
+        - python3 --version
+        - pip3 list
     artifacts:
         when: on_failure
         paths:
@@ -46,66 +47,16 @@ stages:
         expire_in: 1 week
     when: on_success
 
-.template_deploy_master_automatically:
-    stage: deploy
-    script:
-        - mvn clean
-        - mvn -Dmaven.test.skip=true package
-        - python3 -m zipfile -c ${VADERE_PACKAGE_NAME_BRANCHES} CHANGELOG.md README.md Scenarios/ VadereGui/target/vadere-gui.jar VadereSimulator/target/vadere-console.jar VadereManager/target/vadere-server.jar
-        - scp -o StrictHostKeyChecking=no ${VADERE_PACKAGE_NAME_BRANCHES} di49mur@webdev02-mwn.lrz.de:./webserver/htdocs/builds/master/${VADERE_PACKAGE_NAME_BRANCHES}
-        - python3 -m zipfile -c ${EIKMESH_PACKAGE_NAME_BRANCHES} VadereMeshing/README.md VadereMeshing/target/meshing-0.1-SNAPSHOT.jar
-        - scp -o StrictHostKeyChecking=no ${EIKMESH_PACKAGE_NAME_BRANCHES} di49mur@webdev02-mwn.lrz.de:./webserver/htdocs/builds/master/eikmesh/${EIKMESH_PACKAGE_NAME_BRANCHES}
-    only:
-        refs:
-            - master
-    when: on_success
-
-.template_deploy_stable_automatically:
-    stage: deploy
-    script:
-        - mvn clean
-        - mvn -Dmaven.test.skip=true package
-        - python3 -m zipfile -c ${VADERE_PACKAGE_NAME_RELEASES} CHANGELOG.md README.md Scenarios/ VadereGui/target/vadere-gui.jar VadereSimulator/target/vadere-console.jar VadereManager/target/vadere-server.jar
-        - scp -o StrictHostKeyChecking=no ${VADERE_PACKAGE_NAME_RELEASES} di49mur@webdev02-mwn.lrz.de:./webserver/htdocs/builds/stable/${VADERE_PACKAGE_NAME_RELEASES}
-    # Run job only for "tags" (usually on the "stable" branch). Watch out: Multiple "only" tags are ORed together.
-    # See: https://gitlab.com/gitlab-org/gitlab-ce/issues/27818
-    only:
-        - tags
-    when: on_success
-
-.template_deploy_branch_manually:
-    stage: deploy
-    script:
-        - mvn clean
-        - mvn -Dmaven.test.skip=true package
-        - python3 -m zipfile -c ${VADERE_PACKAGE_NAME_BRANCHES} CHANGELOG.md README.md Scenarios/ VadereGui/target/vadere-gui.jar VadereSimulator/target/vadere-console.jar VadereManager/target/vadere-server.jar
-        - scp -o StrictHostKeyChecking=no ${VADERE_PACKAGE_NAME_BRANCHES} di49mur@webdev02-mwn.lrz.de:./webserver/htdocs/builds/branches/${VADERE_PACKAGE_NAME_BRANCHES}
-    when: manual
-
-.template_seed_test:
-    stage: seed_test
-    script:
-        - mvn clean
-        - mvn -Dmaven.test.skip=true package
-        # setup.py install should from the directoty at which the setup.py file is located (working directory). The brackets return the working direcory back to previous position. 
-        - (cd Tools/VadereAnalysisTools/VadereAnalysisTool/ && python3 setup.py install --user)
-        - python3 Tools/ContinuousIntegration/run_seed_comparison_test.py   
-    artifacts:
-        when: on_failure
-        paths: 
-            - "Tools/ContinuousIntegration/run_seed_comparison_test.d/output"
-        expire_in: 1 week
-    when: on_success
 
 # Job Definitions
 
 ## Jobs for GNU/Linux runner (which is labeled with tag "linux")
-run_unit_tests_on_linux:
-    extends: .template_unit_tests
+build_env_on_linux:
+    extends: .builds
     tags:
         - linux
 
-run_scenario_files_on_linux:
-    extends: .template_scenario_files
+run_unit_tests_on_linux:
+    extends: .template_unit_test
     tags:
         - linux
