@@ -1,21 +1,10 @@
 
-# Variable Definitions
-variables:
-    VADERE_DEPLOYMENT_BASE_URL: "http://www.vadere.org/builds"
-    VADERE_PACKAGE_NAME_BRANCHES: "vadere.${CI_COMMIT_REF_NAME}.${CI_RUNNER_TAGS}.zip"
-    VADERE_PACKAGE_NAME_RELEASES: "vadere.${CI_COMMIT_TAG}.${CI_RUNNER_TAGS}.zip"
-    EIKMESH_PACKAGE_NAME_BRANCHES: "eikmesh.${CI_COMMIT_REF_NAME}.${CI_RUNNER_TAGS}.zip"
 
-
-# Stage Definitions
 stages:
     - build
     - unit_test
-    - seed_test
     - deploy
     
-    
-# Job Template Definitions
 .builds:
     stage: build
     script:
@@ -27,11 +16,6 @@ stages:
         - pip3 install -q -I -r requirements.txt
         - pip3 list
         - echo "finished setting up the enviroment"
-    artifacts:
-        when: always
-        paths:
-            - "*/target/coverage-reports"
-        expire_in: 1 week
     when: always
             
 .template_unit_test:
@@ -40,17 +24,34 @@ stages:
         - python3 -m unittest discover -v
         - python3 --version
         - pip3 list
-    artifacts:
-        when: on_failure
-        paths:
-            - "vadere_logs"
-        expire_in: 1 week
     when: on_success
 
 
-# Job Definitions
+# For infos of testPyPI see here: https://packaging.python.org/guides/using-testpypi/
+# Note that
+# "The database for TestPyPI may be periodically pruned, so it is not unusual for user
+# accounts to be deleted." -- it is best to use the same account and password as for
+# the real PyPI, so that the TWINE variables (see below) can be re-used
+# uploads to test.pypi.org to see how everything renders    
+.deploy_test:
+    stage: deploy
+    script:
+        - python3 setup.py sdist bdist_wheel
+        - twine check dist/*
+        - twine upload --verbose --repository testpypi dist/*
+    when: manual
 
-## Jobs for GNU/Linux runner (which is labeled with tag "linux")
+# Requires to set the variables TWINE_USERNAME and TWINE_PASSWORD in gitlab CI/CD
+.deploy_publish:
+    stage: deploy
+    script:
+        - python3 setup.py sdist bdist_wheel
+        - twine check dist/*
+        - twine upload --verbose dist/*
+    when: manual
+
+
+# Job Definitions
 build_env_on_linux:
     extends: .builds
     tags:
@@ -60,3 +61,15 @@ run_unit_tests_on_linux:
     extends: .template_unit_test
     tags:
         - linux
+
+
+test_deploy:
+    extends: .deploy_test
+    tags:
+        - linux
+
+deploy:
+    extends: .deploy_publish
+    tags:
+        - linux
+
