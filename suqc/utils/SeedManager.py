@@ -3,46 +3,53 @@ import copy
 from typing import Dict, Any, List
 
 
-# class SeedManager(ParameterVariationBase):
-# todo Mario:
-#  - Die Dictionaries in der Liste werden je nachdem wie groß anzahl der repetition ist dupliziert
-#  - len(list) == 2 mit rep 3 -> len(list)  == 6
-#  - SeedManager().get_varations = Liste(mitSeeds und repetition)
-#  - SeedManager().apply_vadere_seed() - Liste(mitSeeds und repetition)
-#  - SeedManager().apply_vadere_seed().get_variations() - Liste(mitSeeds und repetition)
-#  - SeedManager().get_variations() - Liste(Repetition)
-#  - getRepetition() -> Liste mit kopierten Dictionaries
-#  - getVariation() -> Liste mit einfachen Dictionaries
-#  - addVadereSeed(seeed: int)
-#  -  rep = anzahl Variationen mit Random seed
-#  - verschiedene Variationen können selben selben seed haben
-# run  rep  seed
-# 0 0 5
-# 0 1 4
-# 0 2 3
-# 1 0 5
-# 1 1 4
-# 1 2 3
-
 class SeedManager:
-    def __init__(self, par_variations: List[Dict[str, Any]], rep_count: int = 1):
+    def __init__(self, par_variations: List[Dict[str, Any]],
+                 seed_config: Dict[str, str] = {"vadere": "random", "omnet": "random"}, rep_count: int = 1):
+        """SeedManager class for crownet based simulation
+
+        Attributes:
+        -----
+        par_variations: List[Dict[str, Any]]
+            the parameter variation that needs to be seeded
+        seed_config:  Dict[str, str]
+            seed configuration (default {"vadere": "random", "omnet": "random"})
+        rep_count: int
+            repetition count determines how many seed different seed configuration are set per variation
+        """
         self.parameter_variations = par_variations
         self.repetition_count = rep_count
         self.omnet_seed_range = range(1, 255)
-        self.Vadere_seed_range = range(1, 100000)
-        # erzeuge liste je nach repcount (self.parameter_variations)
-        self.parameter_repetition = None
+        self.vadere_seed_range = range(1, 100000)
+        self.seed_config = seed_config
+        if rep_count == 0:
+            raise ValueError("rep_count of 0 is not supported")
 
-    def _create_repeated_seed_variations(self, variations: List[Dict[str, Any]], repetitions: int) -> List[
-        Dict[str, Any]]:
-        ret: List[Dict[str, Any]] = []
-        for parameter_variation in variations:
-            for rep in range(repetitions):
-                ret.append(copy.deepcopy(parameter_variation))
-        # random.sample(range(1, 100), len(self.variations)) # number of repetition => als seed länger, da andere parameter kombi selber seed
-        # omnet-seeds 1-255
-        # vadere-seeds 1-100000
-        return ret
+    def _set_seed(self, variation: Dict[str, Any], vadere_seed: int, omnet_seed: int):
+        # todo: if sumo gets implemented, add new sumo seed
+
+        # seed already set
+        if self._seed_parameter_exists(variation):
+            raise ValueError("Seed already set in the given dictionary.")
+
+        # vadere seed
+        if "vadere" in self.seed_config:
+            if self.seed_config["vadere"] == "fixed":
+                self._add_vadere_seed_fixed(variation)
+            else:
+                self._add_vadere_seed_random(variation, vadere_seed)
+        # omnet seed
+        if "omnet" in self.seed_config:
+            if self.seed_config["omnet"] == "fixed":
+                self._add_omnet_seed_fixed(variation)
+            else:
+                self._add_omnet_seed_random(variation, omnet_seed)
+        # sumo seed
+        if "sumo" in self.seed_config:
+            if self.seed_config["sumo"] == "fixed":
+                self._add_sumo_seed_fixed(variation)
+            else:
+                self._add_sumo_seed_random(variation, -1)
 
     def _seed_parameter_exists(self, parameter_variations: Dict[str, Any]) -> bool:
         vadere_seed_keys = ["attributesSimulation.useFixedSeed"]
@@ -53,32 +60,72 @@ class SeedManager:
         vadere_exists = any([key in parameter_variations[vadere_key] for key in vadere_seed_keys])
         return any([omnet_exists, vadere_exists])
 
-    def add_vadere_seed_fixed(self, parameter_variations: Dict[str, Any]) -> "SeedManager":
-        if self._seed_parameter_exists(parameter_variations):
-            raise ValueError("Seed already set in the given dictionary.")
+    def _add_vadere_seed_fixed(self, parameter_variations: Dict[str, Any]) -> "SeedManager":
+        # use fixed seed defined in scenario file
         parameter_variations["omnet"]["*.traci.launcher.useVadereSeed"] = "true"
         parameter_variations["vadere"]["attributesSimulation.useFixedSeed"] = True
         return self
 
-    def add_vadere_seed_random(self, parameter_variations: Dict[str, Any], seed: int) -> "SeedManager":
-        if self._seed_parameter_exists(parameter_variations):
-            raise ValueError("Seed already set in the given dictionary.")
+    def _add_vadere_seed_random(self, parameter_variations: Dict[str, Any], seed: int) -> "SeedManager":
         # use random seed in vadere provided from omnet ini file
         parameter_variations["omnet"]["*.traci.launcher.useVadereSeed"] = "false"
         parameter_variations["omnet"]["*.traci.launcher.seed"] = seed
         return self
 
-    def add_omnet_seed_fixed(self, parameter_variations: Dict[str, Any], fixed_seed=True):
+    def _add_omnet_seed_fixed(self, parameter_variations: Dict[str, Any]):
         # not implemented
-        pass  # use fixed seed defined in omnet ini file
+        # use fixed seed defined in omnet ini file
+        raise NotImplementedError("fixed seeds for omnet are not implemented.")
 
-    def add_omnet_seed_random(self, parameter_variations: Dict[str, Any], seed: int) -> "SeedManager":
-        if self._seed_parameter_exists(parameter_variations):
-            raise ValueError("Seed already set in the given dictionary.")
+    def _add_omnet_seed_random(self, parameter_variations: Dict[str, Any], seed: int) -> "SeedManager":
         # use random seed for omnet
-        # seed = str(random.randint(1, 255))
         parameter_variations["omnet"]["seed-set"] = seed
         return self
+
+    def _add_sumo_seed_fixed(self, parameter_variation: Dict[str, Any]) -> "SeedManager":
+        # not implemented
+        raise NotImplementedError("sumo seeds are not implemented.")
+
+    def _add_sumo_seed_random(self, parameter_variation: Dict[str, Any], seed: int) -> "SeedManager":
+        # not implemented
+        raise NotImplementedError("sumo seeds are not implemented.")
+
+    def get_new_seed_variation(self) -> List[
+        Dict[str, Any]]:
+        """
+                Generates a new seed variation.
+
+                Returns
+                -------
+                out : List[Dict[str, Any]]
+                    List of seeded variants.
+
+                Examples
+                --------
+                >>> SeedManager(par_variations=[variation_1, variation_2], rep_count=2).get_new_seed_variation()
+                [variation_1_seed_1,
+                variation_1_seed_2,
+                variation_2_seed_1,
+                variation_2_seed_2]
+                >>> SeedManager(par_variations=[variation_1], rep_count=4).get_new_seed_variation()
+                [variation_1_seed_1,
+                variation_1_seed_2,
+                variation_1_seed_3,
+                variation_1_seed_4]
+                >>> SeedManager(par_variations=[variation_1, variation_2]).get_new_seed_variation()
+                [variation_1_seed_1,
+                variation_1_seed_2]
+
+        """
+        ret: List[Dict[str, Any]] = []
+        vadere_samples = random.sample(self.vadere_seed_range, self.repetition_count)
+        omnet_samples = random.sample(self.omnet_seed_range, self.repetition_count)
+        for parameter_variation in self.parameter_variations:
+            for rep in range(self.repetition_count):
+                copied_element = copy.deepcopy(parameter_variation)
+                self._set_seed(variation=copied_element, omnet_seed=omnet_samples[rep], vadere_seed=vadere_samples[rep])
+                ret.append(copied_element)
+        return ret
 
     # @staticmethod
     # def check_seed_config(seed_config: Dict):
