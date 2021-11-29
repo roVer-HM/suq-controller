@@ -1,0 +1,83 @@
+stages:
+    - unit_test
+    - deploy
+
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# https://docs.gitlab.com/ee/ci/caching/#cache-python-dependencies  
+# If you want to cache the installed packages, you have to install
+# them in a virtualenv and cache it as well.
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+    
+     
+before_script:
+    - echo "Setup enviroment"
+    - virtualenv --system-site-packages -p python3.8 ./venv
+    - source venv/bin/activate
+    - python3 -m pip install --upgrade pip
+    - python3 -m pip install --upgrade setuptools
+    - pip3 install -q -I -r requirements.txt
+    - echo "finished setting up the enviroment"
+            
+.template_unit_test:
+    stage: unit_test
+    script:
+        - source ./venv/bin/activate
+        - python3 --version     
+        - python3 -m unittest discover -v
+    when: on_success
+
+
+# For infos of testPyPI see here: https://packaging.python.org/guides/using-testpypi/
+# Note that
+# "The database for TestPyPI may be periodically pruned, so it is not unusual for user
+# accounts to be deleted." -- it is best to use the same account and password as for
+# the real PyPI, so that the TWINE variables (see below) can be re-used
+# uploads to test.pypi.org to see how everything renders    
+.deploy_test:
+    stage: deploy
+    script:
+        - source ./venv/bin/activate
+        - python3 setup.py sdist bdist_wheel
+        - twine check dist/*
+        - twine upload --verbose --repository testpypi dist/*
+    when: manual
+
+# Requires to set the variables TWINE_USERNAME and TWINE_PASSWORD in gitlab CI/CD
+.deploy_publish:
+    stage: deploy
+    script:
+        - source ./venv/bin/activate
+        - python3 setup.py sdist bdist_wheel
+        - twine check dist/*
+        - twine upload --verbose dist/*
+    when: manual
+
+
+# Job Definitions
+#build_env_on_linux:
+#    extends: .builds
+#    tags:
+#        - linux
+
+run_unit_tests_on_linux:
+    extends: .template_unit_test
+    tags:
+        - linux
+
+
+test_deploy:
+    extends: .deploy_test
+    tags:
+        - linux
+
+deploy:
+    extends: .deploy_publish
+    tags:
+        - linux
+
