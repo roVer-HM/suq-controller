@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     setup = CrownetSumoRequest.create(
         ini_path=path2ini,
-        config="mucSumo_120_maptypes",
+        config="mucSumo_base",
         parameter_dict_list=[
             {"omnet": {
                 "*.pNode[*].app[2].app.mapTypeLog": '"ymf"',
