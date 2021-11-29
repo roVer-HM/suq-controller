@@ -25,7 +25,7 @@ class CrownetSumoSeedManager(SeedManager):
         if seed_config is not None:
             self.check_seed_config(seed_config)
             # omnet seed
-            self.add_omnet_seed_fixed(seed_config)
+            self._add_omnet_seed_fixed(seed_config)
             # sumo seed
             self.apply_sumo_seed(seed_config)
 
