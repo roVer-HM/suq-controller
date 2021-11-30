@@ -129,11 +129,10 @@ class VadereOmnetWrapper(AbstractConsoleWrapper):
 
         return_code, process_duration = VadereOppCommand(cwd=dirname) \
             .create_vadere_container() \
-            .override_host_config() \
+            .override_host_config(os.path.basename(dirname)) \
             .vadere_tag(self.vadere_tag) \
             .omnet_tag(self.omnetpp_tag) \
             .qoi(required_files) \
-            .run_name(os.path.basename(dirname)) \
             .experiment_label("out") \
             .run(script_name=start_file)
 

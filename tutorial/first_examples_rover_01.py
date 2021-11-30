@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-#!/usr/bin/python3
+# !/usr/bin/python3
 
 import sys
+
+from suqc.utils.SeedManager import SeedManager
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
@@ -30,51 +32,21 @@ if __name__ == "__main__":
 
     ## Define parameters and sampling method
     # parameters
-
-    parameter = [
-        Parameter(
-            name="number_of_agents_mean", simulator="dummy", stages=[15, 20],
-        )  # number of agtens to be generated in 100s
-    ]
-    dependent_parameters = [
-        DependentParameter(
-            name="sources.[id==1].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [(args["number_of_agents_mean"] * 0.01 / 4)],
-        ),
-        DependentParameter(
-            name="sources.[id==2].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [(args["number_of_agents_mean"] * 0.01 / 4)],
-        ),
-        DependentParameter(
-            name="sources.[id==5].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [(args["number_of_agents_mean"] * 0.01 / 4)],
-        ),
-        DependentParameter(
-            name="sources.[id==6].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [(args["number_of_agents_mean"] * 0.01 / 4)],
-        ),
-        DependentParameter(name="sim-time-limit", simulator="omnet", equation="180s"),
-        DependentParameter(
-            name="*.station[0].app[0].incidentTime", simulator="omnet", equation="100s",
-        ),
-        DependentParameter(
-            name="*.radioMedium.obstacleLoss.typename",
-            simulator="omnet",
-            equation="DielectricObstacleLoss",
-        ),
-    ]
-
     # number of repitions for each sample
     reps = 1
 
     # sampling
-    par_var = RoverSamplingFullFactorial(
-        parameters=parameter, parameters_dependent=dependent_parameters
-    ).get_sampling()
+    par_var = [{'vadere': {'sources.[id==6].distributionParameters': [0.0375]},
+                'omnet': {'sim-time-limit': '180s',
+                          '*.station[0].app[0].incidentTime': '100s',
+                          '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+               {'vadere': {'sources.[id==6].distributionParameters': [0.05]},
+                'omnet': {'sim-time-limit': '180s',
+                          '*.station[0].app[0].incidentTime': '100s',
+                          '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}}
+               ]
+    par_var = SeedManager(par_variations=par_var, rep_count=reps,
+                          seed_config={"vadere": "random", "omnet": "random"}).get_new_seed_variation()
 
     ## Define the quantities of interest (simulation output variables)
     # Make sure that corresponding post processing methods exist in the run_script2.py file
@@ -87,7 +59,7 @@ if __name__ == "__main__":
 
     # define tag of omnet and vadere docker images, see https://sam-dev.cs.hm.edu/rover/rover-main/container_registry/
     model = VadereOmnetWrapper(
-        model="Coupled", vadere_tag="200527-1424", omnetpp_tag="200221-1642"
+        model="Coupled", vadere_tag="latest", omnetpp_tag="latest"
     )
 
     setup = CoupledDictVariation(
@@ -96,12 +68,10 @@ if __name__ == "__main__":
         parameter_dict_list=par_var,
         qoi=qoi,
         model=model,
-        scenario_runs=reps,
         post_changes=None,
         output_path=path2tutorial,
         output_folder=output_folder,
         remove_output=False,
-        seed_config={"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
 

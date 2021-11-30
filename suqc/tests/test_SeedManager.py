@@ -169,7 +169,7 @@ class TestSeedManager(unittest.TestCase):
 
     def test_add_vadere_seed_random(self):
         empty_copy = copy.deepcopy(self.empty_variation)
-        seed = 1
+        seed = '1'
         self.seed_manager._add_vadere_seed_random(empty_copy, seed)
         self.assertTrue("*.traci.launcher.useVadereSeed" in empty_copy["omnet"])
         self.assertTrue("*.traci.launcher.seed" in empty_copy["omnet"])
@@ -183,7 +183,7 @@ class TestSeedManager(unittest.TestCase):
 
     def test_add_omnet_seed_random(self):
         empty_copy = copy.deepcopy(self.empty_variation)
-        seed = 1
+        seed = '1'
         self.seed_manager._add_omnet_seed_random(empty_copy, seed)
         self.assertTrue("seed-set" in empty_copy["omnet"])
         self.assertEqual(empty_copy["omnet"]["seed-set"], seed)
@@ -200,7 +200,7 @@ class TestSeedManager(unittest.TestCase):
 
     @mock.patch('random.sample')
     def test_get_new_seed_variation(self, sample_mock: mock.MagicMock):
-        sample_mock.return_value = [1, 2]
+        sample_mock.return_value = ['1', '2']
         t1_seed_manager = SeedManager(par_variations=[self.empty_variation],
                                       seed_config={"omnet": "random", "vadere": "random"},
                                       rep_count=2)

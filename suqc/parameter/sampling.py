@@ -16,7 +16,6 @@ import numpy as np
 
 
 class ParameterVariationBase(metaclass=abc.ABCMeta):
-
     MULTI_IDX_LEVEL0_PAR = "Parameter"
     MULTI_IDX_LEVEL0_LOC = "Location"
     ROW_IDX_NAME_ID = "id"
@@ -46,11 +45,11 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         # if it is a list, the int values co
         if isinstance(scenario_runs, list):
             if (
-                all(
-                    isinstance(scenario_run, int) and scenario_run > 0
-                    for scenario_run in scenario_runs
-                )
-                == False
+                    all(
+                        isinstance(scenario_run, int) and scenario_run > 0
+                        for scenario_run in scenario_runs
+                    )
+                    == False
             ):
                 raise ValueError(
                     f"Expect a list of positive integers. Got {scenario_runs}."
@@ -62,7 +61,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
                 raise ValueError(information)
             if len(scenario_runs) > len(self._points.index.values):
                 print(
-                    f"WARNING: {information}. Last {len(scenario_runs)-len(self._points.index.values)} element(s) are ignored."
+                    f"WARNING: {information}. Last {len(scenario_runs) - len(self._points.index.values)} element(s) are ignored."
                 )
 
         if isinstance(scenario_runs, int):
@@ -96,6 +95,22 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
         self._points = self._points.sort_index(axis=1)
 
+        return self
+
+    def add_data_points(self, par_variations: List[Dict[str, Any]]):
+        self._add_dict_points(par_variations)
+        # df0 = np.tile(self._points.values[k], (scenario_runs[k], 1))
+        df_values = self._points.values
+        idx_ids = np.arange(start=0, stop=len(par_variations))
+        idx_run_ids = np.zeros(len(par_variations), dtype=int)
+        self._points = pd.DataFrame(
+            df_values,
+            index=pd.MultiIndex.from_arrays(
+                [idx_ids, idx_run_ids], names=["id", "run_id"]
+            ),
+            columns=self._points.columns
+        )
+        self._points = self._points.sort_index(axis=1)
         return self
 
     def _add_dict_points(self, points: List[dict]):
@@ -220,8 +235,6 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
     def is_multiple_simulators(self):
         return self._points.columns.nlevels == 3
 
-    def add_data_points(self, _dict):
-        pass
 
 # class CrownetVadereControlUserDefinedSampling(UserDefinedSampling):
 #
@@ -330,8 +343,8 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
         arr = np.zeros(boxes * nr_testf)
 
         for i in range(boxes):
-            s, e = edges[i : i + 2]
-            arr[i * nr_testf : i * nr_testf + nr_testf] = np.linspace(
+            s, e = edges[i: i + 2]
+            arr[i * nr_testf: i * nr_testf + nr_testf] = np.linspace(
                 s, e, nr_testf + 2
             )[1:-1]
         return arr
@@ -355,9 +368,9 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
             idx_z = _get_idx(vals[2], 2)
 
         box = (
-            idx_x
-            + idx_y * (self._nr_boxes[0])
-            + idx_z * (self._nr_boxes[0] * self._nr_boxes[1])
+                idx_x
+                + idx_y * (self._nr_boxes[0])
+                + idx_z * (self._nr_boxes[0] * self._nr_boxes[1])
         )
         return box
 
@@ -478,7 +491,7 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
 
         bool_idx = markov.sum(axis=1).astype(np.bool)
         markov[bool_idx, :] = (
-            markov[bool_idx, :] / markov[bool_idx, :].sum(axis=1)[:, np.newaxis]
+                markov[bool_idx, :] / markov[bool_idx, :].sum(axis=1)[:, np.newaxis]
         )
 
         return markov
@@ -501,13 +514,13 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
 
         initial_condition = np.zeros(all_boxes)
         initial_condition[boxes_included.astype(np.int)] = (
-            1 / boxes_included.shape[0]
+                1 / boxes_included.shape[0]
         )  # uniform
 
         return initial_condition
 
     def transfer_initial_condition(
-        self, markov: np.array, initial_cond: np.array, nrsteps: int
+            self, markov: np.array, initial_cond: np.array, nrsteps: int
     ):
 
         all_boxes = self._points["boxid"].max() + 1
@@ -560,7 +573,6 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
         fig = plt.figure(figsize=(8, 3))
 
         for sidx in range(states.shape[1]):
-
             ax = fig.add_subplot(cols, rows, sidx + 1, projection="3d")
 
             df = self._get_bar_data_from_state(states[:, sidx])

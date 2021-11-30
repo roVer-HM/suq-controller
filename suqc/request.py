@@ -10,7 +10,7 @@ from suqc.environment import (
     CoupledEnvironmentManager,
     VadereConsoleWrapper,
     AbstractEnvironmentManager,
-    CrownetSumoEnvironmentManager,  CrownetSumoWrapper,
+    CrownetSumoEnvironmentManager, CrownetSumoWrapper,
 )
 from omnetinireader.config_parser import OppConfigType
 from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation, CrownetSumoCreation
@@ -397,14 +397,12 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             parameter_dict_list: List[dict],
             qoi: Union[str, List[str]],
             model: Union[str, VadereOmnetWrapper],
-            scenario_runs=Union[int, List[int]],
             post_changes=PostScenarioChangesBase(apply_default=True),
             njobs_create_scenarios=1,
             output_path=None,
             output_folder=None,
             env_remote=None,
             remove_output=False,
-            seed_config=None,
             config="final",
     ):
 
@@ -449,14 +447,13 @@ class CoupledDictVariation(VariationBase, ServerRequest):
                 self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
                 env = env_remote
 
-
-            parameter_variation = ParameterVariationBase()
+            parameter_variation = ParameterVariationBase().add_data_points(parameter_dict_list)
+            print("breakpoint")
+            # parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
+            #     scenario_runs=scenario_runs
+            # )
             # todo mario fix this after SeedManager is done:
             #  - parameter_variation.addDataPoints(parameter_dict_list)
-
-            parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
-                scenario_runs=scenario_runs
-            )
             # todo mario: fix this after SeedManager is done
             # parameter_variation = SeedManager(parameter_dict_list)
             # parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
@@ -1067,6 +1064,7 @@ class SingleExistScenario(Request, ServerRequest):
             transfer_output=True,
         )
 
+
 # class CrownetVadereControlRequest(Request):
 #     """
 #         Request class for crownet based simulation with omnet and sumo.
@@ -1319,6 +1317,7 @@ class CrownetSumoRequest(Request):
         #     shutil.rmtree(dirname)
 
         return r_item
+
 
 if __name__ == "__main__":
     pass

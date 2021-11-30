@@ -69,7 +69,7 @@ class SeedManager:
     def _add_vadere_seed_random(self, parameter_variations: Dict[str, Any], seed: int) -> "SeedManager":
         # use random seed in vadere provided from omnet ini file
         parameter_variations["omnet"]["*.traci.launcher.useVadereSeed"] = "false"
-        parameter_variations["omnet"]["*.traci.launcher.seed"] = seed
+        parameter_variations["omnet"]["*.traci.launcher.seed"] = str(seed)
         return self
 
     def _add_omnet_seed_fixed(self, parameter_variations: Dict[str, Any]):
@@ -79,7 +79,7 @@ class SeedManager:
 
     def _add_omnet_seed_random(self, parameter_variations: Dict[str, Any], seed: int) -> "SeedManager":
         # use random seed for omnet
-        parameter_variations["omnet"]["seed-set"] = seed
+        parameter_variations["omnet"]["seed-set"] = str(seed)
         return self
 
     def _add_sumo_seed_fixed(self, parameter_variation: Dict[str, Any]) -> "SeedManager":
