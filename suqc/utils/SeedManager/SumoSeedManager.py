@@ -1,12 +1,12 @@
 from typing import List, Dict, Union
 
-from suqc.utils.SeedManager import SeedManager
 
-
-class CrownetSumoSeedManager(SeedManager):
+class SumoSeedManager:
 
     def __init__(self, points: List[dict]):
-        super().__init__(points)
+        # super().__init__(points)
+        self._points = []
+        pass
 
     @staticmethod
     def check_seed_config(seed_config: Dict):

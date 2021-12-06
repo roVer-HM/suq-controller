@@ -1,26 +1,25 @@
-import random
 import unittest
 from unittest import mock
 import copy
 
-from suqc.utils.SeedManager import SeedManager
+from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 
 
-class TestSeedManager(unittest.TestCase):
+class TestOmnetSeedManager(unittest.TestCase):
     empty_variation = {'vadere': {}, 'omnet': {}}  # todo rename into empty_variation ?!?
-    seed_manager = SeedManager([empty_variation])
+    seed_manager = OmnetSeedManager([empty_variation])
 
     def test__init__(self):
-        empty_args = SeedManager(par_variations=[])
+        empty_args = OmnetSeedManager(par_variations=[])
         self.assertEqual(empty_args.omnet_seed_range, range(1, 255))
         self.assertEqual(empty_args.vadere_seed_range, range(1, 100000))
         self.assertEqual(empty_args.parameter_variations, [])
         self.assertEqual(empty_args.seed_config, {'vadere': 'random', 'omnet': 'random'})
         self.assertEqual(empty_args.repetition_count, 1)
 
-        set_args = SeedManager(par_variations=[self.empty_variation],
-                               seed_config={"omnet": "random"},
-                               rep_count=5)
+        set_args = OmnetSeedManager(par_variations=[self.empty_variation],
+                                    seed_config={"omnet": "random"},
+                                    rep_count=5)
         self.assertEqual(set_args.omnet_seed_range, range(1, 255))
         self.assertEqual(set_args.vadere_seed_range, range(1, 100000))
         self.assertEqual(set_args.parameter_variations, [self.empty_variation])
@@ -29,7 +28,7 @@ class TestSeedManager(unittest.TestCase):
 
         # raise warning with repetition count of 0
         with self.assertRaises(ValueError) as context:
-            SeedManager(par_variations=[], rep_count=0)
+            OmnetSeedManager(par_variations=[], rep_count=0)
         self.assertEqual(str(context.exception), "rep_count of 0 is not supported")
 
     @mock.patch('suqc.utils.SeedManager.SeedManager._add_vadere_seed_fixed')
@@ -59,8 +58,8 @@ class TestSeedManager(unittest.TestCase):
             var_copy = copy.deepcopy(self.empty_variation)
 
         # vadere fixed, omnet fixed
-        s_fixed_fixed = SeedManager(par_variations=[self.empty_variation],
-                                    seed_config={"vadere": "fixed", "omnet": "fixed"})
+        s_fixed_fixed = OmnetSeedManager(par_variations=[self.empty_variation],
+                                         seed_config={"vadere": "fixed", "omnet": "fixed"})
         s_fixed_fixed._set_seed(variation=var_copy, vadere_seed=vadere_seed, omnet_seed=omnet_seed)
         self.assertEqual(vadere_random_mock.call_count, 0)
         self.assertEqual(vadere_fixed_mock.call_count, 1)
@@ -73,8 +72,8 @@ class TestSeedManager(unittest.TestCase):
         reset_mocks()
 
         # vadere fixed, omnet random
-        s_fixed_random = SeedManager(par_variations=[self.empty_variation],
-                                     seed_config={"vadere": "fixed", "omnet": "random"})
+        s_fixed_random = OmnetSeedManager(par_variations=[self.empty_variation],
+                                          seed_config={"vadere": "fixed", "omnet": "random"})
         s_fixed_random._set_seed(variation=var_copy, vadere_seed=vadere_seed, omnet_seed=omnet_seed)
         self.assertEqual(vadere_random_mock.call_count, 0)
         self.assertEqual(vadere_fixed_mock.call_count, 1)
@@ -87,8 +86,8 @@ class TestSeedManager(unittest.TestCase):
         reset_mocks()
 
         # vadere random, omnet fixed
-        s_random_fixed = SeedManager(par_variations=[self.empty_variation],
-                                     seed_config={"vadere": "random", "omnet": "fixed"})
+        s_random_fixed = OmnetSeedManager(par_variations=[self.empty_variation],
+                                          seed_config={"vadere": "random", "omnet": "fixed"})
         s_random_fixed._set_seed(variation=var_copy, vadere_seed=vadere_seed, omnet_seed=omnet_seed)
         self.assertEqual(vadere_random_mock.call_count, 1)
         self.assertEqual(vadere_fixed_mock.call_count, 0)
@@ -101,8 +100,8 @@ class TestSeedManager(unittest.TestCase):
         reset_mocks()
 
         # vadere random, omnet random
-        s_random_random = SeedManager(par_variations=[self.empty_variation],
-                                      seed_config={"vadere": "random", "omnet": "random"})
+        s_random_random = OmnetSeedManager(par_variations=[self.empty_variation],
+                                           seed_config={"vadere": "random", "omnet": "random"})
         s_random_random._set_seed(variation=var_copy, vadere_seed=vadere_seed, omnet_seed=omnet_seed)
         self.assertEqual(vadere_random_mock.call_count, 1)
         self.assertEqual(vadere_fixed_mock.call_count, 0)
@@ -115,8 +114,8 @@ class TestSeedManager(unittest.TestCase):
         reset_mocks()
 
         # sumo fixed
-        sumo_fixed = SeedManager(par_variations=[self.empty_variation],
-                                 seed_config={"sumo": "fixed"})
+        sumo_fixed = OmnetSeedManager(par_variations=[self.empty_variation],
+                                      seed_config={"sumo": "fixed"})
         sumo_fixed._set_seed(variation=var_copy, vadere_seed=vadere_seed, omnet_seed=omnet_seed)
         self.assertEqual(vadere_random_mock.call_count, 0)
         self.assertEqual(vadere_fixed_mock.call_count, 0)
@@ -128,8 +127,8 @@ class TestSeedManager(unittest.TestCase):
         reset_mocks()
 
         # sumo random
-        sumo_random = SeedManager(par_variations=[self.empty_variation],
-                                  seed_config={"sumo": "random"})
+        sumo_random = OmnetSeedManager(par_variations=[self.empty_variation],
+                                       seed_config={"sumo": "random"})
         sumo_random._set_seed(variation=var_copy, vadere_seed=vadere_seed, omnet_seed=omnet_seed)
         self.assertEqual(vadere_random_mock.call_count, 0)
         self.assertEqual(vadere_fixed_mock.call_count, 0)
@@ -144,7 +143,7 @@ class TestSeedManager(unittest.TestCase):
         seed_variation = {'vadere': {'attributesSimulation.useFixedSeed': True},
                           'omnet': {'*.traci.launcher.useVadereSeed': "false",
                                     '*.traci.launcher.seed': [57455, 35466]}}
-        raise_manager = SeedManager(par_variations=[seed_variation])
+        raise_manager = OmnetSeedManager(par_variations=[seed_variation])
         with self.assertRaises(ValueError) as context:
             raise_manager._set_seed(seed_variation, 1, 2)
         self.assertEqual(str(context.exception), "Seed already set in the given dictionary.")
@@ -202,9 +201,9 @@ class TestSeedManager(unittest.TestCase):
     @mock.patch('random.sample')
     def test_get_new_seed_variation(self, sample_mock: mock.MagicMock):
         sample_mock.return_value = ['1', '2']
-        t1_seed_manager = SeedManager(par_variations=[self.empty_variation],
-                                      seed_config={"omnet": "random", "vadere": "random"},
-                                      rep_count=2)
+        t1_seed_manager = OmnetSeedManager(par_variations=[self.empty_variation],
+                                           seed_config={"omnet": "random", "vadere": "random"},
+                                           rep_count=2)
         results = t1_seed_manager.get_new_seed_variation()
         self.assertTrue(len(results) == 2)
         self.assertEqual(results[0]["omnet"]["*.traci.launcher.useVadereSeed"], 'false')
@@ -212,9 +211,9 @@ class TestSeedManager(unittest.TestCase):
         self.assertEqual(results[1]["omnet"]["*.traci.launcher.useVadereSeed"], 'false')
         self.assertEqual(results[1]["omnet"]["*.traci.launcher.seed"], sample_mock.return_value[1])
 
-        t2_seed_manager = SeedManager(par_variations=[self.empty_variation, self.empty_variation],
-                                      seed_config={"omnet": "random", "vadere": "fixed"},
-                                      rep_count=2)
+        t2_seed_manager = OmnetSeedManager(par_variations=[self.empty_variation, self.empty_variation],
+                                           seed_config={"omnet": "random", "vadere": "fixed"},
+                                           rep_count=2)
         results = t2_seed_manager.get_new_seed_variation()
         self.assertTrue(len(results) == 4)
         self.assertEqual(results[0]["omnet"]["*.traci.launcher.useVadereSeed"], 'true')

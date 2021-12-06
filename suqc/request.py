@@ -6,7 +6,6 @@ import os
 import shutil
 from suqc.environment import (
     AbstractConsoleWrapper,
-    VadereOmnetWrapper,
     CoupledEnvironmentManager,
     VadereConsoleWrapper,
     AbstractEnvironmentManager,
@@ -26,7 +25,7 @@ from suqc.utils.general import (
     parent_folder_clean,
     user_query_yes_no, check_simulator,
 )
-from suqc.utils.CrownetSumoSeedManager import CrownetSumoSeedManager
+from suqc.utils.SeedManager.SumoSeedManager import SumoSeedManager
 
 
 def read_from_existing_output(
@@ -659,6 +658,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         filepath = f"{dirname}/results/**/*.scenario"
         file = glob.glob(filepath, recursive=True)
+
         dirpath = os.path.dirname(file[0])
 
         is_results = self._interpret_return_value(
