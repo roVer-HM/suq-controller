@@ -241,7 +241,6 @@ class Request(object):
         )
         return meta_info
 
-    # TODO: MARIO Request
     def _sp_query(self):
         # single process query
 
@@ -256,7 +255,6 @@ class Request(object):
         pool = multiprocessing.Pool(processes=njobs)
         self.request_item_list = pool.map(self._single_request, self.request_item_list)
 
-    # TODO: MARIO Request
     def run(self, njobs: int = 1):
 
         # nr of rows = nr of parameter settings = #simulations
@@ -396,7 +394,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             ini_path: str,
             parameter_dict_list: List[dict],
             qoi: Union[str, List[str]],
-            model: Union[str, VadereOmnetWrapper],
+            model: Union[str, AbstractConsoleWrapper],
             post_changes=PostScenarioChangesBase(apply_default=True),
             njobs_create_scenarios=1,
             output_path=None,
@@ -448,17 +446,6 @@ class CoupledDictVariation(VariationBase, ServerRequest):
                 env = env_remote
 
             parameter_variation = ParameterVariationBase().add_data_points(parameter_dict_list)
-            print("breakpoint")
-            # parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
-            #     scenario_runs=scenario_runs
-            # )
-            # todo mario fix this after SeedManager is done:
-            #  - parameter_variation.addDataPoints(parameter_dict_list)
-            # todo mario: fix this after SeedManager is done
-            # parameter_variation = SeedManager(parameter_dict_list)
-            # parameter_variation = parameter_variation.multiply_scenario_runs_using_seed(
-            #     scenario_runs=scenario_runs
-            # )
         else:
             self.read_old_data = True
             parameter_variation = ParameterVariationBase()
@@ -654,7 +641,6 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         return request_item_list
 
-    # TODO MARIO CoupldDictVariation
     def _single_request(self, request_item: RequestItem) -> RequestItem:
 
         par_id = request_item.parameter_id

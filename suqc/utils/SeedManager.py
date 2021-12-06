@@ -37,7 +37,11 @@ class SeedManager:
             if self.seed_config["vadere"] == "fixed":
                 self._add_vadere_seed_fixed(variation)
             else:
-                self._add_vadere_seed_random(variation, vadere_seed)
+                if "omnet" in self.parameter_variations:
+                    self._add_vadere_seed_random(variation, vadere_seed)
+                else:
+                    self._add_vadere_seed_random_only(variation, 12345)  # todo mario: fixme after finish
+
         # omnet seed
         if "omnet" in self.seed_config:
             if self.seed_config["omnet"] == "fixed":
@@ -56,8 +60,10 @@ class SeedManager:
         omnet_seed_keys = ["*.traci.launcher.useVadereSeed", "*.traci.launcher.seed", "seed-set"]
         omnet_key = "omnet"
         vadere_key = "vadere"
-        omnet_exists = any([key in parameter_variations[omnet_key] for key in omnet_seed_keys])
-        vadere_exists = any([key in parameter_variations[vadere_key] for key in vadere_seed_keys])
+        omnet_exists = any([key in parameter_variations[omnet_key] for key in omnet_seed_keys]) \
+            if omnet_key in parameter_variations else False
+        vadere_exists = any([key in parameter_variations[vadere_key] for key in vadere_seed_keys]) \
+            if vadere_key in parameter_variations else False
         return any([omnet_exists, vadere_exists])
 
     def _add_vadere_seed_fixed(self, parameter_variations: Dict[str, Any]) -> "SeedManager":
@@ -72,10 +78,14 @@ class SeedManager:
         parameter_variations["omnet"]["*.traci.launcher.seed"] = str(seed)
         return self
 
+    def _add_vadere_seed_random_only(self, parameter_variations: Dict[str, Any], seed: int) -> "SeedManager":
+        # use random seed in vadere provided from omnet ini file
+        parameter_variations["vadere"]["fixedSeed"] = seed
+        return self
+
     def _add_omnet_seed_fixed(self, parameter_variations: Dict[str, Any]):
-        # not implemented
         # use fixed seed defined in omnet ini file
-        raise NotImplementedError("fixed seeds for omnet are not implemented.")
+        pass
 
     def _add_omnet_seed_random(self, parameter_variations: Dict[str, Any], seed: int) -> "SeedManager":
         # use random seed for omnet

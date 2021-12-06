@@ -109,17 +109,17 @@ class VadereOmnetWrapper(AbstractConsoleWrapper):
         self.vadere_tag = vadere_tag
         self.omnetpp_tag = omnetpp_tag
         self.add_settings = None
-        if additional_settings is not None:
-            self.set_additional_arguements(additional_settings)
+        # if additional_settings is not None:
+        #     self.set_additional_arguements(additional_settings)
 
-    def set_additional_arguements(self, add_settings):
-        if isinstance(add_settings, str):
-            add_settings = list(add_settings)
-
-        for i in add_settings:
-            if isinstance(i, str) is False:
-                raise ValueError("Please provide a string or list of strings.")
-        self.add_settings = add_settings
+    # def set_additional_arguements(self, add_settings):
+    #     if isinstance(add_settings, str):
+    #         add_settings = list(add_settings)
+    #
+    #     for i in add_settings:
+    #         if isinstance(i, str) is False:
+    #             raise ValueError("Please provide a string or list of strings.")
+    #     self.add_settings = add_settings
 
     def run_simulation(
             self, dirname, start_file, required_files: Union[str, List[str]]
@@ -149,29 +149,45 @@ class VadereControlWrapper(AbstractConsoleWrapper):
         if additional_settings is not None:
             self.set_additional_arguements(additional_settings)
 
-    def set_additional_arguements(self, add_settings):
-        if isinstance(add_settings, str):
-            add_settings = list(add_settings)
-
-        for i in add_settings:
-            if isinstance(i, str) is False:
-                raise ValueError("Please provide a string or list of strings.")
-        self.add_settings = add_settings
+    # def set_additional_arguements(self, add_settings):
+    #     if isinstance(add_settings, str):
+    #         add_settings = list(add_settings)
+    #
+    #     for i in add_settings:
+    #         if isinstance(i, str) is False:
+    #             raise ValueError("Please provide a string or list of strings.")
+    #     self.add_settings = add_settings
 
     def run_simulation(
             self, dirname, start_file, required_files: Union[str, List[str]]
     ):
         if isinstance(required_files, str):
             required_files = list(required_files)
+        # todo mario: implements test_4 guiding_crowds
+
+    #   args:
+            #     - run_script.py
+            #     - vadere-control
+            #     - --create-vadere-container
+            #     - --control-use-local
+            #     - --override-host-config
+            #     - --with-control
+            #     - control.py
+            #     - --scenario-file
+            #     - "vadere/scenarios/test001.scenario"
 
         return_code, process_duration = VadereControlCommand(cwd=dirname) \
             .create_vadere_container() \
+            .control_use_local() \
             .override_host_config(run_name=os.path.basename(dirname)) \
-            .vadere_tag(self.vadere_tag) \
-            .qoi(required_files) \
+            .with_control("control.py") \
+            .control_argument("controller-type", "PingPong") \
+            .scenario_file("vadere/scenarios/test001.scenario") \
             .experiment_label("out") \
-            .control_argument(key="controller-type", value=self.controller_type) \
             .run(script_name=start_file)
+        # .qoi(required_files) \
+        # .experiment_label("out") \
+        # .control_argument(key="controller-type", value=self.controller_type) \
 
         output_subprocess = None
         return return_code, process_duration, output_subprocess

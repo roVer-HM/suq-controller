@@ -158,6 +158,7 @@ class TestSeedManager(unittest.TestCase):
         self.assertFalse(self.seed_manager._seed_parameter_exists(self.empty_variation))
         self.assertTrue(self.seed_manager._seed_parameter_exists(fixed_variation))
         self.assertTrue(self.seed_manager._seed_parameter_exists(random_variation))
+        # todo mario: case with omnet || vadere not as key in dictionary
 
     def test_add_vadere_seed_fixed(self):
         empty_copy = copy.deepcopy(self.empty_variation)
