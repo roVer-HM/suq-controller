@@ -3,6 +3,7 @@
 
 import sys
 
+from suqc.environment import VadereOmnetWrapper
 from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 from tutorial.imports import *
 
@@ -45,8 +46,8 @@ if __name__ == "__main__":
                           '*.station[0].app[0].incidentTime': '100s',
                           '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}}
                ]
-    par_var = OmnetSeedManager(par_variations=par_var, rep_count=reps,
-                               seed_config={"vadere": "random", "omnet": "random"}).get_new_seed_variation()
+    par_var = OmnetSeedManager(par_variations=par_var, rep_count=reps, vadere_fixed=False, omnet_fixed=False) \
+        .get_new_seed_variation()
 
     ## Define the quantities of interest (simulation output variables)
     # Make sure that corresponding post processing methods exist in the run_script2.py file

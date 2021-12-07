@@ -164,18 +164,6 @@ class VadereControlWrapper(AbstractConsoleWrapper):
         if isinstance(required_files, str):
             required_files = list(required_files)
         # todo mario: implements test_4 guiding_crowds
-
-    #   args:
-            #     - run_script.py
-            #     - vadere-control
-            #     - --create-vadere-container
-            #     - --control-use-local
-            #     - --override-host-config
-            #     - --with-control
-            #     - control.py
-            #     - --scenario-file
-            #     - "vadere/scenarios/test001.scenario"
-
         return_code, process_duration = VadereControlCommand(cwd=dirname) \
             .create_vadere_container() \
             .control_use_local() \
@@ -183,6 +171,7 @@ class VadereControlWrapper(AbstractConsoleWrapper):
             .with_control("control.py") \
             .control_argument("controller-type", "PingPong") \
             .scenario_file("vadere/scenarios/test001.scenario") \
+            .qoi(required_files) \
             .experiment_label("out") \
             .run(script_name=start_file)
         # .qoi(required_files) \

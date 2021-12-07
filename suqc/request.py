@@ -656,7 +656,9 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             dirname, start_file, required_files
         )
 
+        # todo mario
         filepath = f"{dirname}/results/**/*.scenario"
+        # filepath = f"{dirname}/vadere-server-output/**/*.scenario"
         file = glob.glob(filepath, recursive=True)
 
         dirpath = os.path.dirname(file[0])
