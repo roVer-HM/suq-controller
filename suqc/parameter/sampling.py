@@ -212,10 +212,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
     def par_iter(self, simulator=None):
 
-        if self.is_multiple_simulators():  # vadere only
-            df = self._points[(ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator)]
-        else:
-            df = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR]
+        df = self.get_simulator_specific_df(simulator)
 
         for (par_id, run_id), row in df.iterrows():
             # TODO: this is not nice coding, however, there are some issues. See issue #40
@@ -231,6 +228,16 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
                 del parameter_variation[dk]
 
             yield (par_id, run_id, parameter_variation)
+
+    def get_simulator_specific_df(self, simulator):
+        if self.is_multiple_simulators():
+            if simulator in self._points.columns.get_level_values(1).unique():
+                df = self._points[(ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator)]
+            else:
+                df = pd.DataFrame(index=self._points.index)
+        else:
+            df = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR]
+        return df
 
     def is_multiple_simulators(self):
         return self._points.columns.nlevels == 3
