@@ -134,22 +134,26 @@ class AbstractScenarioCreation(object):
         run_id = args[1]
         parameter_variation = args[2]
 
+        output_path = self.write_changed_ini_file(parameter_id, parameter_variation, run_id)
+        # needed output to create result item in CrownetSumo case
+        return output_path
+
+    def write_changed_ini_file(self, parameter_id, parameter_variation, run_id):
         par_var_scenario = change_dict_ini(
             self._env_man.omnet_basis_ini, changes=parameter_variation
         )
         output_path = self._env_man.scenario_variation_path(
             parameter_id, run_id, simulator="omnet"
         )
-
         with open(output_path, "w") as outfile:
             # only save selected config hierarchy (better readability and helps debugging)
             par_var_scenario.writer(outfile, selected_config_only=True)
+        return output_path
 
+    def copy_simulation_files(self, output_path):
         folder = os.path.dirname(output_path)
         ini_path = os.path.join(self._env_man.env_path, "additional_rover_files")
         copy_tree(ini_path, folder)
-        # needed output to create result item in CrownetSumo case
-        return output_path
 
 
 class VadereScenarioCreation(AbstractScenarioCreation):
@@ -181,6 +185,7 @@ class VadereScenarioCreation(AbstractScenarioCreation):
     def _sampling_check_selected_keys(self):
         self._parameter_variation.check_vadere_keys(self._env_man.vadere_basis_scenario)
 
+
 class CoupledScenarioCreation(AbstractScenarioCreation):
     def __init__(
             self,
@@ -190,13 +195,23 @@ class CoupledScenarioCreation(AbstractScenarioCreation):
     ):
         super().__init__(env_man, parameter_variation, post_change)
 
+    def is_omnet_in_parameter_variation(self) -> bool:
+        return False
+
     def _sp_creation(self):
         """Single process loop to create all requested scenarios."""
+
+        # copy all content from simulations to new folder --->  copy_folder_to_new(from, to)
+        # if omnet
+        #  - configure ini file (par_iter) configure_ini_file(path_to_ini) ->
+        #  - copy configured_ini file (self_create_omnet_scenario) ->
+        # copy simulation files
 
         # omnet specific
         variations_omnet = self._parameter_variation.par_iter(simulator="omnet")
         for par_id, run_id, par_change in variations_omnet:
-            self._create_omnet_scenario([par_id, run_id, par_change])
+            output_path = self._create_omnet_scenario([par_id, run_id, par_change])
+            self.copy_simulation_files(output_path)
 
         # vadere specific
         request_item_list = list()

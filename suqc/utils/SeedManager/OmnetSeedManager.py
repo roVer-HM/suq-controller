@@ -1,6 +1,5 @@
 import random
 import copy
-from abc import ABC
 from typing import Dict, Any, List
 
 from suqc.utils.SeedManager.SeedManager import SeedManager

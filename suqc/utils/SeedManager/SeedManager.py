@@ -1,10 +1,7 @@
-import random
-import copy
 from abc import ABC
 from typing import Dict, Any, List
 
 
-# todo mario: abstract
 class SeedManager(ABC):
     def __init__(self, par_variations: List[Dict[str, Any]], rep_count: int = 1):
         """SeedManager class for crownet based simulation
