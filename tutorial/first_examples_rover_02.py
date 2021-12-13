@@ -3,6 +3,8 @@
 
 import sys
 
+from suqc.CommandBuilder.VadereOppCommand import VadereOppCommand
+
 from suqc.environment import VadereOmnetWrapper
 from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 from tutorial.imports import *
@@ -67,9 +69,16 @@ if __name__ == "__main__":
     ]
 
     # define tag of omnet and vadere docker images, see https://sam-dev.cs.hm.edu/rover/rover-main/container_registry/
-    model = VadereOmnetWrapper(
-        model="Coupled", vadere_tag="latest", omnetpp_tag="latest"
-    )
+    # model = VadereOmnetWrapper(
+    #     model="Coupled", vadere_tag="latest", omnetpp_tag="latest"
+    # )
+
+    model = VadereOppCommand() \
+        .create_vadere_container() \
+        .vadere_tag("latest") \
+        .omnet_tag("latest") \
+        .qoi(qoi) \
+        .experiment_label("out")
 
     setup = CoupledDictVariation(
         ini_path=path2ini,

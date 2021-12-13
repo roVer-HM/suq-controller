@@ -12,8 +12,8 @@ class Python3Command(Command, ABC):
     _sub_command: str = None
     _script: str = None
 
-    def __init__(self, cwd: str):
-        super().__init__(cwd=cwd)
+    def __init__(self):
+        super().__init__()
         self._set_sub_command()
 
     @abc.abstractmethod
@@ -30,18 +30,18 @@ class Python3Command(Command, ABC):
         self._arguments["--run-name"] = run_name
         return self
 
-    def run(self, script_name: str) -> Tuple[int, float]:
+    def run(self, cwd: str, file_name: str) -> Tuple[int, float]:
         time_started = time.time()
         t: str = time.strftime("%H:%M:%S", time.localtime(time_started))
         print(f"{t}\t Call {str(self)}")
 
-        run_command: List[str] = [self._executable, script_name, self._sub_command] + list(self._arguments)
+        run_command: List[str] = [self._executable, file_name, self._sub_command] + list(self._arguments)
         return_code: int = subprocess.check_call(
             run_command,
             env=os.environ,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            cwd=self._cwd,
+            cwd=cwd,
             timeout=15000,  # stop simulation after 15000s
         )
         process_duration = time.time() - time_started

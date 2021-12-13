@@ -5,14 +5,13 @@ import sys
 
 from suqc.CommandBuilder.VadereOppCommand import VadereOppCommand
 
-from suqc.environment import VadereOmnetWrapper
 from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
 
-sys.path.append(os.path.abspath("."))
-sys.path.append(os.path.abspath(".."))
+sys.path.append(os.path.abspath("../../uq/simulation_studies/tutorial_simple_detour"))
+sys.path.append(os.path.abspath("../../uq/simulation_studies"))
 
 run_local = True
 ###############################################################################################################
@@ -21,6 +20,7 @@ run_local = True
 
 
 if __name__ == "__main__":
+
     output_folder = os.path.join(os.getcwd(), "first_examples_rover_01")
 
     ## Define the simulation to be used
@@ -34,19 +34,36 @@ if __name__ == "__main__":
 
     ## Define parameters and sampling method
     # parameters
-    # number of repetitions for each sample
+    # number of repitions for each sample
     reps = 1
 
     # sampling
-    par_var = [{'vadere': {'sources.[id==6].distributionParameters': [0.0375]},
-                'omnet': {'sim-time-limit': '180s',
-                          '*.station[0].app[0].incidentTime': '100s',
-                          '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
-               {'vadere': {'sources.[id==6].distributionParameters': [0.05]},
-                'omnet': {'sim-time-limit': '180s',
-                          '*.station[0].app[0].incidentTime': '100s',
-                          '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}}
-               ]
+    par_var = [
+        {'vadere': {'sources.[id==1].distributionParameters': [0.0375]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==1].distributionParameters': [0.05]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==2].distributionParameters': [0.0375]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==2].distributionParameters': [0.05]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==5].distributionParameters': [0.0375]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==5].distributionParameters': [0.05]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==6].distributionParameters': [0.0375]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==6].distributionParameters': [0.05]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}}
+    ]
     par_var = OmnetSeedManager(par_variations=par_var, rep_count=reps, vadere_fixed=False, omnet_fixed=False) \
         .get_new_seed_variation()
 
@@ -60,9 +77,6 @@ if __name__ == "__main__":
     ]
 
     # define tag of omnet and vadere docker images, see https://sam-dev.cs.hm.edu/rover/rover-main/container_registry/
-    # model = VadereOmnetWrapper(
-    #     model="Coupled", vadere_tag="latest", omnetpp_tag="latest"
-    # )
 
     model = VadereOppCommand() \
         .create_vadere_container() \
@@ -70,15 +84,6 @@ if __name__ == "__main__":
         .omnet_tag("latest") \
         .qoi(qoi) \
         .experiment_label("out")
-
-    # VadereOppCommand(cwd=dirname) \
-    #     .create_vadere_container() \
-    #     .override_host_config(os.path.basename(dirname)) \
-    #     .vadere_tag(self.vadere_tag) \
-    #     .omnet_tag(self.omnetpp_tag) \
-    #     .qoi(required_files) \
-    #     .experiment_label("out") \
-    #     .run(script_name=start_file)
 
     setup = CoupledDictVariation(
         ini_path=path2ini,

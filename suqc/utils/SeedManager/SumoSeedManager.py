@@ -1,34 +1,79 @@
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any
+import random
+import copy
+from typing import Dict, Any, List
+
+from suqc.utils.SeedManager.SeedManager import SeedManager
 
 
-class SumoSeedManager:
+class SumoSeedManager(SeedManager):
+    def __init__(self, par_variations: List[Dict[str, Any]], rep_count: int = 1, omnet_fixed: bool = True, sumo_fixed:bool = True):
+        """SeedManager class for crownet based simulation
 
-    def __init__(self, points: List[dict]):
-        # super().__init__(points)
-        self._points = []
-        pass
+        Attributes:
+        -----
+        par_variations: List[Dict[str, Any]]
+            the parameter variation that needs to be seeded
+        seed_config:  Dict[str, str]
+            seed configuration (default {"vadere": "random", "omnet": "random"})
+        rep_count: int
+            repetition count determines how many seed different seed configuration are set per variation
+        """
+        super().__init__(par_variations=par_variations, rep_count=rep_count)
+        self.omnet_seed_range = range(1, 255)
+        self.omnet_fixed = omnet_fixed
+        self.sumo_fixed = sumo_fixed
+        if rep_count == 0:
+            raise ValueError("rep_count of 0 is not supported")
 
-    @staticmethod
-    def check_seed_config(seed_config: Dict):
-        if set(seed_config.keys()) != {"sumo", "omnet"}:
-            raise ValueError(
-                f"Dictionary keys must be: omnet, sumo. Got {set(seed_config.keys())}."
-            )
-
-    def apply_sumo_seed(self, seed_config: Dict):
-        # todo changes my occur in multiple files
-        pass
-
-    def multiply_scenario_runs_using_seed(self, scenario_runs: Union[int, List[int]], seed_config: Dict):
-        super().multiply_scenario_runs(scenario_runs)
-
-        if seed_config is not None:
-            self.check_seed_config(seed_config)
-            # omnet seed
-            self._add_omnet_seed_fixed(seed_config)
-            # sumo seed
-            self.apply_sumo_seed(seed_config)
-
-            self._points = self.points.sort_index(axis=1)
-
+    def _add_omnet_seed_random(self, parameter_variations: Dict[str, Any], seed: int) -> "SumoSeedManager":
+        # use random seed for omnet
+        parameter_variations["omnet"]["seed-set"] = str(seed)
         return self
+
+    def _set_seed(self, variation: Dict[str, Any], omnet_seed: int):
+        # todo: if sumo gets implemented, add new sumo seed
+
+        # omnet seed
+        if self.omnet_fixed:
+            pass
+        else:
+            # seeds = [str(random.randint(1, 255)) for _ in range(self.points.shape[0])]
+            # self.points.insert(0, ("Parameter", "omnet", "seed-set"), seeds, True)
+            self._add_omnet_seed_random(variation, omnet_seed)
+
+    def get_new_seed_variation(self) -> List[
+        Dict[str, Any]]:
+        """
+                Generates a new seed variation.
+
+                Returns
+                -------
+                out : List[Dict[str, Any]]
+                    List of seeded variants.
+
+                Examples
+                --------
+                >>> OmnetSeedManager(par_variations=[variation_1, variation_2], rep_count=2).get_new_seed_variation()
+                [variation_1_seed_1,
+                variation_1_seed_2,
+                variation_2_seed_1,
+                variation_2_seed_2]
+                >>> OmnetSeedManager(par_variations=[variation_1], rep_count=4).get_new_seed_variation()
+                [variation_1_seed_1,
+                variation_1_seed_2,
+                variation_1_seed_3,
+                variation_1_seed_4]
+                >>> OmnetSeedManager(par_variations=[variation_1, variation_2]).get_new_seed_variation()
+                [variation_1_seed_1,
+                variation_1_seed_2]
+
+        """
+        ret: List[Dict[str, Any]] = []
+        omnet_samples = random.sample(self.omnet_seed_range, self.repetition_count)
+        for parameter_variation in self.parameter_variations:
+            for rep in range(self.repetition_count):
+                copied_element = copy.deepcopy(parameter_variation)
+                self._set_seed(variation=copied_element, omnet_seed=omnet_samples[rep])
+                ret.append(copied_element)
+        return ret

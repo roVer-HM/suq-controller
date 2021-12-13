@@ -84,105 +84,61 @@ class VadereJarFile(object):
             shutil.copyfile(jar_file, vadere_jar_file)
 
 
-class AbstractConsoleWrapper(object):
-    @classmethod
-    def infer_model(cls, model) -> "AbstractConsoleWrapper":
-        if isinstance(model, str):
-            if model == "Coupled":
-                return VadereOmnetWrapper(model)
-            else:
-                return VadereConsoleWrapper.infer_model(model)
-        elif isinstance(model, VadereConsoleWrapper) or \
-                isinstance(model, VadereOmnetWrapper) or \
-                isinstance(model, CrownetSumoWrapper) or \
-                isinstance(model, VadereControlWrapper):
-            return model
-        else:
-            raise ValueError(
-                f"Model must be of type string or VadereConsoleWrapper or CoupledConsoleWrapper. Got type {type(model)}."
-            )
+# class AbstractConsoleWrapper(object):
+#     @classmethod
+#     def infer_model(cls, model) -> "AbstractConsoleWrapper":
+#         if isinstance(model, str):
+#             if model == "Coupled":
+#                 return VadereOmnetWrapper(model)
+#             else:
+#                 return VadereConsoleWrapper.infer_model(model)
+#         elif isinstance(model, VadereConsoleWrapper) or \
+#                 isinstance(model, VadereOmnetWrapper) or \
+#                 isinstance(model, CrownetSumoWrapper):
+#             return model
+#         else:
+#             raise ValueError(
+#                 f"Model must be of type string or VadereConsoleWrapper or CoupledConsoleWrapper. Got type {type(model)}."
+#             )
 
 
-class VadereOmnetWrapper(AbstractConsoleWrapper):
-    def __init__(self, model, vadere_tag="latest", omnetpp_tag="lastest", additional_settings=None):
-        self.simulator = model
-        self.vadere_tag = vadere_tag
-        self.omnetpp_tag = omnetpp_tag
-        self.add_settings = None
-        # if additional_settings is not None:
-        #     self.set_additional_arguements(additional_settings)
+# class VadereOmnetWrapper(AbstractConsoleWrapper):
+#     def __init__(self, model, vadere_tag="latest", omnetpp_tag="lastest", additional_settings=None):
+#         self.simulator = model
+#         self.vadere_tag = vadere_tag
+#         self.omnetpp_tag = omnetpp_tag
+#         self.add_settings = None
+#         # if additional_settings is not None:
+#         #     self.set_additional_arguements(additional_settings)
+#
+#     # def set_additional_arguements(self, add_settings):
+#     #     if isinstance(add_settings, str):
+#     #         add_settings = list(add_settings)
+#     #
+#     #     for i in add_settings:
+#     #         if isinstance(i, str) is False:
+#     #             raise ValueError("Please provide a string or list of strings.")
+#     #     self.add_settings = add_settings
+#
+#     def run_simulation(
+#             self, dirname, start_file, required_files: Union[str, List[str]]
+#     ):
+#         if isinstance(required_files, str):
+#             required_files = list(required_files)
+#
+#         return_code, process_duration = VadereOppCommand(cwd=dirname) \
+#             .create_vadere_container() \
+#             .override_host_config(os.path.basename(dirname)) \
+#             .vadere_tag(self.vadere_tag) \
+#             .omnet_tag(self.omnetpp_tag) \
+#             .qoi(required_files) \
+#             .experiment_label("out") \
+#             .run(file_name=start_file)
+#
+#         output_subprocess = None
+#         return return_code, process_duration, output_subprocess
 
-    # def set_additional_arguements(self, add_settings):
-    #     if isinstance(add_settings, str):
-    #         add_settings = list(add_settings)
-    #
-    #     for i in add_settings:
-    #         if isinstance(i, str) is False:
-    #             raise ValueError("Please provide a string or list of strings.")
-    #     self.add_settings = add_settings
-
-    def run_simulation(
-            self, dirname, start_file, required_files: Union[str, List[str]]
-    ):
-        if isinstance(required_files, str):
-            required_files = list(required_files)
-
-        return_code, process_duration = VadereOppCommand(cwd=dirname) \
-            .create_vadere_container() \
-            .override_host_config(os.path.basename(dirname)) \
-            .vadere_tag(self.vadere_tag) \
-            .omnet_tag(self.omnetpp_tag) \
-            .qoi(required_files) \
-            .experiment_label("out") \
-            .run(script_name=start_file)
-
-        output_subprocess = None
-        return return_code, process_duration, output_subprocess
-
-
-class VadereControlWrapper(AbstractConsoleWrapper):
-    def __init__(self, model, vadere_tag="latest", controller_type="OpenLoop", additional_settings=None):
-        self.simulator = model
-        self.vadere_tag = vadere_tag
-        self.add_settings = None
-        self.controller_type = controller_type
-        if additional_settings is not None:
-            self.set_additional_arguements(additional_settings)
-
-    # def set_additional_arguements(self, add_settings):
-    #     if isinstance(add_settings, str):
-    #         add_settings = list(add_settings)
-    #
-    #     for i in add_settings:
-    #         if isinstance(i, str) is False:
-    #             raise ValueError("Please provide a string or list of strings.")
-    #     self.add_settings = add_settings
-
-    def run_simulation(
-            self, dirname, start_file, required_files: Union[str, List[str]]
-    ):
-        if isinstance(required_files, str):
-            required_files = list(required_files)
-        # todo mario: implements test_4 guiding_crowds
-        return_code, process_duration = VadereControlCommand(cwd=dirname) \
-            .create_vadere_container() \
-            .control_use_local() \
-            .override_host_config(run_name=os.path.basename(dirname)) \
-            .with_control("control.py") \
-            .control_argument("controller-type", "PingPong") \
-            .scenario_file("vadere/scenarios/test001.scenario") \
-            .qoi(required_files) \
-            .experiment_label("out") \
-            .run(script_name=start_file)
-        # .qoi(required_files) \
-        # .experiment_label("out") \
-        # .control_argument(key="controller-type", value=self.controller_type) \
-
-        output_subprocess = None
-        return return_code, process_duration, output_subprocess
-
-
-class VadereConsoleWrapper(AbstractConsoleWrapper):
+class VadereConsoleWrapper:
     # Current log level choices, requires to manually add, if there are changes in Vadere
     ALLOWED_LOGLVL = [
         "OFF",
@@ -1099,7 +1055,7 @@ class CrownetSumoEnvironmentManager(CoupledEnvironmentManager):
 #                 shutil.copy(src=f, dst=dest_path)
 
 
-class CrownetSumoWrapper(AbstractConsoleWrapper):
+class CrownetSumoWrapper:
 
     def __init__(self):
         pass

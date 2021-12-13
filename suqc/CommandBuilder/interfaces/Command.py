@@ -10,8 +10,7 @@ class Command(abc.ABC):
     _executable: str = None
     _arguments: CommandArguments = None
 
-    def __init__(self, cwd: str):
-        self._cwd: str = cwd
+    def __init__(self):
         self._set_executable()
         self._arguments = CommandArguments()
 
@@ -24,5 +23,5 @@ class Command(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def run(self) -> Tuple[int, float]:
+    def run(self, cwd: str, file_name: str) -> Tuple[int, float]:
         pass

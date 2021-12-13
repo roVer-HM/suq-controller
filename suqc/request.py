@@ -4,8 +4,9 @@ import glob
 import multiprocessing
 import os
 import shutil
+
+from suqc.CommandBuilder.interfaces import Command
 from suqc.environment import (
-    AbstractConsoleWrapper,
     CoupledEnvironmentManager,
     VadereConsoleWrapper,
     AbstractEnvironmentManager,
@@ -18,6 +19,7 @@ from suqc.parameter.sampling import *
 from suqc.qoi import VadereQuantityOfInterest, QuantityOfInterest
 from suqc.remote import ServerRequest
 from suqc.requestitem import RequestItem
+from suqc.utils.SeedManager.SumoSeedManager import SumoSeedManager
 
 from suqc.utils.general import (
     create_folder,
@@ -92,13 +94,15 @@ class Request(object):
     def __init__(
             self,
             request_item_list: List[RequestItem],
-            model: Union[str, AbstractConsoleWrapper],
+            # model: Union[str, AbstractConsoleWrapper],
+            model: Command,
             qoi: Union[VadereQuantityOfInterest, None],
     ):
         if len(request_item_list) == 0:
             raise ValueError("request_item_list has no entries.")
 
-        self.model = AbstractConsoleWrapper.infer_model(model)
+        # self.model = AbstractConsoleWrapper.infer_model(model)
+        self.model = model
         self.request_item_list = request_item_list
         # Can be None, if this is the case, no output data will be parsed to pd.DataFrame
         self.qoi = qoi
@@ -120,9 +124,11 @@ class Request(object):
 
         self._create_output_path(request_item.output_path)
 
-        return_code, required_time, output_on_error = self.model.run_simulation(
-            request_item.scenario_path, request_item.output_path
-        )
+        # return_code, required_time, output_on_error = self.model.run_simulation(
+        #     request_item.scenario_path, request_item.output_path
+        # )
+        output_on_error = None
+        return_code, required_time = self.model.run()
 
         is_results = self._interpret_return_value(
             return_code, request_item.parameter_id
@@ -276,7 +282,8 @@ class VariationBase(Request, ServerRequest):
             self,
             env_man: AbstractEnvironmentManager,
             parameter_variation: ParameterVariationBase,
-            model: Union[str, AbstractConsoleWrapper],
+            # model: Union[str, AbstractConsoleWrapper],
+            model: Command,
             qoi: Union[str, List[str], VadereQuantityOfInterest],
             post_changes: PostScenarioChangesBase = None,
             njobs: int = 1,
@@ -392,7 +399,8 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             ini_path: str,
             parameter_dict_list: List[dict],
             qoi: Union[str, List[str]],
-            model: Union[str, AbstractConsoleWrapper],
+            # model: Union[str, AbstractConsoleWrapper],
+            model: Command,
             post_changes=PostScenarioChangesBase(apply_default=True),
             njobs_create_scenarios=1,
             output_path=None,
@@ -649,11 +657,10 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             self.env_man.get_env_outputfolder_path(),
             self.env_man.get_simulation_directory(par_id, run_id),
         )
-        required_files = [k.filename for k in self.qoi.req_qois]
 
-        return_code, required_time, output_on_error = self.model.run_simulation(
-            dirname, start_file, required_files
-        )
+        output_on_error = None
+        self.model.override_host_config(os.path.basename(dirname))
+        return_code, required_time = self.model.run(cwd=dirname, file_name=start_file)
 
         filepath = f"{dirname}/results/**/*.scenario"
         file = glob.glob(filepath, recursive=True)
@@ -1186,7 +1193,7 @@ class CrownetSumoRequest(Request):
     def __init__(self,
                  env_man: AbstractEnvironmentManager,
                  parameter_variation: ParameterVariationBase,
-                 model: Union[str, AbstractConsoleWrapper],
+                 model: Command,
                  njobs: int = 1
                  ):
         self.env_man = env_man
@@ -1228,8 +1235,9 @@ class CrownetSumoRequest(Request):
         env_man.copy_data(ini_path)
 
         # create sampling. Do not add host name 'dummy' parameters. The will be set correclty in the run_script.py
-        sampling = CrownetSumoSeedManager(parameter_dict_list)
+        sampling = SumoSeedManager(parameter_dict_list)
         sampling.multiply_scenario_runs_using_seed(repeat, seed_config)
+        sampling
 
         return cls(
             env_man=env_man,
@@ -1264,12 +1272,14 @@ class CrownetSumoRequest(Request):
             r_item=r_item,
             required_files=required_files
         )
-
-        return_code, required_time, output_on_error = self.model.run_simulation(
-            dirname=os.path.dirname(r_item.scenario_path),
-            start_file=self.env_man.run_file,
-            args=args
-        )
+        output_on_error = None
+        # return_code, required_time, output_on_error = self.model.run_simulation(
+        #     dirname=os.path.dirname(r_item.scenario_path),
+        #     start_file=self.env_man.run_file,
+        #     args=args
+        # )
+        self.model.override_host_config(run_name=os.path.basename(os.path.dirname(r_item.scenario_path)))
+        return_code, required_time = self.model.run(cwd=os.path.dirname(r_item.scenario_path), start_file=self.env_man.run_file)
 
         is_results = self._interpret_return_value(
             return_code, r_item.parameter_id
