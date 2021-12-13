@@ -5,8 +5,9 @@ import copy
 from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 
 
+# todo mario: Write Unittests
 class TestOmnetSeedManager(unittest.TestCase):
-    empty_variation = {'vadere': {}, 'omnet': {}}  # todo rename into empty_variation ?!?
+    empty_variation = {'vadere': {}, 'omnet': {}}
     seed_manager = OmnetSeedManager([empty_variation])
 
     def test__init__(self):
@@ -157,7 +158,6 @@ class TestOmnetSeedManager(unittest.TestCase):
         self.assertFalse(self.seed_manager._seed_parameter_exists(self.empty_variation))
         self.assertTrue(self.seed_manager._seed_parameter_exists(fixed_variation))
         self.assertTrue(self.seed_manager._seed_parameter_exists(random_variation))
-        # todo mario: case with omnet || vadere not as key in dictionary
 
     def test_add_vadere_seed_fixed(self):
         empty_copy = copy.deepcopy(self.empty_variation)

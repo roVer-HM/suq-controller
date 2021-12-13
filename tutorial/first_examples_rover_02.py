@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-#!/usr/bin/python3
+# !/usr/bin/python3
 
 import sys
+
+from suqc.environment import VadereOmnetWrapper
+from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
@@ -24,31 +27,35 @@ if __name__ == "__main__":
     # Use following *.ini file:
 
     path2ini = os.path.join(
-        os.environ["ROVER_MAIN"], "crownet/simulations/mucFreiheitLte/omnetpp.ini",
+        os.environ["CROWNET_HOME"],
+        "crownet/simulations/mucFreiheitLte/omnetpp.ini",
     )
 
     ## Define parameters and sampling method
     # parameters
 
-    parameter = [
-        Parameter(name="number_of_agents_mean", simulator="dummy", stages=[80, 100],)
-    ]
-    dependent_parameters = [
-        DependentParameter(
-            name="sources.[id==1004].distributionParameters",
-            simulator="vadere",
-            equation=lambda args: [(args["number_of_agents_mean"])],
-        ),
-        DependentParameter(name="sim-time-limit", simulator="omnet", equation="180s"),
-    ]
+    # dependent_parameters = [
+    #     DependentParameter(
+    #         name="sources.[id==1004].distributionParameters",
+    #         simulator="vadere",
+    #         equation=lambda args: [(args["number_of_agents_mean"])],
+    #     ),
+    #     DependentParameter(name="sim-time-limit", simulator="omnet", equation="180s"),
+    # ]
+
+    par_var = [{'vadere': {'sources.[id==1004].distributionParameters': [0.0375]},
+                'omnet': {'sim-time-limit': '180s'}}]
 
     # number of repitions for each sample
     reps = 1
 
     # sampling
-    par_var = RoverSamplingFullFactorial(
-        parameters=parameter, parameters_dependent=dependent_parameters
-    ).get_sampling()
+    # par_var = RoverSamplingFullFactorial(
+    #     parameters=parameter, parameters_dependent=dependent_parameters
+    # ).get_sampling()
+
+    par_var = OmnetSeedManager(par_variations=par_var, rep_count=reps, vadere_fixed=False, omnet_fixed=False) \
+        .get_new_seed_variation()
 
     ## Define the quantities of interest (simulation output variables)
     # Make sure that corresponding post processing methods exist in the run_script2.py file
@@ -61,21 +68,19 @@ if __name__ == "__main__":
 
     # define tag of omnet and vadere docker images, see https://sam-dev.cs.hm.edu/rover/rover-main/container_registry/
     model = VadereOmnetWrapper(
-        model="Coupled", vadere_tag="200527-1424", omnetpp_tag="200221-1642"
+        model="Coupled", vadere_tag="latest", omnetpp_tag="latest"
     )
 
     setup = CoupledDictVariation(
         ini_path=path2ini,
-        config="final",
+        config="final",  # todo mario: ask Stefan
         parameter_dict_list=par_var,
         qoi=qoi,
         model=model,
-        scenario_runs=reps,
         post_changes=None,
         output_path=path2tutorial,
         output_folder=output_folder,
         remove_output=True,
-        seed_config= None, #{"vadere": "random", "omnet": "random"},
         env_remote=None,
     )
 

@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     ## Define parameters and sampling method
     # parameters
-    # number of repitions for each sample
+    # number of repetitions for each sample
     reps = 1
 
     # sampling

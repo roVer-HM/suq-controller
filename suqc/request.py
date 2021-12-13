@@ -25,7 +25,6 @@ from suqc.utils.general import (
     parent_folder_clean,
     user_query_yes_no, check_simulator,
 )
-from suqc.utils.SeedManager.SumoSeedManager import SumoSeedManager
 
 
 def read_from_existing_output(
