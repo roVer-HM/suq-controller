@@ -3,6 +3,8 @@
 
 import sys
 
+from suqc.CommandBuilder.VadereOppControlCommand import VadereOppControlCommand
+
 from suqc.CommandBuilder.VadereOppCommand import VadereOppCommand
 
 from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
@@ -20,15 +22,14 @@ run_local = True
 
 
 if __name__ == "__main__":
-    output_folder = os.path.join(os.getcwd(), "first_examples_rover_01")
-
+    output_folder = os.path.join(os.getcwd(), "first_examples_rover_04")
     ## Define the simulation to be used
     # A rover simulation is defined by an "omnetpp.ini" file and its corresponding directory.
     # Use following *.ini file:
 
     path2ini = os.path.join(
         os.environ["CROWNET_HOME"],
-        "crownet/simulations/simple_detoure_suqc_traffic/omnetpp.ini",
+        "crownet/simulations/route_choice_app/omnetpp.ini",
     )
 
     ## Define parameters and sampling method
@@ -37,52 +38,27 @@ if __name__ == "__main__":
     reps = 1
 
     # sampling
-    par_var = [
-        {'vadere': {'sources.[id==1].distributionParameters': [0.0375]},
-         'omnet': {'*.misc[0].app[0].incidentTime': '100s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
-        {'vadere': {'sources.[id==1].distributionParameters': [0.05]},
-         'omnet': {'*.misc[0].app[0].incidentTime': '100s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
-        {'vadere': {'sources.[id==2].distributionParameters': [0.0375]},
-         'omnet': {'*.misc[0].app[0].incidentTime': '100s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
-        {'vadere': {'sources.[id==2].distributionParameters': [0.05]},
-         'omnet': {'*.misc[0].app[0].incidentTime': '100s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
-        {'vadere': {'sources.[id==5].distributionParameters': [0.0375]},
-         'omnet': {'*.misc[0].app[0].incidentTime': '100s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
-        {'vadere': {'sources.[id==5].distributionParameters': [0.05]},
-         'omnet': {'*.misc[0].app[0].incidentTime': '100s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
-        {'vadere': {'sources.[id==6].distributionParameters': [0.0375]},
-         'omnet': {'*.misc[0].app[0].incidentTime': '100s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
-        {'vadere': {'sources.[id==6].distributionParameters': [0.05]},
-         'omnet': {'*.misc[0].app[0].incidentTime': '100s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}}
-    ]
-    par_var = OmnetSeedManager(par_variations=par_var, rep_count=reps, vadere_fixed=False, omnet_fixed=False) \
+    par_var = [{'omnet': {'sim-time-limit': '10s'}},
+               {'omnet': {'sim-time-limit': '20s'}}]
+    par_var = OmnetSeedManager(par_variations=par_var, rep_count=reps, vadere_fixed=True, omnet_fixed=True) \
         .get_new_seed_variation()
 
     ## Define the quantities of interest (simulation output variables)
     # Make sure that corresponding post processing methods exist in the run_script2.py file
 
-    qoi = [
-        "degree_informed_extract.txt",
-        "poisson_parameter.txt",
-        "time_95_informed.txt",
-    ]
+    qoi = ["densities.txt"]
 
     # define tag of omnet and vadere docker images, see https://sam-dev.cs.hm.edu/rover/rover-main/container_registry/
 
-    model = VadereOppCommand() \
+    model = VadereOppControlCommand() \
         .create_vadere_container() \
         .vadere_tag("latest") \
         .omnet_tag("latest") \
         .qoi(qoi) \
-        .experiment_label("out")
+        .experiment_label("output") \
+        .with_control("control.py") \
+        .control_argument("controller-type", "OpenLoop") \
+        .opp_argument("-c", "final")
 
     setup = CoupledDictVariation(
         ini_path=path2ini,
@@ -96,6 +72,7 @@ if __name__ == "__main__":
         remove_output=False,
         env_remote=None,
     )
+    setup.override_run_script_name("run_script_with_omnet.py")
 
     if os.environ["CROWNET_HOME"] is None:
         raise SystemError(
@@ -115,7 +92,6 @@ if __name__ == "__main__":
     os.makedirs(summary)
 
     par_var.to_csv(os.path.join(summary, "parameters.csv"))
-    for q in qoi:
-        data[q].to_csv(os.path.join(summary, f"{q}"))
+    data.to_csv(os.path.join(summary, f"{qoi[0]}"))
 
     print("All simulation runs completed.")

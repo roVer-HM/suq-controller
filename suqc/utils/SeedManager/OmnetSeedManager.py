@@ -36,6 +36,11 @@ class OmnetSeedManager(SeedManager):
         # if self._seed_parameter_exists(variation):
         #     raise ValueError("Seed already set in the given dictionary.")
 
+        if "vadere" not in variation:
+            variation["vadere"] = {}
+        if "omnet" not in variation:
+            variation["omnet"] = {}
+
         # vadere seed
         if self.vadere_fixed:
             self._add_vadere_seed_fixed(variation)

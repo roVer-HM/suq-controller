@@ -213,7 +213,9 @@ class VadereConsoleWrapper:
 
     def run_simulation(self, scenario_fp, output_path):
         start = time.time()
-
+        # todo mario: Create JavaCommand and Change Logic to new command with new Command as self.model
+        #   - completly remove AbstractThing by implementing SumoCommand
+        #   - Test SumoCommand by fixing tutorials/first_example_rover_03.py
         subprocess_cmd = ["java"]
         subprocess_cmd += self.jvm_flags
         subprocess_cmd += ["-jar", self.jar_path]
@@ -783,8 +785,11 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         scenario_name = os.path.splitext(scenario_name)[0]
         return scenario_name
 
-    def get_name_run_script_file(self):
+    def get_name_run_script_file(self) -> str:
         return CoupledEnvironmentManager.run_file
+
+    def set_name_run_script_file(self, run_script_name: str) -> None:
+        self.run_file = run_script_name
 
     def get_simulation_directory(self, par_id, run_id):
         prefix = CoupledEnvironmentManager.simulation_runs_single_folder_name

@@ -37,13 +37,6 @@ def main(parameter="default", quantity_of_interest="default"):
 
     ## Define parameters and sampling method
     # parameters
-
-    # todo mario:
-    #  - Ask for simulation to run and which parameters
-    #  - make runabe without omnet
-    #  - VaderSeedManager und OmnetSeedManager
-    #  - VadereSeedManger (bool als config)
-    # - OmnetSeedManager(braucht seed_config{})
     dependent_parameters = [
         {'vadere': {'sources.[id==1].distributionParameters': [0.0375]}},
         {'vadere': {'sources.[id==1].distributionParameters': [0.05]}}

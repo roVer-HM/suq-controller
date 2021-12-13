@@ -739,6 +739,9 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         df.index.names = names
         df.to_pickle(temp_file)
 
+    def override_run_script_name(self, run_script_name: str) -> None:
+        self.env_man.set_name_run_script_file(run_script_name)
+
 
 class DictVariation(VariationBase, ServerRequest):
     def __init__(
@@ -1279,7 +1282,8 @@ class CrownetSumoRequest(Request):
         #     args=args
         # )
         self.model.override_host_config(run_name=os.path.basename(os.path.dirname(r_item.scenario_path)))
-        return_code, required_time = self.model.run(cwd=os.path.dirname(r_item.scenario_path), start_file=self.env_man.run_file)
+        return_code, required_time = self.model.run(cwd=os.path.dirname(r_item.scenario_path),
+                                                    start_file=self.env_man.run_file)
 
         is_results = self._interpret_return_value(
             return_code, r_item.parameter_id

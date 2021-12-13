@@ -204,7 +204,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
         for k in keys:
             if k not in inifile.keys():
-                raise ValueError("Key not found in omnet inifile.")
+                raise ValueError(f"Key \"{k}\" not found in omnet inifile.")
         return True
 
     def to_dictlist(self):

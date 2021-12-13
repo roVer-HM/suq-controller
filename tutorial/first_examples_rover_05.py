@@ -3,14 +3,17 @@
 
 import sys
 
+from suqc.CommandBuilder.VadereControlCommand import VadereControlCommand
+
 from suqc.CommandBuilder.VadereOppCommand import VadereOppCommand
+
 from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
 
-sys.path.append(os.path.abspath("."))
-sys.path.append(os.path.abspath(".."))
+sys.path.append(os.path.abspath("first_examples_rover_05"))
+sys.path.append(os.path.abspath(""))
 
 run_local = True
 ###############################################################################################################
@@ -19,62 +22,53 @@ run_local = True
 
 
 if __name__ == "__main__":
-
-    output_folder = os.path.join(os.getcwd(), "first_examples_rover_02")
-
+    output_folder = os.path.join(os.getcwd(), "first_examples_rover_05")
     ## Define the simulation to be used
     # A rover simulation is defined by an "omnetpp.ini" file and its corresponding directory.
     # Use following *.ini file:
 
     path2ini = os.path.join(
         os.environ["CROWNET_HOME"],
-        "crownet/simulations/mucFreiheitLte/omnetpp.ini",
+        "crownet/simulations/route_choice_app/omnetpp.ini",
     )
 
     ## Define parameters and sampling method
     # parameters
-
-    par_var = [{'vadere': {'sources.[id==1004].distributionParameters': [0.0375]},
-                'omnet': {'sim-time-limit': '180s'}}]
-
-    # number of repitions for each sample
+    # number of repetitions for each sample
     reps = 1
 
     # sampling
-    par_var = OmnetSeedManager(par_variations=par_var, rep_count=reps, vadere_fixed=False, omnet_fixed=False) \
-        .get_new_seed_variation()
+    par_var = [{'omnet': {'sim-time-limit': '10s'}},
+               {'omnet': {'sim-time-limit': '20s'}}]
 
     ## Define the quantities of interest (simulation output variables)
     # Make sure that corresponding post processing methods exist in the run_script2.py file
 
-    qoi = [
-        "degree_informed_extract.txt",
-        "poisson_parameter.txt",
-        "time_95_informed.txt",
-    ]
+    qoi = ["densities.txt"]
 
     # define tag of omnet and vadere docker images, see https://sam-dev.cs.hm.edu/rover/rover-main/container_registry/
-    model = VadereOppCommand() \
+
+    model = VadereControlCommand() \
         .create_vadere_container() \
-        .vadere_tag("latest") \
-        .omnet_tag("latest") \
-        .qoi(qoi) \
-        .experiment_label("out")
+        .experiment_label("output") \
+        .with_control("control.py") \
+        .scenario_file("vadere/scenarios/simplified_default_sequential.scenario") \
+        .control_argument("controller-type", "OpenLoop")
 
     setup = CoupledDictVariation(
         ini_path=path2ini,
-        config="final",  # todo mario: ask Stefan
+        config="final",
         parameter_dict_list=par_var,
         qoi=qoi,
         model=model,
         post_changes=None,
         output_path=path2tutorial,
         output_folder=output_folder,
-        remove_output=True,
+        remove_output=False,
         env_remote=None,
     )
 
-    if os.environ["ROVER_MAIN"] is None:
+    if os.environ["CROWNET_HOME"] is None:
         raise SystemError(
             "Please add ROVER_MAIN to your system variables to run a rover simulation."
         )
@@ -92,7 +86,6 @@ if __name__ == "__main__":
     os.makedirs(summary)
 
     par_var.to_csv(os.path.join(summary, "parameters.csv"))
-    for q in qoi:
-        data[q].to_csv(os.path.join(summary, f"{q}"))
+    data.to_csv(os.path.join(summary, f"{qoi[0]}"))
 
     print("All simulation runs completed.")
