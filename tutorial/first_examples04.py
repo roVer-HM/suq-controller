@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import os
 import sys
 
+from suqc.CommandBuilder.JarCommand import JarCommand
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
@@ -39,11 +39,15 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
     # Not documented here: postchanges, which allow to alter parameters of the scenario that should not be included in
     # sampling. For example, changing the random seed, etc.
 
+    jar_command = JarCommand(jar_file=path2model) \
+        .add_option("-enableassertions") \
+        .main_class("suq")
+
     setup = VariationBase(
         env_man=env_man,
         parameter_variation=par_var,
         qoi="density.txt",
-        model="vadere1_4.jar",
+        model=jar_command,
         njobs=1,
     )
 

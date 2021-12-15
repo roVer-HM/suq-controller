@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import os
 import sys
 
+from suqc.CommandBuilder.JarCommand import JarCommand
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
@@ -19,10 +19,14 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
     ###############################################################################################################
     # Usecase: Provide a single Vadere scenario and location to write out the output to.
 
+    jar_command = JarCommand(jar_file=path2model) \
+        .add_option("-enableassertions") \
+        .main_class("suq")
+
     setup = SingleExistScenario(
         path_scenario=path2scenario,
         qoi=None,
-        model=path2model,
+        model=jar_command,
         scenario_runs=2,
         output_path=path2tutorial,
         output_folder=None,
@@ -43,7 +47,7 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
 
     setup = FolderExistScenarios(
         path_scenario_folder=path2tutorial,
-        model=path2model,
+        model=jar_command,
         scenario_runs=2,
         output_path=path2tutorial,
         output_folder="example_multirun_output",

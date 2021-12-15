@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # parameters
 
     par_var = [{'vadere': {'sources.[id==1004].distributionParameters': [0.0375]},
-                'omnet': {'sim-time-limit': '180s'}}]
+                'omnet': {'sim-time-limit': '20s'}}]
 
     # number of repitions for each sample
     reps = 1
@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     setup = CoupledDictVariation(
         ini_path=path2ini,
-        config="final",  # todo mario: ask Stefan
+        config="final",
         parameter_dict_list=par_var,
         qoi=qoi,
         model=model,

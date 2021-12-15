@@ -2,12 +2,12 @@
 
 import sys
 
-from environment import VadereJarFile
+from suqc.CommandBuilder.JarCommand import JarCommand
+from suqc.utils.git_utils import get_jar_file_from_vadere_repo, jar_path
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports.
 # (It can be ignored)
-from utils.general import get_info_vadere_repo
 
 sys.path.append(
     os.path.abspath("testfolder")
@@ -24,20 +24,23 @@ run_local = True
 if __name__ == "__main__":
     # Works on Linux operating system only
 
-    get_info_vadere_repo()  # Provide system variable VADERE !
-
+    # get_info_vadere_repo()  # Provide system variable VADERE !
     scenario_file = os.path.join(
-        os.environ["VADERE"],
+        os.path.join(os.environ["CROWNET_HOME"], "vadere"),
         "Scenarios/Demos/Density_controller/scenarios/TwoCorridors_unforced.scenario",
     )
 
-    vadere_jar = VadereConsoleWrapper(
-        model_path=VadereJarFile(
-            path=path2tutorial,
-            git_commit_hash="4b9008ff9df36a5e87f11ed49541e15263f857a3",
-        ),
-        jvm_flags=["-enableassertions"],
-    )
+    # download jar file from git
+    commit = "4b9008ff9df36a5e87f11ed49541e15263f857a3"
+    branch = "master"
+    jar_path = jar_path(path=path2tutorial, branch=branch, commit_hash=commit)
+    if not os.path.exists(jar_path):
+        get_jar_file_from_vadere_repo(path=path2tutorial, branch=branch,
+                                      commit_hash=commit)
+
+    jar_command = JarCommand(jar_file=jar_path) \
+        .add_option("-enableassertions") \
+        .main_class("suq")
 
     setup = SingleKeyVariation(  # path to a Vadere .scenario file (the one to sample)
         scenario_path=scenario_file,
@@ -49,7 +52,7 @@ if __name__ == "__main__":
         qoi="evacuationTime.txt",
         # path to Vadere console jar file or use
         # VadereConsoleWrapper for more options
-        model=vadere_jar,
+        model=jar_command,
         # specify how often each scenario should run
         scenario_runs=1,
         # post changes can be used to apply changes to the scenario that are not part of the

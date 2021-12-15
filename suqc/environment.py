@@ -2,7 +2,6 @@
 import glob
 import json
 import os
-import platform
 import shutil
 import subprocess
 import time
@@ -13,7 +12,6 @@ import re
 
 import pandas as pd
 
-from suqc.CommandBuilder.VadereControlCommand import VadereControlCommand
 from suqc.requestitem import RequestItem
 from suqc.configuration import SuqcConfig
 from omnetinireader.config_parser import OppConfigFileBase, OppConfigType, OppParser
@@ -23,241 +21,14 @@ from suqc.utils.general import (
     user_query_yes_no,
     include_patterns,
     removeEmptyFolders,
-    get_info_vadere_repo, check_simulator,
+    check_simulator,
 )
-from suqc.CommandBuilder.VadereOppCommand import VadereOppCommand
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {
     "default_vadere_src_path": "TODO",
     "server": {"host": "", "user": "", "port": -1},
 }
-
-
-class VadereJarFile(object):
-    def __init__(self, path, git_commit_hash, branch="master"):
-        self.git_commit_hash = git_commit_hash
-        self.branch = branch
-        self.path = path
-
-    def get_path(self):
-        jar_file_name = f"vadere-console_{self.branch}_{self.git_commit_hash}.jar"
-        return os.path.join(self.path, jar_file_name)
-
-    def get_jar_file_from_vadere_repo(self):
-        # checkout commit and make a package
-        # copy the generated jar-file to the user-defined path
-
-        print(f"Branch: {self.branch}, commit hash: {self.git_commit_hash}")
-
-        if platform.system() != "Linux":
-            raise NotImplemented
-
-        get_info_vadere_repo()
-
-        vadere = os.environ["VADERE"]
-        vadere_jar_file = self.get_path()
-        vadere_commit = self.git_commit_hash
-        if os.path.exists(vadere_jar_file) is False:
-
-            return_code = subprocess.check_call(
-                ["git", "-C", vadere, "pull", "origin", self.branch]
-            )
-            if vadere_commit:
-                return_code = subprocess.check_call(
-                    ["git", "-C", vadere, "checkout", vadere_commit]
-                )
-
-            command = ["mvn", "clean", "-f", os.path.join(vadere, "pom.xml")]
-            return_code = subprocess.check_call(command)
-            command = [
-                "mvn",
-                "package",
-                "-f",
-                os.path.join(vadere, "pom.xml"),
-                "-Dmaven.test.skip=true",
-            ]
-            return_code = subprocess.check_call(command)
-
-            jar_file = os.path.join(vadere, "VadereSimulator/target/vadere-console.jar")
-
-            shutil.copyfile(jar_file, vadere_jar_file)
-
-
-# class AbstractConsoleWrapper(object):
-#     @classmethod
-#     def infer_model(cls, model) -> "AbstractConsoleWrapper":
-#         if isinstance(model, str):
-#             if model == "Coupled":
-#                 return VadereOmnetWrapper(model)
-#             else:
-#                 return VadereConsoleWrapper.infer_model(model)
-#         elif isinstance(model, VadereConsoleWrapper) or \
-#                 isinstance(model, VadereOmnetWrapper) or \
-#                 isinstance(model, CrownetSumoWrapper):
-#             return model
-#         else:
-#             raise ValueError(
-#                 f"Model must be of type string or VadereConsoleWrapper or CoupledConsoleWrapper. Got type {type(model)}."
-#             )
-
-
-# class VadereOmnetWrapper(AbstractConsoleWrapper):
-#     def __init__(self, model, vadere_tag="latest", omnetpp_tag="lastest", additional_settings=None):
-#         self.simulator = model
-#         self.vadere_tag = vadere_tag
-#         self.omnetpp_tag = omnetpp_tag
-#         self.add_settings = None
-#         # if additional_settings is not None:
-#         #     self.set_additional_arguements(additional_settings)
-#
-#     # def set_additional_arguements(self, add_settings):
-#     #     if isinstance(add_settings, str):
-#     #         add_settings = list(add_settings)
-#     #
-#     #     for i in add_settings:
-#     #         if isinstance(i, str) is False:
-#     #             raise ValueError("Please provide a string or list of strings.")
-#     #     self.add_settings = add_settings
-#
-#     def run_simulation(
-#             self, dirname, start_file, required_files: Union[str, List[str]]
-#     ):
-#         if isinstance(required_files, str):
-#             required_files = list(required_files)
-#
-#         return_code, process_duration = VadereOppCommand(cwd=dirname) \
-#             .create_vadere_container() \
-#             .override_host_config(os.path.basename(dirname)) \
-#             .vadere_tag(self.vadere_tag) \
-#             .omnet_tag(self.omnetpp_tag) \
-#             .qoi(required_files) \
-#             .experiment_label("out") \
-#             .run(file_name=start_file)
-#
-#         output_subprocess = None
-#         return return_code, process_duration, output_subprocess
-
-class VadereConsoleWrapper:
-    # Current log level choices, requires to manually add, if there are changes in Vadere
-    ALLOWED_LOGLVL = [
-        "OFF",
-        "FATAL",
-        "TOPOGRAPHY_ERROR",
-        "TOPOGRAPHY_WARN",
-        "INFO",
-        "DEBUG",
-        "ALL",
-    ]
-
-    def __init__(
-            self,
-            model_path: Union[str, VadereJarFile],
-            loglvl: Optional[str] = "INFO",  # if None --loglevel is not passed to .jar file
-            jvm_flags: Optional[List] = None,
-            timeout_sec=None,
-    ):
-
-        if not isinstance(model_path, str):
-            if not os.path.exists(model_path.get_path()):
-                model_path.get_jar_file_from_vadere_repo()
-
-            model_path = model_path.get_path()
-
-        self.jar_path = os.path.abspath(model_path)
-        self.loglvl = loglvl
-
-        # Additional Java Virtual Machine options / flags
-        self.jvm_flags = jvm_flags if jvm_flags is not None else []
-        self.timeout_sec = timeout_sec
-
-        self._check_init_setting()
-
-    def _check_init_setting(self):
-        if not os.path.exists(self.jar_path):
-            raise FileNotFoundError(
-                f"Vadere console .jar file {self.jar_path} does not exist."
-            )
-
-        if self.loglvl is not None:
-            self.loglvl = self.loglvl.upper()
-            if self.loglvl not in self.ALLOWED_LOGLVL:
-                raise ValueError(
-                    f"set loglvl={self.loglvl} not contained "
-                    f"in allowed: {self.ALLOWED_LOGLVL}"
-                )
-
-        if self.jvm_flags is not None and not isinstance(self.jvm_flags, list):
-            raise TypeError(
-                f"jvm_flags are required to be a list. Got: {type(self.jvm_flags)}"
-            )
-
-        if self.timeout_sec is None:
-            pass  # do nothing, no timeout
-        elif not isinstance(self.timeout_sec, int) or self.timeout_sec <= 0:
-            raise TypeError(
-                "vadere_run_timeout_sec must be of type int and positive " "value"
-            )
-
-    @classmethod
-    def infer_model(cls, model):
-        if isinstance(model, str):
-            if os.path.exists(model):
-                return VadereConsoleWrapper.from_model_path(os.path.abspath(model))
-            else:
-                return VadereConsoleWrapper.from_default_models(model)
-        elif isinstance(model, VadereConsoleWrapper):
-            return model
-        else:
-            raise ValueError(f"Failed to infer Vadere model. \n {model}")
-
-    def run_simulation(self, scenario_fp, output_path):
-        start = time.time()
-        # todo mario: Create JavaCommand and Change Logic to new command with new Command as self.model
-        #   - completly remove AbstractThing by implementing SumoCommand
-        #   - Test SumoCommand by fixing tutorials/first_example_rover_03.py
-        subprocess_cmd = ["java"]
-        subprocess_cmd += self.jvm_flags
-        subprocess_cmd += ["-jar", self.jar_path]
-
-        # Vadere console commands
-        if self.loglvl is not None:
-            subprocess_cmd += ["--loglevel", self.loglvl]
-        subprocess_cmd += ["suq", "-f", scenario_fp, "-o", output_path]
-
-        output_subprocess = dict()
-
-        try:
-            subprocess.check_output(
-                subprocess_cmd, timeout=self.timeout_sec, stderr=subprocess.PIPE
-            )
-            process_duration = time.time() - start
-
-            # if return_code != 0 a subprocess.CalledProcessError is raised
-            return_code = 0
-            output_subprocess = None
-        except subprocess.TimeoutExpired as exception:
-            return_code = 1
-            process_duration = self.timeout_sec
-            output_subprocess["stdout"] = exception.stdout
-            output_subprocess["stderr"] = None
-        except subprocess.CalledProcessError as exception:
-            return_code = exception.returncode
-            process_duration = time.time() - start
-            output_subprocess["stdout"] = exception.stdout
-            output_subprocess["stderr"] = exception.stderr
-
-        return return_code, process_duration, output_subprocess
-
-    @classmethod
-    def from_default_models(cls, model):
-        if not model.endswith(".jar"):
-            model = ".".join([model, "jar"])
-        return cls(os.path.join(SuqcConfig.path_models_folder(), model))
-
-    @classmethod
-    def from_model_path(cls, model_path):
-        return cls(model_path)
 
 
 class AbstractEnvironmentManager(object):
