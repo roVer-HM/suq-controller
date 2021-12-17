@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     # Currently no qoi supported only raw output.
 
-    setup = CrownetSumoRequest.create(
+    setup = CrownetRequest.create(
         ini_path=path2ini,
         config="mucSumo_base",
         parameter_dict_list=[

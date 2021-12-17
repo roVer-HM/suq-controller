@@ -240,7 +240,7 @@ class CoupledScenarioCreation(AbstractScenarioCreation):
         self._parameter_variation.check_omnet_keys(self._env_man.omnet_basis_ini)
 
 
-class CrownetSumoCreation(AbstractScenarioCreation):
+class CrownetCreation(AbstractScenarioCreation):
 
     def __init__(self,
                  env_man: AbstractEnvironmentManager,
@@ -248,7 +248,8 @@ class CrownetSumoCreation(AbstractScenarioCreation):
         super().__init__(env_man, parameter_variation)
 
     def _sampling_check_selected_keys(self):
-        self._parameter_variation.check_omnet_keys(self._env_man.omnet_basis_ini)
+        # do not check keys here. CrownetCreation supports vadere, sumo and omnet(inet) mobility settings
+        pass
 
     def _create_omnet_scenario(self, args):
         ini_path = super()._create_omnet_scenario(args)
@@ -266,7 +267,9 @@ class CrownetSumoCreation(AbstractScenarioCreation):
         request_item_list = []
         variations_omnet = self._parameter_variation.par_iter(simulator="omnet")
         for par_id, run_id, par_change in variations_omnet:
-            request_item_list.append(self._create_omnet_scenario([par_id, run_id, par_change]))
+            item = self._create_omnet_scenario([par_id, run_id, par_change])
+            request_item_list.append(item)
+            self.copy_simulation_files(item.scenario_path) # todo....
 
         return request_item_list
 

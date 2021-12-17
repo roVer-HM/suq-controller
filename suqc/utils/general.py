@@ -251,7 +251,7 @@ def removeEmptyFolders(path):
     return
 
 
-def check_simulator(cfg: OppConfigFileBase):
+def check_simulator(cfg: OppConfigFileBase, allow_empty: bool = False):
     """
     check selected configuration for used mobility simulator and return the
     respective config file (i.e. *.sceanrio, *.cfg) as well as the simulator name
@@ -266,6 +266,10 @@ def check_simulator(cfg: OppConfigFileBase):
     if len(sumo) == 1:
         key = sumo[0]
         return cfg.resolve_path(key), "sumo"
+
+    if allow_empty:
+        # If simulation uses OMNeT++ internal mobility modles
+        return "", "omnet"
 
     raise ValueError(
         "Expected Vadere or Sumo in omnetpp config."

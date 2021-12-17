@@ -15,6 +15,11 @@ class CommandArguments(MutableMapping):
     def __delitem__(self, key):
         del self.store[key]
 
+    def set(self, key, value, override=True):
+        if override or ( not override and key not in self.store):
+            self.store[key] = value
+        
+
     def __iter__(self):
         argument_list = []
         for i in self.store.items():

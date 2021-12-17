@@ -13,7 +13,6 @@ import re
 
 import pandas as pd
 
-from suqc.CommandBuilder.VadereControlCommand import VadereControlCommand
 from suqc.requestitem import RequestItem
 from suqc.configuration import SuqcConfig
 from omnetinireader.config_parser import OppConfigFileBase, OppConfigType, OppParser
@@ -796,31 +795,33 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         return f"{prefix}_{par_id}_{run_id}"
 
 
-class CrownetSumoEnvironmentManager(CoupledEnvironmentManager):
+# todo rename to crownet (support sumo, vader and nothing at all)
+class CrownetEnvironmentManager(CoupledEnvironmentManager):
 
     def __init__(self,
                  base_path,
                  env_name: str,
                  opp_config: str = "final",
                  opp_basename: str = "omnetpp.ini",
-                 output_folder="simulation_runs",
                  run_prefix="Sample_",
                  temp_folder="temp",
                  run_file="run_script.py",
-                 mobility_sim=("sumo", "latest"),
+                 mobility_sim=("sumo", "latest"),       # sumo, vadere or empty
                  communication_sim=("omnet", "latest"),
-                 debug: bool = False):
+                 handle_existing = "ask_user_replace"
+        ):
+        #  for user input only (todo refactor out of class...)
+        _ = AbstractEnvironmentManager.create_new_environment(base_path, env_name, handle_existing)
         super().__init__(base_path, env_name)
-        self._output_folder = output_folder
+        self.output_path, self.output_folder = self.handle_path_and_env_input(base_path, env_name)
         self.run_prefix = run_prefix
         self._temp_folder = temp_folder
         self._omnet_path_ini = os.path.join(self.env_path, opp_basename)
         self._opp_config = opp_config
-        self._omnet_ini_basis = None  # e.g. omnetpp.ini
-        self.mobility_sim = mobility_sim
+        self._omnet_ini_basis = None  #  file content
+        self.mobility_sim = ("omnet", "") if mobility_sim is None else mobility_sim
         self.communication_sim = communication_sim
         self.run_file = run_file
-        self.debug = debug
 
     @property
     def omnet_path_ini(self):
@@ -844,6 +845,18 @@ class CrownetSumoEnvironmentManager(CoupledEnvironmentManager):
     def ini_config(self):
         return self._opp_config
 
+    @property
+    def uses_omnet_mobility(self):
+        return self.mobility_sim[0] == "omnet"
+
+    @property
+    def uses_vadere_mobility(self):
+        return self.mobility_sim[0] == "vadere"
+    
+    @property
+    def uses_sumo_mobility(self):
+        return self.mobility_sim[0] == "sumo"
+
     def set_ini_config(self, config):
         self._opp_config = config
 
@@ -857,7 +870,7 @@ class CrownetSumoEnvironmentManager(CoupledEnvironmentManager):
 
     def get_env_outputfolder_path(self):
         rel_path = os.path.join(
-            self.env_path, self._output_folder
+            self.env_path, self.simulation_runs_output_folder
         )
         return os.path.abspath(rel_path)
 
@@ -869,7 +882,26 @@ class CrownetSumoEnvironmentManager(CoupledEnvironmentManager):
     def get_simulation_directory(self, par_id, run_id):
         return f"{self.run_prefix}_{par_id}_{run_id}"
 
-    def copy_data(self, ini_path: str):
+    def _copy_vadere(self, source_base: str, ini_file: OppConfigFileBase)-> Set[str]:
+        return {}
+
+    def _copy_sumo(self, source_base: str, ini_file: OppConfigFileBase)-> Set[str]:
+        files = {}
+        sumo = [p for p in ini_file.keys() if "sumoCfgBase" in p]
+        if len(sumo) == 1:
+            key = sumo[0]
+        sumo_f = ini_file.resolve_path(key)
+        files.add(sumo_f)
+        sumo_xml = et.parse(sumo_f)
+        inputs = sumo_xml.find("input")
+        for i in inputs:
+            files.add(os.path.join(os.path.dirname(sumo_f), i.get("value")))
+        return files
+
+    def _copy_omnet(self, source_base: str, ini_file: OppConfigFileBase)-> Set[str]:
+        return {}
+
+    def copy_data(self, base_ini_file: str):
         """
         Copy environment *only* for selected configuration.
         Workflow:
@@ -878,25 +910,28 @@ class CrownetSumoEnvironmentManager(CoupledEnvironmentManager):
           3.) copy ini-file after resolving include directives to environment (String based. Will preserver comments).
           4.) add run_script to set of files to copy -> add to files
           5.) find all additional omnet files mentioned in the ini-file -> add to files
-          6.) find sumo configuration from ini-file and parse xml for all files needed for sumo -> add to files
-          7.) copy files to "additional_rover_files" in the current enviroment
+          6.) find configuration files for the selected mobility simulator (sumo, vadere, omnet)
+          7.) copy files all files found in steps 1-6
 
         """
+        ini_path = base_ini_file
         # 1.) set source_base as the directory where the ini-file (ini_path) resides
         source_base = os.path.dirname(ini_path)
         # 2.) read base ini file to ensure paths are correct.
+        # todo no current_dir
         opp_cfg = OppConfigFileBase.from_path(
             ini_path=ini_path, config=self.ini_config, cfg_type=OppConfigType.EXT_DEL_LOCAL,
         )
-        sumo_cfg, simulator = check_simulator(opp_cfg)
+        mobility_cfg, simulator = check_simulator(opp_cfg, allow_empty=True)
+
         if self.mobility_sim[0] != simulator:
-            raise RuntimeError("config missmatch. Selected configuration in ini file "
-                               f" does not match DockerEnvironmentManager setup. {self.mobility_sim[0]}!={simulator}")
+            raise RuntimeError(f"Config missmatch. The environment manger expected '{self.mobility_sim[0]}' "
+                f"as mobility simulator but '{simulator}' is configured in selected simulation.")
 
         # set ini file info
         self.set_ini_filename(os.path.basename(ini_path))
 
-        # 3.) copy ini file manually and ensure includes are resoved.
+        # 3.) copy ini file manually and ensure all includes are resolved.
         OppParser.resolve_includes(ini_path=ini_path, output_path=self.omnet_path_ini)
 
         # 4.) copy additional files (run_file, ...) and place in files set to copy into environment
@@ -911,12 +946,13 @@ class CrownetSumoEnvironmentManager(CoupledEnvironmentManager):
                 file_name = match.group("val").strip('"')
                 files.add(os.path.join(source_base, file_name))
 
-        # 6.) add sumo specific files by parsing the sumo cfg file.
-        files.add(sumo_cfg)
-        sumo_xml = et.parse(sumo_cfg)
-        inputs = sumo_xml.find("input")
-        for i in inputs:
-            files.add(os.path.join(os.path.dirname(sumo_cfg), i.get("value")))
+        # 6.) check selected mobility simulator for additional files
+        if self.uses_omnet_mobility:
+            files.update(self._copy_omnet(source_base, mobility_cfg))
+        elif self.uses_sumo_mobility:
+            files.update(self._copy_sumo(source_base, mobility_cfg))
+        else:
+            files.update(self._copy_vadere(source_base, mobility_cfg))
 
         # 7.) copy files
         for f in files:
@@ -1060,71 +1096,70 @@ class CrownetSumoEnvironmentManager(CoupledEnvironmentManager):
 #                 shutil.copy(src=f, dst=dest_path)
 
 
-class CrownetSumoWrapper:
-
-    def __init__(self):
-        pass
-
-    def build_args(self, env_man: CrownetSumoEnvironmentManager, r_item: RequestItem, required_files):
-        """helper to create arguments for the given request item"""
-        args = [
-            "--run-name",
-            f"{env_man.run_prefix}_{r_item.parameter_id}_{r_item.run_id}",
-            "--opp.-f",
-            os.path.basename(env_man.omnet_path_ini),
-            "--opp.-c",
-            env_man.ini_config,
-            "--sumo-exec",
-            "single-run",
-            "--sumo.bind",
-            "0.0.0.0",
-            "--sumo.port",
-            "9999",
-            "--override-host-config",
-            f"--create-{env_man.mobility_sim[0]}-container",
-            "--delete-existing-containers",
-            f"--{env_man.mobility_sim[0]}-tag",
-            env_man.mobility_sim[1],
-            f"--{env_man.communication_sim[0]}-tag",
-            env_man.communication_sim[1],
-            "--resultdir",
-            r_item.output_path
-        ]
-        if len(required_files):
-            args.append("--qoi")
-            args.extend(required_files)
-
-        if env_man.debug:
-            args.append("--write-container-log")
-
-        return args
-
-    def run_simulation(self, dirname, start_file, args):
-        terminal_command = ["python3", start_file]
-        terminal_command.extend(args)
-
-        print(" ".join(terminal_command))
-        time_started = time.time()
-        t = time.strftime("%H:%M:%S", time.localtime(time_started))
-        print(f"{t}\t Call {os.path.basename(dirname)}/{start_file} ")
-
-        try:
-            output_subprocess = None
-            return_code = subprocess.check_call(
-                terminal_command,
-                env=os.environ,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                cwd=dirname,
-                timeout=None,  # stop simulation after 15000s
-            )
-        except Exception as e:
-            return_code = 255
-            output_subprocess = {
-                "stdout": b"no output found",
-                "stderr": bytes(str(e), 'utf-8')
-            }
-            print(f"error in run_simulation: {str(e)}")
-        process_duration = time.time() - time_started
-
-        return return_code, process_duration, output_subprocess
+# class CrownetSumoWrapper:
+# 
+    # def __init__(self):
+        # pass
+# 
+    # def build_args(self, env_man: CrownetEnvironmentManager, r_item: RequestItem, required_files):
+        # """helper to create arguments for the given request item"""
+        # args = [
+            # "--run-name",
+            # f"{env_man.run_prefix}_{r_item.parameter_id}_{r_item.run_id}",
+            #. "--opp.-f",
+            #. os.path.basename(env_man.omnet_path_ini),
+            #. "--opp.-c",
+            #. env_man.ini_config,
+            #. "--sumo-exec",
+            #. "single-run",
+            #. "--sumo.bind",
+            #. "0.0.0.0",
+            #. "--sumo.port",
+            #. "9999",
+            #. "--override-host-config",
+            #. f"--create-{env_man.mobility_sim[0]}-container",
+            #. f"--{env_man.mobility_sim[0]}-tag",
+            #. env_man.mobility_sim[1],
+            #. f"--{env_man.communication_sim[0]}-tag",
+            #. env_man.communication_sim[1],
+            #. "--resultdir",
+            #. r_item.output_path
+        # ]
+        # if len(required_files):
+            # args.append("--qoi")
+            # args.extend(required_files)
+# 
+        # if env_man.debug:
+            # args.append("--write-container-log")
+# 
+        # return args
+# 
+    # def run_simulation(self, dirname, start_file, args):
+        # terminal_command = ["python3", start_file]
+        # terminal_command.extend(args)
+# 
+        # print(" ".join(terminal_command))
+        # time_started = time.time()
+        # t = time.strftime("%H:%M:%S", time.localtime(time_started))
+        # print(f"{t}\t Call {os.path.basename(dirname)}/{start_file} ")
+# 
+        # try:
+            # output_subprocess = None
+            # return_code = subprocess.check_call(
+                # terminal_command,
+                # env=os.environ,
+                # stdout=subprocess.DEVNULL,
+                # stderr=subprocess.DEVNULL,
+                # cwd=dirname,
+                # timeout=None,  # stop simulation after 15000s
+            # )
+        # except Exception as e:
+            # return_code = 255
+            # output_subprocess = {
+                # "stdout": b"no output found",
+                # "stderr": bytes(str(e), 'utf-8')
+            # }
+            # print(f"error in run_simulation: {str(e)}")
+        # process_duration = time.time() - time_started
+# 
+        # return return_code, process_duration, output_subprocess
