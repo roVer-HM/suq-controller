@@ -30,8 +30,6 @@ class OmnetSeedManager(SeedManager):
             raise ValueError("rep_count of 0 is not supported")
 
     def _set_seed(self, variation: Dict[str, Any], vadere_seed: int, omnet_seed: int):
-        # todo: if sumo gets implemented, add new sumo seed
-
         # seed already set
         # if self._seed_parameter_exists(variation):
         #     raise ValueError("Seed already set in the given dictionary.")
@@ -86,14 +84,6 @@ class OmnetSeedManager(SeedManager):
         # use random seed for omnet
         parameter_variations["omnet"]["seed-set"] = str(seed)
         return self
-
-    def _add_sumo_seed_fixed(self, parameter_variation: Dict[str, Any]) -> "OmnetSeedManager":
-        # not implemented
-        raise NotImplementedError("sumo seeds are not implemented.")
-
-    def _add_sumo_seed_random(self, parameter_variation: Dict[str, Any], seed: int) -> "OmnetSeedManager":
-        # not implemented
-        raise NotImplementedError("sumo seeds are not implemented.")
 
     def get_new_seed_variation(self) -> List[
         Dict[str, Any]]:
