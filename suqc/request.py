@@ -3,16 +3,19 @@
 import glob
 import multiprocessing
 import os
+from re import I
 import shutil
 
 from suqc.CommandBuilder.interfaces import Command
+from suqc.CommandBuilder.interfaces.Python3Command import Python3Command
 from suqc.environment import (
     CoupledEnvironmentManager,
+    VadereConsoleWrapper,
     AbstractEnvironmentManager,
-    CrownetSumoEnvironmentManager, CrownetSumoWrapper, VadereEnvironmentManager,
+    CrownetEnvironmentManager, 
 )
 from omnetinireader.config_parser import OppConfigType
-from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation, CrownetSumoCreation
+from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation, CrownetCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
 from suqc.qoi import VadereQuantityOfInterest, QuantityOfInterest
@@ -100,6 +103,7 @@ class Request(object):
         if len(request_item_list) == 0:
             raise ValueError("request_item_list has no entries.")
 
+        # self.model = AbstractConsoleWrapper.infer_model(model)
         self.model = model
         self.request_item_list = request_item_list
         # Can be None, if this is the case, no output data will be parsed to pd.DataFrame
@@ -120,12 +124,15 @@ class Request(object):
 
     def _single_request(self, request_item: RequestItem) -> RequestItem:
 
-        self._create_output_path(request_item.output_path)
-        _model = deepcopy(self.model)
+        ## todo deep copy of model.
 
-        _model.add_argument("-f", request_item.scenario_path)
-        _model.add_argument("-o", request_item.output_path)
-        return_code, required_time, output_on_error = _model.run()
+        self._create_output_path(request_item.output_path)
+
+        # return_code, required_time, output_on_error = self.model.run_simulation(
+        #     request_item.scenario_path, request_item.output_path
+        # )
+        output_on_error = None
+        return_code, required_time = self.model.run()
 
         is_results = self._interpret_return_value(
             return_code, request_item.parameter_id
@@ -396,6 +403,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             ini_path: str,
             parameter_dict_list: List[dict],
             qoi: Union[str, List[str]],
+            # model: Union[str, AbstractConsoleWrapper],
             model: Command,
             post_changes=PostScenarioChangesBase(apply_default=True),
             njobs_create_scenarios=1,
@@ -648,7 +656,6 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         par_id = request_item.parameter_id
         run_id = request_item.run_id
         start_file = self.env_man.get_name_run_script_file()
-        _model = deepcopy(self.model)
 
         dirname = os.path.join(
             self.env_man.get_env_outputfolder_path(),
@@ -656,8 +663,8 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         )
 
         output_on_error = None
-        _model.override_host_config(os.path.basename(dirname))
-        return_code, required_time = _model.run(cwd=dirname, file_name=start_file)
+        self.model.override_host_config(os.path.basename(dirname))
+        return_code, required_time = self.model.run(cwd=dirname, file_name=start_file)
 
         filepath = f"{dirname}/results/**/*.scenario"
         file = glob.glob(filepath, recursive=True)
@@ -746,7 +753,7 @@ class DictVariation(VariationBase, ServerRequest):
             scenario_path: str,
             parameter_dict_list: List[dict],
             qoi: Union[str, List[str]],
-            model: Command,
+            model: Union[str, VadereConsoleWrapper],
             scenario_runs=1,
             post_changes=PostScenarioChangesBase(apply_default=True),
             njobs_create_scenarios=1,
@@ -776,10 +783,10 @@ class DictVariation(VariationBase, ServerRequest):
             self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
             env = env_remote
 
-        parameter_variation = UserDefinedSampling(parameter_dict_list)
-        parameter_variation = parameter_variation.multiply_scenario_runs(
-            scenario_runs=scenario_runs
-        )
+        # parameter_variation = SeedManager(parameter_dict_list)
+        # parameter_variation = parameter_variation.multiply_scenario_runs(
+        #     scenario_runs=scenario_runs
+        # )
 
         super(DictVariation, self).__init__(
             env_man=env,
@@ -799,7 +806,7 @@ class SingleKeyVariation(DictVariation, ServerRequest):
             key: str,
             values: np.ndarray,
             qoi: Union[str, List[str]],
-            model: Command,
+            model: Union[str, VadereConsoleWrapper],
             scenario_runs=1,
             post_changes=PostScenarioChangesBase(apply_default=True),
             output_path=None,
@@ -1057,7 +1064,133 @@ class SingleExistScenario(Request, ServerRequest):
         )
 
 
-class CrownetSumoRequest(Request):
+# class CrownetVadereControlRequest(Request):
+#     """
+#         Request class for crownet based simulation with omnet and sumo.
+#         Currently no qoi are supported. This Request only runs the simulation
+#         and keeps the output for further processing
+#     """
+#
+#     def __init__(self,
+#                  env_man: AbstractEnvironmentManager,
+#                  parameter_variation: ParameterVariationBase,
+#                  model: Union[str, AbstractConsoleWrapper],
+#                  njobs: int = 1
+#                  ):
+#         self.env_man = env_man
+#         self.parameter_variation = parameter_variation
+#         request_item_list = self.scenario_creation(njobs)
+#         super().__init__(
+#             request_item_list,
+#             model,
+#             qoi=None)
+#
+#     @classmethod
+#     def create(cls,
+#                ini_path: str,
+#                config: str,
+#                parameter_dict_list: List[dict],
+#                output_path: str,
+#                output_folder: str,
+#                seed_config: Dict,
+#                repeat: int = 1,
+#                debug: bool = False,
+#                ):
+#
+#         # fixme: extract user interaction from class method
+#         # workaround using `create_new_environment` class method only for user interaction to clear existing
+#         # environments if needed.
+#         base_path, env_name = AbstractEnvironmentManager.handle_path_and_env_input(output_path, output_folder)
+#         _ = CrownetVadereControlEnvironmentManager.create_new_environment(base_path, env_name,
+#                                                                  handle_existing="ask_user_replace")
+#
+#         # build CrownetSumoEnvironmentManager and copy data. This version only copys *needed* files as the source
+#         # enviroment (base_path) contains multiple big scenario setups that are not needed. See copy_data() for details.
+#         env_man = CrownetVadereControlEnvironmentManager(
+#             base_path=base_path,
+#             env_name=env_name,
+#             opp_config=config,
+#             opp_basename=os.path.basename(ini_path),
+#             debug=debug
+#         )
+#         env_man.copy_data(ini_path)
+#
+#         # create sampling. Do not add host name 'dummy' parameters. The will be set correclty in the run_script.py
+#         sampling = CrownetVadereControlUserDefinedSampling(parameter_dict_list)
+#         sampling.multiply_scenario_runs_using_seed(repeat, seed_config)
+#
+#         return cls(
+#             env_man=env_man,
+#             parameter_variation=sampling,
+#             model=CrownetSumoWrapper()
+#         )
+#
+#     def scenario_creation(self, njobs):
+#
+#         # todo: Sumo sampling currently not supported. Possible changes my occur in multiple files
+#         scenario_creation = CrownetSumoCreation(self.env_man, self.parameter_variation)
+#         request_item_list = scenario_creation.generate_scenarios(njobs)
+#         return request_item_list
+#
+#     def _single_request(self, r_item: RequestItem) -> RequestItem:
+#         """
+#         build args for given request item. Quantity of intrest my given
+#         and executed by the run_script.py for each item but results are
+#         currently not aggregated by the CrownetSumoRequest
+#         """
+#
+#         # ensure output path exists (deletes existing folder if present)
+#         self._create_output_path(r_item.output_path)
+#         if self.qoi is not None:
+#             required_files = [k.filename for k in self.qoi.req_qois]
+#         else:
+#             required_files = []
+#
+#         # helper method in model class to create complex arguments for single run.
+#         args = self.model.build_args(
+#             env_man=self.env_man,
+#             r_item=r_item,
+#             required_files=required_files
+#         )
+#
+#         return_code, required_time, output_on_error = self.model.run_simulation(
+#             dirname=os.path.dirname(r_item.scenario_path),
+#             start_file=self.env_man.run_file,
+#             args=args
+#         )
+#
+#         is_results = self._interpret_return_value(
+#             return_code, r_item.parameter_id
+#         )
+#
+#         result = None
+#         if not is_results:
+#             # something went wrong during run
+#             if output_on_error is None:
+#                 output_on_error = {
+#                     "stdout": b"no output found",
+#                     "stderr": b"no output found"
+#                 }
+#
+#             filename_stdout = "stdout_on_error.txt"
+#             filename_stderr = "stderr_on_error.txt"
+#             self._write_console_output(
+#                 output_on_error["stdout"], r_item.output_path, filename_stdout
+#             )
+#             self._write_console_output(
+#                 output_on_error["stderr"], r_item.output_path, filename_stderr
+#             )
+#             result = None
+#
+#         r_item.add_qoi_result(result)
+#         r_item.add_meta_info(required_time, return_code)
+#
+#         # todo: currently no output is deleted for manual processing
+#         # if self.remove_output is True:
+#         #     shutil.rmtree(dirname)
+#         return r_item
+
+class CrownetRequest(Request):
     """
     Request class for crownet based simulation with omnet and sumo.
     Currently no qoi are supported. This Request only runs the simulation
@@ -1065,10 +1198,10 @@ class CrownetSumoRequest(Request):
     """
 
     def __init__(self,
-                 env_man: AbstractEnvironmentManager,
+                 env_man: CrownetEnvironmentManager,
                  parameter_variation: ParameterVariationBase,
                  model: Command,
-                 njobs: int = 1
+                 njobs: int = 1,
                  ):
         self.env_man = env_man
         self.parameter_variation = parameter_variation
@@ -1078,51 +1211,10 @@ class CrownetSumoRequest(Request):
             model,
             qoi=None)
 
-    @classmethod
-    def create(cls,
-               ini_path: str,
-               config: str,
-               parameter_dict_list: List[dict],
-               output_path: str,
-               output_folder: str,
-               seed_config: Dict,
-               repeat: int = 1,
-               debug: bool = False,
-               ):
-
-        # fixme: extract user interaction from class method
-        # workaround using `create_new_environment` class method only for user interaction to clear existing
-        # environments if needed.
-        base_path, env_name = AbstractEnvironmentManager.handle_path_and_env_input(output_path, output_folder)
-        _ = CrownetSumoEnvironmentManager.create_new_environment(base_path, env_name,
-                                                                 handle_existing="ask_user_replace")
-
-        # build CrownetSumoEnvironmentManager and copy data. This version only copys *needed* files as the source
-        # enviroment (base_path) contains multiple big scenario setups that are not needed. See copy_data() for details.
-        env_man = CrownetSumoEnvironmentManager(
-            base_path=base_path,
-            env_name=env_name,
-            opp_config=config,
-            opp_basename=os.path.basename(ini_path),
-            debug=debug
-        )
-        env_man.copy_data(ini_path)
-
-        # create sampling. Do not add host name 'dummy' parameters. The will be set correclty in the run_script.py
-        sampling = SumoSeedManager(parameter_dict_list)
-        sampling.multiply_scenario_runs_using_seed(repeat, seed_config)
-        sampling
-
-        return cls(
-            env_man=env_man,
-            parameter_variation=sampling,
-            model=CrownetSumoWrapper()
-        )
-
     def scenario_creation(self, njobs):
 
         # todo: Sumo sampling currently not supported. Possible changes my occur in multiple files
-        scenario_creation = CrownetSumoCreation(self.env_man, self.parameter_variation)
+        scenario_creation = CrownetCreation(self.env_man, self.parameter_variation)
         request_item_list = scenario_creation.generate_scenarios(njobs)
         return request_item_list
 
@@ -1132,6 +1224,16 @@ class CrownetSumoRequest(Request):
         and executed by the run_script.py for each item but results are
         currently not aggregated by the CrownetSumoRequest
         """
+        # crate deep copy in case we run in multithreaded mode.
+        _model = deepcopy(self.model)
+
+        par_id = r_item.parameter_id
+        run_id = r_item.run_id
+
+        dirname = os.path.join(
+            self.env_man.get_env_outputfolder_path(),
+            self.env_man.get_simulation_directory(par_id, run_id),
+        )
 
         # ensure output path exists (deletes existing folder if present)
         self._create_output_path(r_item.output_path)
@@ -1140,21 +1242,41 @@ class CrownetSumoRequest(Request):
         else:
             required_files = []
 
-        # helper method in model class to create complex arguments for single run.
-        args = self.model.build_args(
-            env_man=self.env_man,
-            r_item=r_item,
-            required_files=required_files
-        )
+        # Setup command arguments (defaults and fix values)
+
+        _model.override_host_config(os.path.basename(dirname))
+        _model.result_dir(r_item.output_path)
+        _model.opp_argument("-f", os.path.basename(self.env_man.omnet_path_ini)) # todo..
+        _model.opp_argument("-c", self.env_man.ini_config)
+        _model.omnet_tag(self.env_man.communication_sim[1], override=False)
+        _model.reuse_policy("remove_stopped", override=False)
+        _model.cleanup_policy("keep_failed", override=False)
+
+        if self.env_man.uses_sumo_mobility:
+            _model.create_sumo_container()
+            _model.sumo_tag(self.env_man.mobility_sim[1], override=False)
+            _model.sumo_argument("bind", "0.0.0.0", override=False)
+            _model.sumo_argument("port", "9999", override=False)
+            _model.sumo_exec("single-run", override=False)
+
+        if self.env_man.uses_vadere_mobility:
+            _model.create_vadere_container()
+            _model.vadere_tag(self.env_man.mobility_sim[1], override=False)
+            _model.vadere_argument("bind", "0.0.0.0", override=False)
+            _model.vadere_argument("port", "9998", override=False)
+            # todo...
+
+
         output_on_error = None
         # return_code, required_time, output_on_error = self.model.run_simulation(
         #     dirname=os.path.dirname(r_item.scenario_path),
         #     start_file=self.env_man.run_file,
         #     args=args
         # )
-        self.model.override_host_config(run_name=os.path.basename(os.path.dirname(r_item.scenario_path)))
-        return_code, required_time = self.model.run(cwd=os.path.dirname(r_item.scenario_path),
-                                                    start_file=self.env_man.run_file)
+        _model.set_script(self.env_man.run_file)
+
+        return_code, required_time = _model.run(
+            cwd=os.path.dirname(r_item.scenario_path))
 
         is_results = self._interpret_return_value(
             return_code, r_item.parameter_id
@@ -1188,6 +1310,28 @@ class CrownetSumoRequest(Request):
 
         return r_item
 
+
+class OmnetRequest(Request):
+    def __init__(self,
+                 env_man: AbstractEnvironmentManager,
+                 parameter_variation: ParameterVariationBase,
+                 model: Command,
+                 njobs: int = 1
+                 ):
+        self.env_man = env_man
+        self.parameter_variation = parameter_variation
+        request_item_list = self.scenario_creation(njobs)
+        super().__init__(
+            request_item_list,
+            model,
+            qoi=None)
+
+    def scenario_creation(self, njobs):
+
+        # todo: Sumo sampling currently not supported. Possible changes my occur in multiple files
+        scenario_creation = CrownetCreation(self.env_man, self.parameter_variation)
+        request_item_list = scenario_creation.generate_scenarios(njobs)
+        return request_item_list
 
 if __name__ == "__main__":
     pass

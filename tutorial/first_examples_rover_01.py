@@ -82,7 +82,8 @@ if __name__ == "__main__":
         .vadere_tag("latest") \
         .omnet_tag("latest") \
         .qoi(qoi) \
-        .experiment_label("out")
+        .experiment_label("out") \
+        # .reuse_policy("keep")
 
     setup = CoupledDictVariation(
         ini_path=path2ini,

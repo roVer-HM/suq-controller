@@ -1,6 +1,6 @@
 import random
 import copy
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 
 from suqc.utils.SeedManager.SeedManager import SeedManager
 
@@ -9,7 +9,7 @@ class OmnetSeedManager(SeedManager):
     def __init__(self, par_variations: List[Dict[str, Any]],
                  rep_count: int = 1,
                  omnet_fixed: bool = True,
-                 vadere_fixed: bool = True):
+                 vadere_fixed: Union[bool, None] = True):
         """SeedManager class for crownet based simulation
 
         Attributes:
@@ -42,7 +42,9 @@ class OmnetSeedManager(SeedManager):
             variation["omnet"] = {}
 
         # vadere seed
-        if self.vadere_fixed:
+        if self.vadere_fixed is None:
+            pass # vadere is not used
+        elif self.vadere_fixed:
             self._add_vadere_seed_fixed(variation)
         else:
             self._add_vadere_seed_random(variation, vadere_seed)
