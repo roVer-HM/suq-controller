@@ -34,7 +34,7 @@ if __name__ == "__main__":
     ## Define parameters and sampling method
     # parameters
 
-    par_var = [{'vadere': {'sources.[id==1004].distributionParameters': [0.0375]},
+    par_var = [{'vadere': {'sources.[id==1004].distributionParameters.numberPedsPerSecond': [0.0375]},
                 'omnet': {'sim-time-limit': '20s'}}]
 
     # number of repitions for each sample

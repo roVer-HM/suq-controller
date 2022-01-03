@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 
 import glob
+import json
 import multiprocessing
 import os
-from re import I
 import shutil
 
 from suqc.CommandBuilder.interfaces import Command
-from suqc.CommandBuilder.interfaces.Python3Command import Python3Command
 from suqc.environment import (
     CoupledEnvironmentManager,
-    VadereConsoleWrapper,
     AbstractEnvironmentManager,
-    CrownetEnvironmentManager, 
+    CrownetEnvironmentManager,
+    VadereEnvironmentManager
 )
 from omnetinireader.config_parser import OppConfigType
 from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation, CrownetCreation
@@ -21,7 +20,6 @@ from suqc.parameter.sampling import *
 from suqc.qoi import VadereQuantityOfInterest, QuantityOfInterest
 from suqc.remote import ServerRequest
 from suqc.requestitem import RequestItem
-from suqc.utils.SeedManager.SumoSeedManager import SumoSeedManager
 
 from suqc.utils.general import (
     create_folder,
@@ -124,15 +122,12 @@ class Request(object):
 
     def _single_request(self, request_item: RequestItem) -> RequestItem:
 
-        ## todo deep copy of model.
-
         self._create_output_path(request_item.output_path)
+        _model = deepcopy(self.model)
 
-        # return_code, required_time, output_on_error = self.model.run_simulation(
-        #     request_item.scenario_path, request_item.output_path
-        # )
-        output_on_error = None
-        return_code, required_time = self.model.run()
+        _model.add_argument("-f", request_item.scenario_path)
+        _model.add_argument("-o", request_item.output_path)
+        return_code, required_time, output_on_error = _model.run()
 
         is_results = self._interpret_return_value(
             return_code, request_item.parameter_id
@@ -403,7 +398,6 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             ini_path: str,
             parameter_dict_list: List[dict],
             qoi: Union[str, List[str]],
-            # model: Union[str, AbstractConsoleWrapper],
             model: Command,
             post_changes=PostScenarioChangesBase(apply_default=True),
             njobs_create_scenarios=1,
@@ -753,7 +747,7 @@ class DictVariation(VariationBase, ServerRequest):
             scenario_path: str,
             parameter_dict_list: List[dict],
             qoi: Union[str, List[str]],
-            model: Union[str, VadereConsoleWrapper],
+            model: Command,
             scenario_runs=1,
             post_changes=PostScenarioChangesBase(apply_default=True),
             njobs_create_scenarios=1,
@@ -783,10 +777,10 @@ class DictVariation(VariationBase, ServerRequest):
             self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
             env = env_remote
 
-        # parameter_variation = SeedManager(parameter_dict_list)
-        # parameter_variation = parameter_variation.multiply_scenario_runs(
-        #     scenario_runs=scenario_runs
-        # )
+        parameter_variation = UserDefinedSampling(parameter_dict_list)
+        parameter_variation = parameter_variation.multiply_scenario_runs(
+            scenario_runs=scenario_runs
+        )
 
         super(DictVariation, self).__init__(
             env_man=env,
@@ -806,7 +800,7 @@ class SingleKeyVariation(DictVariation, ServerRequest):
             key: str,
             values: np.ndarray,
             qoi: Union[str, List[str]],
-            model: Union[str, VadereConsoleWrapper],
+            model: Command,
             scenario_runs=1,
             post_changes=PostScenarioChangesBase(apply_default=True),
             output_path=None,

@@ -99,6 +99,22 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
         return self
 
+    def add_data_points(self, par_variations: List[Dict[str, Any]]):
+        self._add_dict_points(par_variations)
+        # df0 = np.tile(self._points.values[k], (scenario_runs[k], 1))
+        df_values = self._points.values
+        idx_ids = np.arange(start=0, stop=len(par_variations))
+        idx_run_ids = np.zeros(len(par_variations), dtype=int)
+        self._points = pd.DataFrame(
+            df_values,
+            index=pd.MultiIndex.from_arrays(
+                [idx_ids, idx_run_ids], names=["id", "run_id"]
+            ),
+            columns=self._points.columns
+        )
+        self._points = self._points.sort_index(axis=1)
+        return self
+
     def _add_dict_points(self, points: List[dict]):
         # NOTE: it may be required to generalize 'points' definition, at the moment it is assumed to be a list(grid),
         # where 'grid' is a ParameterGrid of scikit-learn

@@ -16,4 +16,4 @@ class ControlMixin(ABC):
 
     def control_argument(self, key: str, value: str, override = True):
         self._arguments.set(f"--ctrl.{key}", value, override)
-        return sel
+        return self
