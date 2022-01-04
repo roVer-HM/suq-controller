@@ -2,14 +2,10 @@ import subprocess
 import unittest
 from unittest import mock
 import copy
-from unittest.mock import patch, Mock
-
-from suqc.CommandBuilder.interfaces.Command import Command
+from unittest.mock import patch
 
 from suqc.CommandBuilder.interfaces.CommandArguments import CommandArguments
 from suqc.CommandBuilder.interfaces.JavaCommand import JavaCommand
-
-from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 
 
 class TestJavaCommand(unittest.TestCase):
