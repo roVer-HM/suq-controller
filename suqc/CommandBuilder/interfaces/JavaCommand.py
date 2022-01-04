@@ -7,9 +7,18 @@ from suqc.CommandBuilder.interfaces.Command import Command
 
 
 class JavaCommand(Command):
-    _options: List[str] = None
-    _sub_command: str = None
-    _main_class: str = None
+    _options: List[str] = []
+    _sub_command: str = ""
+    _main_class: str = ""
+    ALLOWED_LOGLVL = [
+        "OFF",
+        "FATAL",
+        "TOPOGRAPHY_ERROR",
+        "TOPOGRAPHY_WARN",
+        "INFO",
+        "DEBUG",
+        "ALL",
+    ]
 
     def __init__(self):
         super().__init__()
@@ -21,11 +30,11 @@ class JavaCommand(Command):
 
     def __str__(self):
         return f"{self._executable} " \
-               f"{' '.join(self._options) if self._options else ''} " \
+               f"{' '.join(self._options)} " \
                f"{self._sub_command} " \
-               f"{self._main_class if self._main_class else ''} "\
-               f"{self._arguments if self._arguments else ''}" \
-
+               f"{self._main_class} " \
+               f"{self._arguments}"\
+            .strip()
 
     def __iter__(self) -> Iterator[str]:
         run_command: List[str] = [self._executable]
@@ -42,8 +51,6 @@ class JavaCommand(Command):
         self._executable = "java"
 
     def add_option(self, option: str) -> "JavaCommand":
-        if not self._options:
-            self._options = []
         self._options.append(option)
         return self
 
@@ -56,23 +63,12 @@ class JavaCommand(Command):
         return self
 
     def log_level(self, log_level: str) -> "JavaCommand":
-        ALLOWED_LOGLVL = [
-            "OFF",
-            "FATAL",
-            "TOPOGRAPHY_ERROR",
-            "TOPOGRAPHY_WARN",
-            "INFO",
-            "DEBUG",
-            "ALL",
-        ]
-
         log_level = log_level.upper()
-        if log_level not in ALLOWED_LOGLVL:
+        if log_level not in self.ALLOWED_LOGLVL:
             raise ValueError(
                 f"set loglvl={log_level} not contained "
-                f"in allowed: {ALLOWED_LOGLVL}"
+                f"in allowed: {self.ALLOWED_LOGLVL}"
             )
-
         self.add_argument(key="--loglevel", value=log_level)
         return self
 

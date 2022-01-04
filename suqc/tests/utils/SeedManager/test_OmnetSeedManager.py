@@ -5,7 +5,6 @@ import copy
 from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 
 
-# todo mario: Write Unittests
 class TestOmnetSeedManager(unittest.TestCase):
     empty_variation = {'vadere': {}, 'omnet': {}}
     seed_manager = OmnetSeedManager([empty_variation])
@@ -105,26 +104,6 @@ class TestOmnetSeedManager(unittest.TestCase):
         self.assertEqual(omnet_fixed_mock.call_count, 0)
         vadere_random_mock.assert_called_once_with(var_copy, vadere_seed)
         omnet_random_mock.assert_called_once_with(var_copy, omnet_seed)
-        reset_mocks()
-
-        # # seed already in variation
-        # seed_variation = {'vadere': {'attributesSimulation.useFixedSeed': True},
-        #                   'omnet': {'*.traci.launcher.useVadereSeed': "false",
-        #                             '*.traci.launcher.seed': [57455, 35466]}}
-        # raise_manager = OmnetSeedManager(par_variations=[seed_variation])
-        # with self.assertRaises(ValueError) as context:
-        #     raise_manager._set_seed(seed_variation, 1, 2)
-        # self.assertEqual(str(context.exception), "Seed already set in the given dictionary.")
-
-    # def test_seed_parameter_exists(self):
-    #     fixed_variation = {'vadere': {'attributesSimulation.useFixedSeed': True},
-    #                        'omnet': {'*.traci.launcher.useVadereSeed': "true"}}
-    #     random_variation = {'vadere': {'attributesSimulation.useFixedSeed': True},
-    #                         'omnet': {'*.traci.launcher.useVadereSeed': "false",
-    #                                   '*.traci.launcher.seed': [57455, 35466]}}
-    #     self.assertFalse(self.seed_manager._seed_parameter_exists(self.empty_variation))
-    #     self.assertTrue(self.seed_manager._seed_parameter_exists(fixed_variation))
-    #     self.assertTrue(self.seed_manager._seed_parameter_exists(random_variation))
 
     def test_add_vadere_seed_fixed(self):
         empty_copy = copy.deepcopy(self.empty_variation)

@@ -25,28 +25,15 @@ class VadereSeedManager(SeedManager):
             raise ValueError("rep_count of 0 is not supported")
 
     def _set_seed(self, variation: Dict[str, Any], vadere_seed: int):
-        # todo: if sumo gets implemented, add new sumo seed
-
-        # seed already set
-        # if self._seed_parameter_exists(variation):
-        #     raise ValueError("Seed already set in the given dictionary.")
-
+        if "vadere" not in variation:
+            variation["vadere"] = {}
+        if "omnet" not in variation:
+            variation["omnet"] = {}
         # vadere seed
         if self.vadere_fixed:
             self._add_vadere_seed_fixed(variation)
         else:
             self._add_vadere_seed_random(variation, vadere_seed)
-
-    # def _seed_parameter_exists(self, parameter_variations: Dict[str, Any]) -> bool:
-    #     vadere_seed_keys = ["attributesSimulation.useFixedSeed"]
-    #     omnet_seed_keys = ["*.traci.launcher.useVadereSeed", "*.traci.launcher.seed", "seed-set"]
-    #     omnet_key = "omnet"
-    #     vadere_key = "vadere"
-    #     omnet_exists = any([key in parameter_variations[omnet_key] for key in omnet_seed_keys]) \
-    #         if omnet_key in parameter_variations else False
-    #     vadere_exists = any([key in parameter_variations[vadere_key] for key in vadere_seed_keys]) \
-    #         if vadere_key in parameter_variations else False
-    #     return any([omnet_exists, vadere_exists])
 
     def _add_vadere_seed_fixed(self, parameter_variations: Dict[str, Any]) -> "VadereSeedManager":
         # use fixed seed defined in scenario file
