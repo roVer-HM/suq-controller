@@ -1,5 +1,6 @@
 import unittest
 from unittest import mock
+from unittest.mock import patch
 
 from suqc.CommandBuilder.JarCommand import JarCommand
 
@@ -14,11 +15,16 @@ class TestJarCommand(unittest.TestCase):
     #     self.assertEqual(py3_command.timeout, 15000)
     #     mock_set_sub_command.assert_called_once()
 
-    @mock.patch('suqc.CommandBuilder.JarCommand._set_sub_command')
+    @patch.multiple(JarCommand, __abstractmethods__=set())
+    @mock.patch('suqc.CommandBuilder.JarCommand.JarCommand._set_sub_command')
     def test__init__(self, mock_set_sub_command: mock.MagicMock):
         file_name = "any_file"
         jar_command = JarCommand(jar_file=file_name)
-        self.assertEqual(jar_command._sub_command, "")
+        self.assertEqual(jar_command._jar_file, file_name)
+        mock_set_sub_command.assert_called_once()
 
     def test_set_sub_command(self) -> None:
-        self._sub_command = f"-jar {self.__jar_file}"
+        file_name = "any_file"
+        expected = f"-jar {file_name}"
+        jar_command = JarCommand(jar_file=file_name)
+        self.assertEqual(jar_command._sub_command, expected)

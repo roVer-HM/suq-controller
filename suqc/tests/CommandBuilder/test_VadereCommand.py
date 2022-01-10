@@ -1,13 +1,26 @@
-from suqc.CommandBuilder.interfaces.CommandArguments import CommandArguments
-from suqc.CommandBuilder.interfaces.Python3Command import Python3Command
+import unittest
+from unittest import mock
+from unittest.mock import patch
+
 from suqc.CommandBuilder.mixins.BaseMixin import BaseMixin
 from suqc.CommandBuilder.mixins.VadereMixin import VadereMixin
+from suqc.CommandBuilder.interfaces.Python3Command import Python3Command
+from suqc.CommandBuilder.VadereCommand import VadereCommand
 
 
-class VadereCommand(Python3Command, BaseMixin, VadereMixin):
+class TestVadereCommand(unittest.TestCase):
 
-    def _set_sub_command(self) -> None:
-        self._sub_command = "vadere"
 
-    # def _set_command_defaults(self) -> None:
-    #     self._arguments = CommandArguments([("--default_vadere_key", "default_vadere_value")])
+    @patch.multiple(VadereCommand, __abstractmethods__=set())
+    @mock.patch('suqc.CommandBuilder.VadereCommand.VadereCommand._set_sub_command')
+    def test__init__(self, mock_set_sub_command: mock.MagicMock):
+        command = VadereCommand()
+        mock_set_sub_command.assert_called_once()
+        self.assertTrue(isinstance(command, Python3Command))
+        self.assertTrue(isinstance(command, VadereMixin))
+        self.assertTrue(isinstance(command, BaseMixin))
+
+    def test_set_sub_command(self) -> None:
+        expected = "vadere"
+        command = VadereCommand()
+        self.assertEqual(command._sub_command, expected)
