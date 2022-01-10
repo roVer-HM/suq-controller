@@ -28,12 +28,7 @@ class BaseMixin(ABC):
         self._arguments.set("--run-name", run_name, override)
         return self
 
-    # def run_name(self, run_name: str):
-    #     self._arguments["--run-name"] = run_name
-    #     return self
-
     def cleanup_policy(self, policy: str, override=True):
-        
         self._arguments.set("--cleanup-policy", policy, override)
         return self
 
