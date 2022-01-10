@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import os
 import sys
 
+from suqc.CommandBuilder.JarCommand import JarCommand
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
@@ -26,11 +26,15 @@ if __name__ == "__main__":  # main required by Windows to run in parallel
         {"speedDistributionMean": 1.3, "maximumSpeed": 4.0, "acceleration": 3.0},
     ]
 
+    jar_command = JarCommand(jar_file=path2model) \
+        .add_option("-enableassertions") \
+        .main_class("suq")
+
     setup = DictVariation(
         scenario_path=path2scenario,
         parameter_dict_list=par_var,
         qoi="density.txt",
-        model=path2model,
+        model=jar_command,
         scenario_runs=1,
         post_changes=PostScenarioChangesBase(apply_default=True),
         output_path=path2tutorial,

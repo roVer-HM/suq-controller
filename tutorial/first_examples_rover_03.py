@@ -35,9 +35,9 @@ if __name__ == "__main__":
 
     # Currently no qoi supported only raw output.
 
-    setup = CrownetSumoRequest.create(
+    setup = CrownetRequest.create(
         ini_path=path2ini,
-        config="mucSumo_120_maptypes",
+        config="mucSumo_base",
         parameter_dict_list=[
             {"omnet": {
                 "*.pNode[*].app[2].app.mapTypeLog": '"ymf"',
@@ -52,7 +52,7 @@ if __name__ == "__main__":
                 "*.pNode[*].app[2].app.mapTypeLog": '"invSourceDist"',
                 "*.pNode[*].app[2].app.mapType": '"invSourceDist"'}},
         ],
-        output_path="/home/vm-sts/repos/crownet/analysis/suq-controller/tutorial/",
+        output_path=os.path.dirname(os.path.realpath(__file__)),
         output_folder=output_folder,
         repeat=1,
         seed_config={"sumo": "fixed", "omnet": "random"},

@@ -4,13 +4,14 @@
 import sys
 
 from suqc.CommandBuilder.VadereOppCommand import VadereOppCommand
+
 from suqc.utils.SeedManager.OmnetSeedManager import OmnetSeedManager
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports, it can be ignored:
 
-sys.path.append(os.path.abspath("."))
-sys.path.append(os.path.abspath(".."))
+sys.path.append(os.path.abspath("../../uq/simulation_studies/tutorial_simple_detour"))
+sys.path.append(os.path.abspath("../../uq/simulation_studies"))
 
 run_local = True
 ###############################################################################################################
@@ -20,7 +21,7 @@ run_local = True
 
 if __name__ == "__main__":
 
-    output_folder = os.path.join(os.getcwd(), "first_examples_rover_02")
+    output_folder = os.path.join(os.getcwd(), "first_examples_rover_01")
 
     ## Define the simulation to be used
     # A rover simulation is defined by an "omnetpp.ini" file and its corresponding directory.
@@ -28,19 +29,41 @@ if __name__ == "__main__":
 
     path2ini = os.path.join(
         os.environ["CROWNET_HOME"],
-        "crownet/simulations/mucFreiheitLte/omnetpp.ini",
+        "crownet/simulations/simple_detoure_suqc_traffic/omnetpp.ini",
     )
 
     ## Define parameters and sampling method
     # parameters
-
-    par_var = [{'vadere': {'sources.[id==1004].distributionParameters.numberPedsPerSecond': [0.0375]},
-                'omnet': {'sim-time-limit': '20s'}}]
-
     # number of repitions for each sample
     reps = 1
 
     # sampling
+    par_var = [
+        {'vadere': {'sources.[id==1].distributionParameters': [0.0375]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==1].distributionParameters': [0.05]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==2].distributionParameters': [0.0375]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==2].distributionParameters': [0.05]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==5].distributionParameters': [0.0375]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==5].distributionParameters': [0.05]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==6].distributionParameters': [0.0375]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+        {'vadere': {'sources.[id==6].distributionParameters': [0.05]},
+         'omnet': {'*.station[0].app[0].incidentTime': '100s',
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}}
+    ]
     par_var = OmnetSeedManager(par_variations=par_var, rep_count=reps, vadere_fixed=False, omnet_fixed=False) \
         .get_new_seed_variation()
 
@@ -54,6 +77,7 @@ if __name__ == "__main__":
     ]
 
     # define tag of omnet and vadere docker images, see https://sam-dev.cs.hm.edu/rover/rover-main/container_registry/
+
     model = VadereOppCommand() \
         .create_vadere_container() \
         .vadere_tag("latest") \
@@ -70,11 +94,11 @@ if __name__ == "__main__":
         post_changes=None,
         output_path=path2tutorial,
         output_folder=output_folder,
-        remove_output=True,
+        remove_output=False,
         env_remote=None,
     )
 
-    if os.environ["ROVER_MAIN"] is None:
+    if os.environ["CROWNET_HOME"] is None:
         raise SystemError(
             "Please add ROVER_MAIN to your system variables to run a rover simulation."
         )

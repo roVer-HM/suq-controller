@@ -3,21 +3,15 @@
 from typing import *
 
 import pandas as pd
-import random
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.ParameterSampler.html
 from sklearn.model_selection import ParameterGrid
-from suqc.environment import VadereEnvironmentManager
 from suqc.utils.dict_utils import *
-
 import abc
-import copy
-
 import numpy as np
 
 
 class ParameterVariationBase(metaclass=abc.ABCMeta):
-
     MULTI_IDX_LEVEL0_PAR = "Parameter"
     MULTI_IDX_LEVEL0_LOC = "Location"
     ROW_IDX_NAME_ID = "id"
@@ -47,11 +41,11 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         # if it is a list, the int values co
         if isinstance(scenario_runs, list):
             if (
-                all(
-                    isinstance(scenario_run, int) and scenario_run > 0
-                    for scenario_run in scenario_runs
-                )
-                == False
+                    all(
+                        isinstance(scenario_run, int) and scenario_run > 0
+                        for scenario_run in scenario_runs
+                    )
+                    == False
             ):
                 raise ValueError(
                     f"Expect a list of positive integers. Got {scenario_runs}."
@@ -63,7 +57,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
                 raise ValueError(information)
             if len(scenario_runs) > len(self._points.index.values):
                 print(
-                    f"WARNING: {information}. Last {len(scenario_runs)-len(self._points.index.values)} element(s) are ignored."
+                    f"WARNING: {information}. Last {len(scenario_runs) - len(self._points.index.values)} element(s) are ignored."
                 )
 
         if isinstance(scenario_runs, int):
@@ -97,6 +91,22 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
         self._points = self._points.sort_index(axis=1)
 
+        return self
+
+    def add_data_points(self, par_variations: List[Dict[str, Any]]):
+        self._add_dict_points(par_variations)
+        # df0 = np.tile(self._points.values[k], (scenario_runs[k], 1))
+        df_values = self._points.values
+        idx_ids = np.arange(start=0, stop=len(par_variations))
+        idx_run_ids = np.zeros(len(par_variations), dtype=int)
+        self._points = pd.DataFrame(
+            df_values,
+            index=pd.MultiIndex.from_arrays(
+                [idx_ids, idx_run_ids], names=["id", "run_id"]
+            ),
+            columns=self._points.columns
+        )
+        self._points = self._points.sort_index(axis=1)
         return self
 
     def _add_dict_points(self, points: List[dict]):
@@ -190,7 +200,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
         for k in keys:
             if k not in inifile.keys():
-                raise ValueError(f"Key {k} not found in omnet inifile.")
+                raise ValueError(f"Key \"{k}\" not found in omnet inifile.")
         return True
 
     def to_dictlist(self):
@@ -198,10 +208,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
     def par_iter(self, simulator=None):
 
-        if self.is_multiple_simulators():  # vadere only
-            df = self._points[(ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator)]
-        else:
-            df = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR]
+        df = self.get_simulator_specific_df(simulator)
 
         for (par_id, run_id), row in df.iterrows():
             # TODO: this is not nice coding, however, there are some issues. See issue #40
@@ -218,6 +225,16 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
 
             yield (par_id, run_id, parameter_variation)
 
+    def get_simulator_specific_df(self, simulator):
+        if self.is_multiple_simulators():
+            if simulator in self._points.columns.get_level_values(1).unique():
+                df = self._points[(ParameterVariationBase.MULTI_IDX_LEVEL0_PAR, simulator)]
+            else:
+                df = pd.DataFrame(index=self._points.index)
+        else:
+            df = self._points[ParameterVariationBase.MULTI_IDX_LEVEL0_PAR]
+        return df
+
     def is_multiple_simulators(self):
         return self._points.columns.nlevels == 3
 
@@ -233,7 +250,7 @@ class UserDefinedSampling(ParameterVariationBase):
 
     def add_simulator_server_id(self, simulator="vadere"):
         pass
-        #TODO remove
+        # TODO remove
 
         # ids = self.points.index.to_list()
         # ids = [f'"{self.get_hostname(simulator, id[0], id[1])}"' for id in ids]
@@ -280,7 +297,7 @@ class UserDefinedSampling(ParameterVariationBase):
             )
 
     def multiply_scenario_runs_using_seed(
-        self, scenario_runs: Union[int, List[int]], seed_config: Dict
+            self, scenario_runs: Union[int, List[int]], seed_config: Dict
     ):
 
         super().multiply_scenario_runs(scenario_runs)
@@ -301,7 +318,7 @@ class UserDefinedSampling(ParameterVariationBase):
         return self
 
 
-class CrownetSumoUserDefinedSampling(UserDefinedSampling):
+class CrownetVadereControlUserDefinedSampling(UserDefinedSampling):
 
     def __init__(self, points: List[dict]):
         super().__init__(points)
@@ -408,8 +425,8 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
         arr = np.zeros(boxes * nr_testf)
 
         for i in range(boxes):
-            s, e = edges[i : i + 2]
-            arr[i * nr_testf : i * nr_testf + nr_testf] = np.linspace(
+            s, e = edges[i: i + 2]
+            arr[i * nr_testf: i * nr_testf + nr_testf] = np.linspace(
                 s, e, nr_testf + 2
             )[1:-1]
         return arr
@@ -433,9 +450,9 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
             idx_z = _get_idx(vals[2], 2)
 
         box = (
-            idx_x
-            + idx_y * (self._nr_boxes[0])
-            + idx_z * (self._nr_boxes[0] * self._nr_boxes[1])
+                idx_x
+                + idx_y * (self._nr_boxes[0])
+                + idx_z * (self._nr_boxes[0] * self._nr_boxes[1])
         )
         return box
 
@@ -556,7 +573,7 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
 
         bool_idx = markov.sum(axis=1).astype(np.bool)
         markov[bool_idx, :] = (
-            markov[bool_idx, :] / markov[bool_idx, :].sum(axis=1)[:, np.newaxis]
+                markov[bool_idx, :] / markov[bool_idx, :].sum(axis=1)[:, np.newaxis]
         )
 
         return markov
@@ -579,13 +596,13 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
 
         initial_condition = np.zeros(all_boxes)
         initial_condition[boxes_included.astype(np.int)] = (
-            1 / boxes_included.shape[0]
+                1 / boxes_included.shape[0]
         )  # uniform
 
         return initial_condition
 
     def transfer_initial_condition(
-        self, markov: np.array, initial_cond: np.array, nrsteps: int
+            self, markov: np.array, initial_cond: np.array, nrsteps: int
     ):
 
         all_boxes = self._points["boxid"].max() + 1
@@ -638,7 +655,6 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
         fig = plt.figure(figsize=(8, 3))
 
         for sidx in range(states.shape[1]):
-
             ax = fig.add_subplot(cols, rows, sidx + 1, projection="3d")
 
             df = self._get_bar_data_from_state(states[:, sidx])
@@ -673,290 +689,3 @@ class BoxSamplingUlamMethod(ParameterVariationBase):
             ax.set_title(f"step={sidx}")
         plt.tight_layout()
         plt.show()
-
-
-class RoverSampling(metaclass=abc.ABCMeta):
-    def __init__(self, parameters=None, parameters_dependent=None):
-        self.parameters = parameters
-        self.parameters_dependent = parameters_dependent
-
-    @abc.abstractmethod
-    def get_sampling_vals(self):
-        raise NotImplemented("Overwrite in child class.")
-
-    def get_sampling(self):
-
-        sample_vals = self.get_sampling_vals()
-
-        par_var = list()
-
-        for sample in sample_vals:
-            pars = self.get_single_sample(sample)
-            par_var.append(copy.deepcopy(pars))
-
-        return par_var
-
-    def __initialize_sample_dict(self):
-
-        simulators = list()
-
-        for parameter in self.parameters:
-            sim = parameter.get_simulator()
-            if sim is not None:
-                simulators.append(sim)
-
-        for parameter in self.parameters_dependent:
-            sim = parameter.get_simulator()
-            if sim is not None:
-                simulators.append(sim)
-
-        simulators = list(set(simulators))
-
-        if len(simulators) > 0:
-            pars = dict()
-            for simulator in simulators:
-                pars.update({simulator: {}})
-        else:
-            pars = {}
-        return pars
-
-    def get_single_sample(self, values):
-
-        # if isinstance(values,float) or isinstance(values,int):
-        #   values = [values]
-
-        sample = self.__initialize_sample_dict()
-        check = len(sample.keys())
-
-        k = 0
-        for parameter in self.parameters:
-
-            if parameter.list_index is None:
-                parameter.set_val(values[k])
-                k += 1
-            else:
-                for index in parameter.list_index:
-                    parameter.set_val(values[k], index)
-                    k += 1
-
-            if check == 0:
-                sample.update(parameter.to_dict())
-            else:
-                simulator = parameter.get_simulator()
-                sample[simulator].update(parameter.to_dict())
-
-        for dep in self.parameters_dependent:
-
-            dep.set_val(self.parameters)
-
-            if check == 0:
-                sample.update(dep.to_dict())
-            else:
-                simulator = dep.get_simulator()
-                sample[simulator].update(dep.to_dict())
-
-        return sample
-
-
-class RoverSamplingLatinHyperCube(RoverSampling):
-    def __init__(
-        self, parameters=None, parameters_dependent=None, number_of_samples=10
-    ):
-        self.number_of_samples = number_of_samples
-        super(RoverSamplingLatinHyperCube, self).__init__(
-            parameters=parameters, parameters_dependent=parameters_dependent
-        )
-
-    def get_sampling_vals(self):
-
-        from pyDOE import lhs
-
-        number = 0
-        for para in self.parameters:
-            number = number + para.get_number_of_parameters()
-
-        lhs_without_ranges = lhs(number, self.number_of_samples)
-        lhs_mapped = lhs_without_ranges.copy()
-
-        ind = 0
-        for parameter in self.parameters:
-
-            if parameter.get_number_of_parameters() == 1:
-
-                interval = parameter.get_interval()
-                lower_bound = parameter.get_lower_bound()
-
-                lhs_mapped[:, ind] = lower_bound + lhs_mapped[:, ind] * interval
-                ind += 1
-            else:
-
-                for c in range(parameter.get_number_of_parameters()):
-
-                    interval = parameter.get_interval()[c]
-                    lower_bound = parameter.get_lower_bound()[c]
-
-                    lhs_mapped[:, ind] = lower_bound + lhs_mapped[:, ind] * interval
-                    ind += 1
-
-        return lhs_mapped
-
-
-class RoverSamplingFullFactorial(RoverSampling):
-    def __init__(self, parameters=None, parameters_dependent=None):
-        super(RoverSamplingFullFactorial, self).__init__(
-            parameters=parameters, parameters_dependent=parameters_dependent
-        )
-
-    def get_sampling_vals(self):
-
-        par_var, x = list(), list()
-
-        for para in self.parameters:
-            x.append(para.get_stages())
-
-        full_factorial = np.meshgrid(*x, indexing="ij")
-        full_factorial = np.concatenate(np.transpose(full_factorial))
-
-        if len(self.parameters) == 1:
-            full_factorial = [[val] for val in full_factorial]
-
-        return full_factorial
-
-
-class Parameter:
-    @classmethod
-    def from_dict(cls, par_dict):
-        pass
-
-    def __init__(
-        self,
-        name,
-        unit=None,
-        simulator=None,
-        value=None,
-        range=None,
-        list=None,
-        list_index=None,
-        stages=None,
-    ):
-        self.name = name
-        self.value = value
-        self.unit = unit
-        self.simulator = simulator
-        self.set_range(range)
-        self.list_index = list_index
-        self.list = list
-        self.set_stages(stages)
-
-    def get_stages(self):
-        return self.stages
-
-    def set_stages(self, stages):
-
-        if isinstance(stages, int):
-            range = self.get_range()
-            stages = np.linspace(range[0], range[1], stages)
-
-        self.stages = stages
-
-    def get_val(self):
-        return self.value
-
-    def set_val(self, val, index=None):
-
-        if (val - int(val)) == 0:
-            val = int(val)
-
-        if index is None:
-            self.value = val
-        else:
-            if self.value is None:
-                self.value = self.list
-            self.value[index] = val
-
-    def set_range(self, range):
-        # reorder
-        self.range = range
-
-    def get_range(self):
-        return self.range
-
-    def get_interval(self):
-        if self.list_index is None:
-            interval = self.range[1] - self.range[0]
-        else:
-            interval = [item[1] - item[0] for item in self.range]
-        return interval
-
-    def get_lower_bound(self):
-        if self.list_index is None:
-            return self.range[0]
-        else:
-            return [item[0] for item in self.range]
-
-    def get_upper_bound(self):
-        if self.list_index is None:
-            return self.range[1]
-        else:
-            return [item[1] for item in self.range]
-
-    def get_simulator(self):
-        return self.simulator
-
-    def to_dict(self):
-
-        if self.unit is None:
-            val = self.value
-        else:
-            val = f"{self.value}{self.unit}"
-
-        return {self.name: val}
-
-    def get_number_of_parameters(self):
-        if self.list_index is None:
-            return 1
-        else:
-            return len(self.list_index)
-
-
-class DependentParameter(Parameter):
-    def __init__(
-        self,
-        name,
-        equation=None,
-        unit=None,
-        simulator=None,
-        value=None,
-        range=None,
-        list=None,
-        list_index=None,
-    ):
-
-        self.equation = equation
-        super().__init__(
-            name=name,
-            unit=unit,
-            simulator=simulator,
-            value=value,
-            list=list,
-            list_index=list_index,
-        )
-
-    def set_val(self, parameter=None):
-
-        if callable(self.equation):
-            # build argv for callable equation.
-            if parameter is not None:
-                argv = {p.name: p.get_val() for p in parameter}
-            else:
-                argv = {}
-            function_val = self.equation(argv)
-        else:
-            # just set the value given in equation.
-            function_val = self.equation
-
-        if isinstance(function_val, float):
-            if (function_val - int(function_val)) == 0:
-                function_val = int(function_val)
-        # to do for list
-        self.value = function_val

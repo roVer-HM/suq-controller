@@ -2,6 +2,7 @@
 
 import sys
 
+from suqc.CommandBuilder.JarCommand import JarCommand
 from tutorial.imports import *
 
 # This is just to make sure that the systems path is set up correctly, to have correct imports.
@@ -21,6 +22,10 @@ run_local = True
 
 if __name__ == "__main__":  # mainly required by Windows to run in parallel
 
+    jar_command = JarCommand(jar_file=path2model) \
+        .add_option("-enableassertions") \
+        .main_class("suq")
+
     setup = SingleKeyVariation(  # path to a Vadere .scenario file (the one to sample)
         scenario_path=path2scenario,
         # parameter key to change
@@ -31,9 +36,7 @@ if __name__ == "__main__":  # mainly required by Windows to run in parallel
         qoi="density.txt",
         # path to Vadere console jar file or use
         # VadereConsoleWrapper for more options
-        model=VadereConsoleWrapper(
-            model_path=path2model, jvm_flags=["-enableassertions"]
-        ),
+        model=jar_command,
         # specify how often each scenario should run
         scenario_runs=1,
         # post changes can be used to apply changes to the scenario that are not part of the
