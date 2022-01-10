@@ -393,6 +393,8 @@ class VariationBase(Request, ServerRequest):
 class CoupledDictVariation(VariationBase, ServerRequest):
     METAINFOFILE = "parameter.pkl"
 
+    # todo mario:
+    #  - temp folder in dem parameter.csv (früher paramter.pkl) abgelegt wird bleibt erhalten
     def __init__(
             self,
             ini_path: str,
@@ -425,42 +427,21 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             ".scenario"
         ), "Filepath must exist and the file has to end with .scenario"
 
-        temp_dir = os.path.join(output_path, output_folder)
-        temp_dir = os.path.join(temp_dir, "temp")
-
-        is_finish_existing = False
-        if os.path.isdir(temp_dir):
-            is_finish_existing = user_query_yes_no(
-                question=f"Parts of simulation found in {temp_dir}. \nDo you want to finish the existing simulation?"
+        if env_remote is None:
+            env = CoupledEnvironmentManager.create_variation_env(
+                basis_scenario=self.scenario_path,
+                ini_scenario=self.ini_path,
+                base_path=output_path,
+                env_name=output_folder,
+                handle_existing="ask_user_replace",
             )
-
-        if is_finish_existing is False:
-            if env_remote is None:
-                env = CoupledEnvironmentManager.create_variation_env(
-                    basis_scenario=self.scenario_path,
-                    ini_scenario=self.ini_path,
-                    base_path=output_path,
-                    env_name=output_folder,
-                    handle_existing="ask_user_replace",
-                )
-                self.env_path = env.env_path
-            else:
-                self.env_path = env_remote.env_path
-                self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
-                env = env_remote
-
-            parameter_variation = ParameterVariationBase().add_data_points(parameter_dict_list)
+            self.env_path = env.env_path
         else:
-            self.read_old_data = True
-            parameter_variation = ParameterVariationBase()
-            parameter_variation._add_df_points(
-                self.read_from_temp_folder(temp_dir, option="select")
-            )
+            self.env_path = env_remote.env_path
+            self.remove_output = False  # Do not remove the folder because this is done with the remote procedure
+            env = env_remote
 
-            man_file = os.path.join(temp_dir, "env_info.pkl")
-            env = CoupledEnvironmentManager.create_variation_env_from_info_file(
-                man_file
-            )
+        parameter_variation = ParameterVariationBase().add_data_points(parameter_dict_list)
 
         super(CoupledDictVariation, self).__init__(
             env_man=env,
@@ -496,7 +477,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
     def read_from_temp_folder(self, temp_folder, option="all"):
 
-        para = os.path.join(temp_folder, "parameter.pkl")
+        para = os.path.join(temp_folder, "parameter.pkl") # todo change to csv
         df = pd.read_pickle(para)
         df.columns = pd.MultiIndex.from_tuples(df.columns.tolist())
 
