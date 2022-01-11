@@ -42,13 +42,18 @@ class Python3Command(Command, ABC):
         print(f"{t}\t Call {str(self)}")
 
         run_command: List[str] = [self._executable, self._script, self._sub_command] + list(self._arguments)
-        return_code: int = subprocess.check_call(
-            run_command,
-            env=os.environ,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            cwd=cwd,
-            timeout=self.timeout,  
-        )
+        try:
+            return_code: int = subprocess.check_call(
+                run_command,
+                env=os.environ,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                cwd=cwd,
+                timeout=self.timeout,
+            )
+        except subprocess.CalledProcessError:
+            print(f"Simulation failed: {run_command}")
+            return_code = -1
+
         process_duration = time.time() - time_started
         return return_code, process_duration

@@ -5,6 +5,7 @@ import json
 import multiprocessing
 import os
 import shutil
+import subprocess
 
 from suqc.CommandBuilder.interfaces import Command
 from suqc.environment import (
@@ -252,6 +253,7 @@ class Request(object):
         # ParameterVariation._vars_object()
         for i, request_item in enumerate(self.request_item_list):
             if request_item.return_code != 0:
+                #TODO: this causes the index error! resolve this
                 self.request_item_list[i] = self._single_request(request_item)
 
     def _mp_query(self, njobs):
@@ -261,19 +263,15 @@ class Request(object):
 
     def run(self, njobs: int = 1, retry_if_failed = True, number_retries = 5):
 
-        test_1 = 1 #TODO: remove -> for test purpose only
 
         retry = 0
         while all(self.get_simulations_finished()) == False and retry <= number_retries:
+            print(f"There are unfinished simulations : {all(self.get_simulations_finished()) == False}")
             try:
                 self.run_simulations(njobs)
-
-                # set return_code of sample 2_0 to -1 ("no results provided")
-                if test_1 == 1: #TODO: remove -> for test purpose only
-                    self.request_item_list[2].return_code = -1
-                    test_1 = -1
-            finally:
-                retry +=1
+            except IndexError: #TODO remove this exception
+                print("Failed")
+            retry +=1
 
         if self.qoi is not None:
             self.compiled_run_info = self._compile_run_info()
@@ -510,28 +508,8 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         return parameter
 
     def run(self, njobs: int = 1):
-        # TODO use finally
-        # try:
-        #     par_var, data = super(CoupledDictVariation, self).run(njobs)
-        #     success = True
-        # except ValueError as e:
-        #     raise e
-        # finally:
-        #     if not success:
-        #         print("INFO: Simulation failed. Proceed succesful data only.")
-        #         par_var, data = self.get_sim_results_from_temp()
-        try:
-            remove_output = self.remove_output
-            if self.is_read_old_data():
-                self.remove_output = False
-            par_var, data = super(CoupledDictVariation, self).run(njobs)
-            if self.is_read_old_data():
-                par_var, data = self.get_sim_results_from_temp()
-            if remove_output and self.is_read_old_data():
-                self._remove_output()
-        except:
-            print("INFO: Proceed succesful data only.")
-            par_var, data = self.get_sim_results_from_temp()
+
+        par_var, data = super(CoupledDictVariation, self).run(njobs)
 
         return par_var, data
 
