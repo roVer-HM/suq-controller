@@ -40,10 +40,10 @@ if __name__ == "__main__":
     par_var = [
         {'vadere': {'sources.[id==1].distributionParameters.numberPedsPerSecond': 0.0375},
          'omnet': {'*.misc[0].app[0].incidentTime': '10s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLossXXX'}},
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
         {'vadere': {'sources.[id==1].distributionParameters.numberPedsPerSecond': 0.05},
          'omnet': {'*.misc[0].app[0].incidentTime': '10s',
-                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},
+                   '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLossXXX'}},
         {'vadere': {'sources.[id==2].distributionParameters.numberPedsPerSecond': 0.0375},
          'omnet': {'*.misc[0].app[0].incidentTime': '10s',
                    '*.radioMedium.obstacleLoss.typename': 'DielectricObstacleLoss'}},

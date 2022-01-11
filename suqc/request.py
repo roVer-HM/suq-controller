@@ -507,11 +507,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         return parameter
 
-    def run(self, njobs: int = 1):
 
-        par_var, data = super(CoupledDictVariation, self).run(njobs)
-
-        return par_var, data
 
     def get_sim_results_from_temp(self):
 
