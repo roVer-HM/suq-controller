@@ -5,6 +5,7 @@ import json
 import multiprocessing
 import os
 import shutil
+import subprocess
 
 from suqc.CommandBuilder.interfaces import Command
 from suqc.environment import (
@@ -251,29 +252,47 @@ class Request(object):
         # ParameterVariation.generate_vadere_scenarios and
         # ParameterVariation._vars_object()
         for i, request_item in enumerate(self.request_item_list):
-            self.request_item_list[i] = self._single_request(request_item)
+            if request_item.return_code != 0:
+                #TODO: this causes the index error! resolve this
+                self.request_item_list[i] = self._single_request(request_item)
 
     def _mp_query(self, njobs):
         # multi process query
         pool = multiprocessing.Pool(processes=njobs)
         self.request_item_list = pool.map(self._single_request, self.request_item_list)
 
-    def run(self, njobs: int = 1):
+    def run(self, njobs: int = 1, retry_if_failed = True, number_retries = 5):
 
+
+        retry = 0
+        while all(self.get_simulations_finished()) == False and retry <= number_retries:
+            print(f"There are unfinished simulations : {all(self.get_simulations_finished()) == False}")
+            try:
+                self.run_simulations(njobs)
+            except IndexError: #TODO remove this exception
+                print("Failed")
+            retry +=1
+
+        if self.qoi is not None:
+            self.compiled_run_info = self._compile_run_info()
+            self.compiled_qoi_data = self._compile_qoi()
+
+        return self.compiled_qoi_data, self.compiled_run_info
+
+
+    def get_simulations_finished(self):
+        # succesful simulations have a return_code = 0
+        return [sample.return_code == 0 for sample in self.request_item_list]
+
+
+    def run_simulations(self, njobs):
         # nr of rows = nr of parameter settings = #simulations
         nr_simulations = len(self.request_item_list)
         njobs = njobs_check_and_set(njobs=njobs, ntasks=nr_simulations)
-
         if njobs == 1:
             self._sp_query()
         else:
             self._mp_query(njobs=njobs)
-
-        if self.qoi is not None:
-            self.compiled_qoi_data = self._compile_qoi()
-            self.compiled_run_info = self._compile_run_info()
-
-        return self.compiled_qoi_data, self.compiled_run_info
 
 
 class VariationBase(Request, ServerRequest):
@@ -488,31 +507,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         return parameter
 
-    def run(self, njobs: int = 1):
-        # TODO use finally
-        # try:
-        #     par_var, data = super(CoupledDictVariation, self).run(njobs)
-        #     success = True
-        # except ValueError as e:
-        #     raise e
-        # finally:
-        #     if not success:
-        #         print("INFO: Simulation failed. Proceed succesful data only.")
-        #         par_var, data = self.get_sim_results_from_temp()
-        try:
-            remove_output = self.remove_output
-            if self.is_read_old_data():
-                self.remove_output = False
-            par_var, data = super(CoupledDictVariation, self).run(njobs)
-            if self.is_read_old_data():
-                par_var, data = self.get_sim_results_from_temp()
-            if remove_output and self.is_read_old_data():
-                self._remove_output()
-        except:
-            print("INFO: Proceed succesful data only.")
-            par_var, data = self.get_sim_results_from_temp()
 
-        return par_var, data
 
     def get_sim_results_from_temp(self):
 
