@@ -638,8 +638,10 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         )
 
         output_on_error = None
-        self.model.override_host_config(os.path.basename(dirname))
-        return_code, required_time = self.model.run(cwd=dirname, file_name=start_file)
+        # crate deep copy in case we run in multithreaded mode.
+        _model: Command = deepcopy(self.model)
+        _model.override_host_config(os.path.basename(dirname))
+        return_code, required_time = _model.run(cwd=dirname, file_name=start_file)
 
         filepath = f"{dirname}/results/**/*.scenario"
         file = glob.glob(filepath, recursive=True)
@@ -1200,7 +1202,7 @@ class CrownetRequest(Request):
         currently not aggregated by the CrownetSumoRequest
         """
         # crate deep copy in case we run in multithreaded mode.
-        _model = deepcopy(self.model)
+        _model: Command = deepcopy(self.model)
 
         par_id = r_item.parameter_id
         run_id = r_item.run_id
