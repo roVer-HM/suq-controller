@@ -91,13 +91,15 @@ def read_from_existing_output(
 class Request(object):
     PARAMETER_ID = "id"
     RUN_ID = "run_id"
+    REQUIRED_TIME = "required_wallclock_time"
+    RETURN_CODE = "return_code"
 
     def __init__(
             self,
             request_item_list: List[RequestItem],
-            # model: Union[str, AbstractConsoleWrapper],
             model: Command,
             qoi: Union[VadereQuantityOfInterest, None],
+            retries: int = 5
     ):
         if len(request_item_list) == 0:
             raise ValueError("request_item_list has no entries.")
@@ -113,6 +115,9 @@ class Request(object):
         # are created
         self.compiled_qoi_data = None
         self.compiled_run_info = None
+
+        # Number of retries for failed simulation
+        self.retries = retries
 
     def _interpret_return_value(self, ret_val, par_id):
         if ret_val == 0:
@@ -179,7 +184,7 @@ class Request(object):
 
     def _compile_qoi(self):
 
-        qoi_results = [item_.qoi_result for item_ in self.request_item_list]
+        qoi_results = [item_.qoi_result for item_ in self._successful_jobs()]
 
         filenames = None
         for ires in qoi_results:
@@ -214,6 +219,9 @@ class Request(object):
 
         return final_results
 
+    def _successful_jobs(self):
+        return filter(lambda item: item.return_code != -1, self.request_item_list)
+
     def _compile_run_info(self, data=None):
 
         if data is None:
@@ -224,15 +232,15 @@ class Request(object):
                     item_.required_time,
                     item_.return_code,
                 )
-                for item_ in self.request_item_list
+                for item_ in self._successful_jobs()
             ]
         df = pd.DataFrame(
             data,
             columns=[
                 self.PARAMETER_ID,
                 self.RUN_ID,
-                "required_wallclock_time",
-                "return_code",
+                self.REQUIRED_TIME,
+                self.RETURN_CODE
             ],
         )
         df.set_index(keys=[self.PARAMETER_ID, self.RUN_ID], inplace=True)
@@ -253,7 +261,7 @@ class Request(object):
         # ParameterVariation._vars_object()
         for i, request_item in enumerate(self.request_item_list):
             if request_item.return_code != 0:
-                #TODO: this causes the index error! resolve this
+                # TODO: this causes the index error! resolve this
                 self.request_item_list[i] = self._single_request(request_item)
 
     def _mp_query(self, njobs):
@@ -261,17 +269,15 @@ class Request(object):
         pool = multiprocessing.Pool(processes=njobs)
         self.request_item_list = pool.map(self._single_request, self.request_item_list)
 
-    def run(self, njobs: int = 1, retry_if_failed = True, number_retries = 5):
-
+    def run(self, njobs: int = 1):
 
         retry = 0
-        while all(self.get_simulations_finished()) == False and retry <= number_retries:
-            print(f"There are unfinished simulations : {all(self.get_simulations_finished()) == False}")
+        while not self.simulations_finished() and retry <= self.retries - 1:
             try:
                 self.run_simulations(njobs)
-            except IndexError: #TODO remove this exception
-                print("Failed")
-            retry +=1
+            except IndexError:
+                print(f"Retry attempt: {retry}")
+            retry += 1
 
         if self.qoi is not None:
             self.compiled_run_info = self._compile_run_info()
@@ -279,11 +285,8 @@ class Request(object):
 
         return self.compiled_qoi_data, self.compiled_run_info
 
-
-    def get_simulations_finished(self):
-        # succesful simulations have a return_code = 0
-        return [sample.return_code == 0 for sample in self.request_item_list]
-
+    def simulations_finished(self) -> bool:
+        return all([sample.return_code == 0 for sample in self.request_item_list])
 
     def run_simulations(self, njobs):
         # nr of rows = nr of parameter settings = #simulations
@@ -414,6 +417,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
     # todo mario:
     #  - temp folder in dem parameter.csv (früher paramter.pkl) abgelegt wird bleibt erhalten
+    #  - write to temp aus retry branch entfernen
     def __init__(
             self,
             ini_path: str,
@@ -496,7 +500,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
     def read_from_temp_folder(self, temp_folder, option="all"):
 
-        para = os.path.join(temp_folder, "parameter.pkl") # todo change to csv
+        para = os.path.join(temp_folder, "parameter.pkl")  # todo change to csv
         df = pd.read_pickle(para)
         df.columns = pd.MultiIndex.from_tuples(df.columns.tolist())
 
@@ -506,8 +510,6 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         parameter = df.iloc[:, df.columns.get_level_values(0) == "Parameter"]
 
         return parameter
-
-
 
     def get_sim_results_from_temp(self):
 
@@ -1216,7 +1218,7 @@ class CrownetRequest(Request):
 
         _model.override_host_config(os.path.basename(dirname))
         _model.result_dir(r_item.output_path)
-        _model.opp_argument("-f", os.path.basename(self.env_man.omnet_path_ini)) # todo..
+        _model.opp_argument("-f", os.path.basename(self.env_man.omnet_path_ini))  # todo..
         _model.opp_argument("-c", self.env_man.ini_config)
         _model.omnet_tag(self.env_man.communication_sim[1], override=False)
         _model.reuse_policy("remove_stopped", override=False)
@@ -1235,7 +1237,6 @@ class CrownetRequest(Request):
             _model.vadere_argument("bind", "0.0.0.0", override=False)
             _model.vadere_argument("port", "9998", override=False)
             # todo...
-
 
         output_on_error = None
         # return_code, required_time, output_on_error = self.model.run_simulation(
@@ -1297,11 +1298,11 @@ class OmnetRequest(Request):
             qoi=None)
 
     def scenario_creation(self, njobs):
-
         # todo: Sumo sampling currently not supported. Possible changes my occur in multiple files
         scenario_creation = CrownetCreation(self.env_man, self.parameter_variation)
         request_item_list = scenario_creation.generate_scenarios(njobs)
         return request_item_list
+
 
 if __name__ == "__main__":
     pass

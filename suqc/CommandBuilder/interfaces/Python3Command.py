@@ -39,7 +39,7 @@ class Python3Command(Command, ABC):
             self.set_script(file_name)
         time_started = time.time()
         t: str = time.strftime("%H:%M:%S", time.localtime(time_started))
-        print(f"{t}\t Call {str(self)}")
+        # print(f"{t}\t Call {str(self)}")
 
         run_command: List[str] = [self._executable, self._script, self._sub_command] + list(self._arguments)
         try:
@@ -54,6 +54,14 @@ class Python3Command(Command, ABC):
         except subprocess.CalledProcessError:
             print(f"Simulation failed: {run_command}")
             return_code = -1
+        # return_code: int = subprocess.check_call(
+        #     run_command,
+        #     env=os.environ,
+        #     stdout=subprocess.DEVNULL,
+        #     stderr=subprocess.DEVNULL,
+        #     cwd=cwd,
+        #     timeout=self.timeout,
+        # )
 
         process_duration = time.time() - time_started
         return return_code, process_duration
