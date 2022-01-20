@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 import glob
-import json
 import multiprocessing
 import os
 import shutil
 import subprocess
+
+from omnetinireader.config_parser import OppConfigType
 
 from suqc.CommandBuilder.interfaces import Command
 from suqc.environment import (
@@ -15,19 +16,17 @@ from suqc.environment import (
     CrownetEnvironmentManager,
     VadereEnvironmentManager
 )
-from omnetinireader.config_parser import OppConfigType
 from suqc.parameter.create import CoupledScenarioCreation, VadereScenarioCreation, CrownetCreation
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import *
 from suqc.qoi import VadereQuantityOfInterest, QuantityOfInterest
 from suqc.remote import ServerRequest
 from suqc.requestitem import RequestItem
-
 from suqc.utils.general import (
     create_folder,
     njobs_check_and_set,
     parent_folder_clean,
-    user_query_yes_no, check_simulator,
+    check_simulator,
 )
 
 
@@ -270,15 +269,26 @@ class Request(object):
         pool = multiprocessing.Pool(processes=njobs)
         self.request_item_list = pool.map(self._single_request, self.request_item_list)
 
-    def run(self, njobs: int = 1):
+    def run(self, njobs: int = 1, retry_if_failed=True, number_retries=5):
 
         retry = 0
-        while not self.simulations_finished() and retry <= self.retries - 1:
+        while self.is_unfinished_sims_existing() and retry <= number_retries:
+            if retry > 0:
+                print(f"Try to re-start failed simulations (attempt {retry} out of {number_retries}).")
             try:
                 self.run_simulations(njobs)
             except IndexError:
-                print(f"Retry attempt: {retry}")
+                pass
+            finally:
+                print(f"{self.get_nr_of_finished_sims()} simulations run successfully.")
+                print(f"{self.get_nr_of_unfinished_sims()} simulations failed.")
             retry += 1
+
+        if self.get_nr_of_finished_sims() != len(self.request_item_list):
+            print(f"Results for {self.get_nr_of_unfinished_sims()} simulation are still missing."
+                  f"Try to increase number_retries or start the simulations manually.")
+        else:
+            print(f"Required simulation runs (={self.get_nr_of_finished_sims()}) completed.")
 
         if self.qoi is not None:
             self.compiled_run_info = self._compile_run_info()
@@ -286,8 +296,21 @@ class Request(object):
 
         return self.compiled_qoi_data, self.compiled_run_info
 
-    def simulations_finished(self) -> bool:
-        return all([sample.return_code == 0 for sample in self.request_item_list])
+    def is_unfinished_sims_existing(self):
+        return all(self._simulations_finished()) == False
+
+    def get_nr_of_finished_sims(self):
+        is_finished = np.array(self._simulations_finished())
+        count = np.count_nonzero(is_finished)
+        return count
+
+    def get_nr_of_unfinished_sims(self):
+        is_finished = np.array(self._simulations_finished())
+        return len(is_finished) - self.get_nr_of_finished_sims()
+
+    def _simulations_finished(self):
+        # succesful simulations have a return_code = 0
+        return [sample.return_code == 0 for sample in self.request_item_list]
 
     def run_simulations(self, njobs):
         # nr of rows = nr of parameter settings = #simulations
@@ -351,8 +374,10 @@ class VariationBase(Request, ServerRequest):
         if self.env_man.env_path is not None:
             shutil.rmtree(self.env_man.env_path)
 
-    def run(self, njobs: int = 1):
-        qoi_result_df, meta_info = super(VariationBase, self).run(njobs)
+    def run(self, njobs: int = 1, retry_if_failed=True, number_retries=5):
+        qoi_result_df, meta_info = super(VariationBase, self).run(njobs,
+                                                                  retry_if_failed=retry_if_failed,
+                                                                  number_retries=number_retries)
 
         # add another level to distinguish the columns with the parameter lookup
         meta_info = self._add_meta_info_multiindex(meta_info)
@@ -625,66 +650,70 @@ class CoupledDictVariation(VariationBase, ServerRequest):
         return request_item_list
 
     def _single_request(self, request_item: RequestItem) -> RequestItem:
+        try:
+            # TODO: implement functionality in CrownetRequest._single_request
+            if request_item.return_code == 0:
+                #print(
+                #    f"Simulation {request_item.run_id} {request_item.parameter_id}: result data already collected. Skip simulation.")
+                return request_item
+            else:
+                print(
+                    f"No result data found for Sample__{request_item.parameter_id}_{request_item.run_id} (return_code: {request_item.return_code}). Start simulation.")
 
-        par_id = request_item.parameter_id
-        run_id = request_item.run_id
-        start_file = self.env_man.get_name_run_script_file()
+            par_id = request_item.parameter_id
+            run_id = request_item.run_id
+            start_file = self.env_man.get_name_run_script_file()
 
-        dirname = os.path.join(
-            self.env_man.get_env_outputfolder_path(),
-            self.env_man.get_simulation_directory(par_id, run_id),
-        )
-
-        output_on_error = None
-        # crate deep copy in case we run in multithreaded mode.
-        _model: Command = deepcopy(self.model)
-        _model.override_host_config(os.path.basename(dirname))
-        return_code, required_time = _model.run(cwd=dirname, file_name=start_file)
-
-        filepath = f"{dirname}/results/**/*.scenario"
-        file = glob.glob(filepath, recursive=True)
-
-        dirpath = os.path.dirname(file[0])
-
-        is_results = self._interpret_return_value(
-            return_code, request_item.parameter_id
-        )
-
-        if is_results and self.qoi is not None:
-            result = self.qoi.read_and_extract_qois(
-                par_id=request_item.parameter_id,
-                run_id=request_item.run_id,
-                output_path=dirpath,
+            dirname = os.path.join(
+                self.env_man.get_env_outputfolder_path(),
+                self.env_man.get_simulation_directory(par_id, run_id),
             )
-        elif not is_results and self.qoi is not None:
-            # something went wrong during run
-            assert output_on_error is not None
 
-            filename_stdout = "stdout_on_error.txt"
-            filename_stderr = "stderr_on_error.txt"
-            self._write_console_output(
-                output_on_error["stdout"], request_item.output_path, filename_stdout
+            output_on_error = None
+            # crate deep copy in case we run in multithreaded mode.
+            _model: Command = deepcopy(self.model)
+            _model.override_host_config(os.path.basename(dirname))
+            return_code, required_time = _model.run(cwd=dirname, file_name=start_file)
+
+            print(f"Simulation {par_id} {run_id}: set return_code to {return_code} ")
+            request_item.add_meta_info(required_time=required_time, return_code=return_code)
+            # Because of the multi-processor part, don't try to already add the results here to _results_df
+            if return_code != 0:
+                return request_item
+
+            filepath = f"{dirname}/results/**/*.scenario"
+            # TODO add flowcontrol.d here
+            file = glob.glob(filepath, recursive=True)
+
+            dirpath = os.path.dirname(file[0])
+
+            is_results = self._interpret_return_value(
+                return_code, request_item.parameter_id
             )
-            self._write_console_output(
-                output_on_error["stderr"], request_item.output_path, filename_stderr
-            )
-            result = None
-        else:
-            result = None
 
-        if self.qoi is not None and not is_results:
-            required_time = np.nan
+            if is_results and self.qoi is not None:
+                result = self.qoi.read_and_extract_qois(
+                    par_id=request_item.parameter_id,
+                    run_id=request_item.run_id,
+                    output_path=dirpath,
+                )
+            else:
+                result = None
 
-        request_item.add_qoi_result(result)
-        request_item.add_meta_info(required_time=required_time, return_code=return_code)
-        # Because of the multi-processor part, don't try to already add the results here to _results_df
+            if self.qoi is not None and not is_results:
+                required_time = np.nan
 
-        if self.remove_output is True:
-            shutil.rmtree(dirname)
+            request_item.add_qoi_result(result)
 
-        self.write_temp_data(par_id, run_id, result, return_code, required_time)
+            if self.remove_output is True:
+                shutil.rmtree(dirname)
 
-        return request_item
+            self.write_temp_data(par_id, run_id, result, return_code, required_time)
+        except Exception as e:
+            print(f"Failed. Error {e}")
+            request_item.add_meta_info(required_time=-1, return_code=-100)
+        finally:
+            return request_item
 
     def write_temp_data(self, par_id, run_id, result, return_code, required_time):
 
@@ -1251,8 +1280,6 @@ class CrownetRequest(Request):
             _ini = self.env_man.omnet_ini_for_run(os.path.join(dirname, os.path.basename(self.env_man.omnet_path_ini)))
             _scenario, _sim = check_simulator(_ini) 
             _model.scenario_file(_scenario, override=False)
-
-            # todo...
 
         output_on_error = None
         # return_code, required_time, output_on_error = self.model.run_simulation(
