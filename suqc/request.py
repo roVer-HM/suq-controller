@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import glob
+import json
 import multiprocessing
 import os
 import shutil
@@ -307,6 +308,9 @@ class Request(object):
     def get_nr_of_unfinished_sims(self):
         is_finished = np.array(self._simulations_finished())
         return len(is_finished) - self.get_nr_of_finished_sims()
+
+    def _successful_simulations(self):
+        return filter(lambda item: item.return_code != -1, self.request_item_list)
 
     def _simulations_finished(self):
         # succesful simulations have a return_code = 0
