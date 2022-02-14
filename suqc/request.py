@@ -1175,10 +1175,12 @@ class CrownetRequest(Request):
                  env_man: CrownetEnvironmentManager,
                  parameter_variation: ParameterVariationBase,
                  model: Command,
+                 creator,   # callable
                  njobs: int = 1,
                  ):
         self.env_man = env_man
         self.parameter_variation = parameter_variation
+        self._creator = creator
         request_item_list = self.scenario_creation(njobs)
         super().__init__(
             request_item_list,
@@ -1188,8 +1190,7 @@ class CrownetRequest(Request):
     def scenario_creation(self, njobs):
 
         # todo: Sumo sampling currently not supported. Possible changes my occur in multiple files
-        scenario_creation = CrownetCreation(self.env_man, self.parameter_variation)
-        request_item_list = scenario_creation.generate_scenarios(njobs)
+        request_item_list = self._creator(self.env_man, self.parameter_variation, njobs)
         return request_item_list
 
     def _single_request(self, r_item: RequestItem) -> RequestItem:
@@ -1236,8 +1237,14 @@ class CrownetRequest(Request):
         if self.env_man.uses_vadere_mobility:
             _model.create_vadere_container()
             _model.vadere_tag(self.env_man.mobility_sim[1], override=False)
-            _model.vadere_argument("bind", "0.0.0.0", override=False)
-            _model.vadere_argument("port", "9998", override=False)
+            # todo hard coded to 0.0.0.0
+            # _model.vadere_argument("bind", "0.0.0.0", override=False)
+            _model.v_traci_port(9998, override=False)
+
+            _ini = self.env_man.omnet_ini_for_run(os.path.join(dirname, os.path.basename(self.env_man.omnet_path_ini)))
+            _scenario, _sim = check_simulator(_ini) 
+            _model.scenario_file(_scenario, override=False)
+
             # todo...
 
         output_on_error = None
@@ -1250,8 +1257,7 @@ class CrownetRequest(Request):
 
         cwd = os.path.dirname(r_item.scenario_path)
         _model.write_context(os.path.join(cwd, "runContext.json"), cwd, r_item)
-        return_code, required_time = _model.run(
-            cwd=os.path.dirname(r_item.scenario_path))
+        return_code, required_time = _model.run(cwd=dirname)
 
         is_results = self._interpret_return_value(
             return_code, r_item.parameter_id

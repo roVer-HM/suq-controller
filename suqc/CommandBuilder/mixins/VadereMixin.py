@@ -29,3 +29,8 @@ class VadereMixin(ABC):
     def v_logfile(self, file: str, override = True):
         self._arguments.set("--v.logfile", file, override)
         return self
+
+    # todo not implemented in roveranalyzer 
+    # def vadere_argument(self, key: str, value: str, override: bool = True):
+    #     self._arguments.set(f"--vadere.{key}", value, override)
+    #     return self

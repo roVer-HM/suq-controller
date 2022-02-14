@@ -613,6 +613,13 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
             self._omnet_ini_basis = _file
         return self._omnet_ini_basis
 
+    def omnet_ini_for_run(self, run_path):
+        return OppConfigFileBase.from_path(
+            ini_path=run_path,
+            config=self._opp_config,
+            cfg_type=OppConfigType.EXT_DEL_LOCAL,
+        )
+
     @property
     def ini_config(self):
         return self._opp_config
@@ -628,6 +635,16 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
     @property
     def uses_sumo_mobility(self):
         return self.mobility_sim[0] == "sumo"
+
+    @property
+    def vadere_path_basis_scenario(self):
+        if not self.uses_vadere_mobility:
+            raise RuntimeError("Only supported for with Vadere mobility.")
+        
+        _path, _sim = check_simulator(self.omnet_basis_ini)
+
+        return os.path.join(self.env_path, os.path.basename(_path))
+
 
     def set_ini_config(self, config):
         self._opp_config = config
@@ -724,7 +741,13 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
         elif self.uses_sumo_mobility:
             files.update(self._copy_sumo(source_base, mobility_cfg))
         else:
-            files.update(self._copy_vadere(source_base, mobility_cfg))
+            files.update(self._copy_vadere(source_base, opp_cfg))
+            # copy scenario file directly
+            f_name = os.path.basename(mobility_cfg)
+            dest_path = os.path.join(self.env_path, f_name)
+            shutil.copy(src=mobility_cfg, dst=dest_path)
+
+
 
         # 7.) copy files
         for f in files:
