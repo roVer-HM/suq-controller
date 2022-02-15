@@ -1,4 +1,5 @@
-.idea 
+tags
+.idea
 __pycache__
 *.pyc
 .mypy_cache/
@@ -9,7 +10,7 @@ __pycache__
 log.out
 
 # do not track Vadere outputs (folders and files and environments), every computer as different paths, which results in changes for every commit.
-vadere_scenarios 
+vadere_scenarios
 !tutorial/example.scenario
 *.scenario
 *.project

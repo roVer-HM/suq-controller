@@ -1177,6 +1177,7 @@ class CrownetRequest(Request):
                  model: Command,
                  creator,   # callable
                  njobs: int = 1,
+                 retries: int = 1,
                  ):
         self.env_man = env_man
         self.parameter_variation = parameter_variation
@@ -1185,7 +1186,8 @@ class CrownetRequest(Request):
         super().__init__(
             request_item_list,
             model,
-            qoi=None)
+            qoi=None,
+            retries=retries)
 
     def scenario_creation(self, njobs):
 
@@ -1209,6 +1211,7 @@ class CrownetRequest(Request):
             self.env_man.get_env_outputfolder_path(),
             self.env_man.get_simulation_directory(par_id, run_id),
         )
+        print(f"run {par_id}_{run_id}")
 
         # ensure output path exists (deletes existing folder if present)
         self._create_output_path(r_item.output_path)
@@ -1282,6 +1285,7 @@ class CrownetRequest(Request):
             )
             result = None
 
+        return_code = 0 # assume success allways
         r_item.add_qoi_result(result)
         r_item.add_meta_info(required_time, return_code)
 
