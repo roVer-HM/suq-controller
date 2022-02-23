@@ -1258,8 +1258,7 @@ class CrownetRequest(Request):
         # )
         _model.set_script(self.env_man.run_file)
 
-        cwd = os.path.dirname(r_item.scenario_path)
-        _model.write_context(os.path.join(cwd, "runContext.json"), cwd, r_item)
+        _model.write_context(os.path.join(dirname, "runContext.json"), dirname, r_item)
         return_code, required_time = _model.run(cwd=dirname)
 
         is_results = self._interpret_return_value(
