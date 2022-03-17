@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
 import glob
 import json
 import multiprocessing
@@ -1178,10 +1179,14 @@ class CrownetRequest(Request):
                  creator,   # callable
                  njobs: int = 1,
                  retries: int = 1,
+                 rnd_hostname_suffix: str = "",
+                 runscript_out: str|None = None
                  ):
         self.env_man = env_man
         self.parameter_variation = parameter_variation
         self._creator = creator
+        self.rnd_hostname_suffix = rnd_hostname_suffix
+        self.runscript_out = runscript_out
         request_item_list = self.scenario_creation(njobs)
         super().__init__(
             request_item_list,
@@ -1222,7 +1227,7 @@ class CrownetRequest(Request):
 
         # Setup command arguments (defaults and fix values)
 
-        _model.override_host_config(os.path.basename(dirname))
+        _model.override_host_config(f"{os.path.basename(dirname)}{self.rnd_hostname_suffix}")
         _model.result_dir(r_item.output_path)
         _model.opp_argument("-f", os.path.basename(self.env_man.omnet_path_ini))  # todo..
         _model.opp_argument("-c", self.env_man.ini_config)
@@ -1259,7 +1264,12 @@ class CrownetRequest(Request):
         _model.set_script(self.env_man.run_file)
 
         _model.write_context(os.path.join(dirname, "runContext.json"), dirname, r_item)
-        return_code, required_time = _model.run(cwd=dirname)
+        if self.runscript_out is not None:
+            with open(os.path.join(r_item.output_path, self.runscript_out), "w", encoding="utf-8") as fd:
+                print("with err")
+                return_code, required_time = _model.run(cwd=dirname, out=fd, err=fd)
+        else:
+            return_code, required_time = _model.run(cwd=dirname)
 
         is_results = self._interpret_return_value(
             return_code, r_item.parameter_id
