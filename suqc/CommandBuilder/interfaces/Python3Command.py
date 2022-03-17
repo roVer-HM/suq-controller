@@ -39,7 +39,7 @@ class Python3Command(Command, ABC):
     def arg_list(self) -> List[str]:
         return [self._sub_command, *list(self._arguments)]
 
-    def run(self, cwd: str, file_name: Union[str, None] = None) -> Tuple[int, float]:
+    def run(self, cwd: str, file_name: Union[str, None] = None, out = subprocess.DEVNULL, err=subprocess.DEVNULL,) -> Tuple[int, float]:
         if file_name is not None:
             self.set_script(file_name)
         time_started = time.time()
@@ -51,8 +51,8 @@ class Python3Command(Command, ABC):
             return_code: int = subprocess.check_call(
                 run_command,
                 env=os.environ,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=out,
+                stderr=err,
                 cwd=cwd,
                 timeout=self.timeout,  
             )
