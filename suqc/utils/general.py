@@ -257,9 +257,9 @@ def check_simulator(cfg: OppConfigFileBase, allow_empty: bool = False):
     respective config file (i.e. *.sceanrio, *.cfg) as well as the simulator name
     """
 
-    vadere = [p for p in cfg.keys() if "vadereScenarioPath" in p]
-    if len(vadere) == 1:
-        key = vadere[0]
+    vadere = [p for p in cfg.keys() if  p in ["vadereScenarioPath", "**.vadereScenarioPath"]]
+    if len(vadere) > 0:
+        key = vadere[0] # take first match
         return cfg.resolve_path(key), "vadere"
 
     sumo = [p for p in cfg.keys() if "sumoCfgBase" in p]
@@ -274,3 +274,7 @@ def check_simulator(cfg: OppConfigFileBase, allow_empty: bool = False):
     raise ValueError(
         "Expected Vadere or Sumo in omnetpp config."
     )
+
+def get_all_scenario_files(cfg: OppConfigFileBase):
+
+    return set([cfg.resolve_path(v) for k, v in cfg.items() if  k in ["vadereScenarioPath", "**.vadereScenarioPath"]])
