@@ -10,8 +10,9 @@ import suqc.requestitem
 from suqc.environment import AbstractEnvironmentManager
 from suqc.parameter.postchanges import PostScenarioChangesBase
 from suqc.parameter.sampling import ParameterVariationBase
-from suqc.utils.dict_utils import change_dict, change_dict_ini, deep_dict_lookup
+from suqc.utils.dict_utils import change_dict, deep_dict_lookup
 from suqc.utils.general import create_folder, njobs_check_and_set, remove_folder
+from omnetinireader.config_parser import updateConfigFile
 
 def opp_creator(env_man, parameter_variation, njobs):
         scenario_creation = CrownetCreation(env_man, parameter_variation)
@@ -146,9 +147,7 @@ class AbstractScenarioCreation(object):
         return output_path
 
     def write_changed_ini_file(self, parameter_id, parameter_variation, run_id):
-        par_var_scenario = change_dict_ini(
-            self._env_man.omnet_basis_ini, changes=parameter_variation
-        )
+        par_var_scenario = updateConfigFile(self._env_man.omnet_basis_ini, changes=parameter_variation, deepcopy=True)
         output_path = self._env_man.scenario_variation_path(
             parameter_id, run_id, simulator="omnet"
         )

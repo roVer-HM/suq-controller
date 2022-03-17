@@ -339,13 +339,6 @@ def change_value(d: dict, path: list, last_key: str, exist_val, new_value):
     return set_dict_value_keylist(d, path, last_key, new_value)
 
 
-def change_dict_ini(ini_object: OppConfigFileBase, changes: dict):
-
-    for key, value in changes.items():
-        ini_object[key] = value
-
-    return ini_object
-
 
 def change_dict(json_dict: dict, changes: dict):
 

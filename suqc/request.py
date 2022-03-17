@@ -603,7 +603,7 @@ class CoupledDictVariation(VariationBase, ServerRequest):
 
         ini_folder = os.path.dirname(ini_path)
         ini_file = OppConfigFileBase.from_path(
-            ini_path=ini_path, config=config, cfg_type=OppConfigType.EXT_DEL_LOCAL,
+            ini_path=ini_path, config=config, cfg_type=OppConfigType.EDIT_GLOBAL,
         )
         scenario_name, simulator = check_simulator(ini_file)
         scenario_path = os.path.join(ini_folder, scenario_name)

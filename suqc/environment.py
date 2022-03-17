@@ -354,7 +354,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
             ini_file = OppConfigFileBase.from_path(
                 ini_path=path_basis_ini,
                 config="final",
-                cfg_type=OppConfigType.EXT_DEL_LOCAL,
+                cfg_type=OppConfigType.EDIT_GLOBAL,
             )
             self._omnet_ini_basis = ini_file
         return self._omnet_ini_basis
@@ -608,7 +608,7 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
             _file = OppConfigFileBase.from_path(
                 ini_path=self.omnet_path_ini,
                 config=self._opp_config,
-                cfg_type=OppConfigType.EXT_DEL_LOCAL,
+                cfg_type=OppConfigType.EDIT_GLOBAL,
             )
             self._omnet_ini_basis = _file
         return self._omnet_ini_basis
@@ -617,7 +617,7 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
         return OppConfigFileBase.from_path(
             ini_path=run_path,
             config=self._opp_config,
-            cfg_type=OppConfigType.EXT_DEL_LOCAL,
+            cfg_type=OppConfigType.EDIT_GLOBAL,
         )
 
     @property
@@ -690,7 +690,7 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
     def _copy_omnet(self, source_base: str, ini_file: OppConfigFileBase)-> Set[str]:
         return {}
 
-    def copy_data(self, base_ini_file: str):
+    def copy_data(self, base_ini_file: str, scenario_files=None, extraFiles=None):
         """
         Copy environment *only* for selected configuration.
         Workflow:
@@ -709,7 +709,7 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
         # 2.) read base ini file to ensure paths are correct.
         # todo no current_dir
         opp_cfg = OppConfigFileBase.from_path(
-            ini_path=ini_path, config=self.ini_config, cfg_type=OppConfigType.EXT_DEL_LOCAL,
+            ini_path=ini_path, config=self.ini_config, cfg_type=OppConfigType.EDIT_GLOBAL,
         )
         mobility_cfg, simulator = check_simulator(opp_cfg, allow_empty=True)
 
@@ -743,6 +743,12 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
         else:
             files.update(self._copy_vadere(source_base, opp_cfg))
             # copy scenario file directly
+            if scenario_files is not None and isinstance(scenario_files, list):
+                for s in scenario_files:
+                    _fname = os.path.basename(s)
+                    _dest = os.path.join(self.env_path, _fname)
+                    shutil.copy(src=s, dst=_dest)
+
             f_name = os.path.basename(mobility_cfg)
             dest_path = os.path.join(self.env_path, f_name)
             shutil.copy(src=mobility_cfg, dst=dest_path)

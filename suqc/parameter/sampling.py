@@ -194,13 +194,15 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         return True
 
     def check_omnet_keys(self, inifile, simulator="omnet"):
-        keys = self._points.columns.get_level_values(-1)
-        if self.is_multiple_simulators():
-            keys = keys[self._points.columns.get_level_values(1) == simulator]
+        # new version of omnetinireader allows creation of missing keys.
+        
+        # keys = self._points.columns.get_level_values(-1)
+        # if self.is_multiple_simulators():
+        #     keys = keys[self._points.columns.get_level_values(1) == simulator]
 
-        for k in keys:
-            if k not in inifile.keys():
-                raise ValueError(f"Key \"{k}\" not found in omnet inifile.")
+        # for k in keys:
+        #     if k not in inifile.keys():
+        #         raise ValueError(f"Key \"{k}\" not found in omnet inifile.")
         return True
 
     def to_dictlist(self):
