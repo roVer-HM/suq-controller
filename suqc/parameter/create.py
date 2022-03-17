@@ -13,6 +13,13 @@ from suqc.parameter.sampling import ParameterVariationBase
 from suqc.utils.dict_utils import change_dict, change_dict_ini, deep_dict_lookup
 from suqc.utils.general import create_folder, njobs_check_and_set, remove_folder
 
+def opp_creator(env_man, parameter_variation, njobs):
+        scenario_creation = CrownetCreation(env_man, parameter_variation)
+        return  scenario_creation.generate_scenarios(njobs)
+
+def coupled_creator(env_man, parameter_variation, njobs):
+        scenario_creation = CoupledScenarioCreation(env_man, parameter_variation)
+        return  scenario_creation.generate_scenarios(njobs)
 
 class AbstractScenarioCreation(object):
     def __init__(
