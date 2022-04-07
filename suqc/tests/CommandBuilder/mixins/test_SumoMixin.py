@@ -15,7 +15,7 @@ class TestSumoMixin(unittest.TestCase):
     def test_create_sumo_container(self):
         expected = None
         self.mixin.create_sumo_container()
-        self.assertEqual(self.mixin._arguments["--crate-sumo-container"], expected)
+        self.assertEqual(self.mixin._arguments["--create-sumo-container"], expected)
 
     def test_sumo_tag(self):
         expected = "any_tag"
