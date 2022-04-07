@@ -1240,7 +1240,6 @@ class CrownetRequest(Request):
             _model.sumo_tag(self.env_man.mobility_sim[1], override=False)
             _model.sumo_argument("bind", "0.0.0.0", override=False)
             _model.sumo_argument("port", "9999", override=False)
-            _model.sumo_exec("single-run", override=False)
 
         if self.env_man.uses_vadere_mobility:
             _model.create_vadere_container()

@@ -673,12 +673,9 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
     def _copy_vadere(self, source_base: str, ini_file: OppConfigFileBase)-> Set[str]:
         return {}
 
-    def _copy_sumo(self, source_base: str, ini_file: OppConfigFileBase)-> Set[str]:
-        files = {}
-        sumo = [p for p in ini_file.keys() if "sumoCfgBase" in p]
-        if len(sumo) == 1:
-            key = sumo[0]
-        sumo_f = ini_file.resolve_path(key)
+    def _copy_sumo(self, source_base: str, sumo_f: str)-> Set[str]:
+        files = set()
+
         files.add(sumo_f)
         sumo_xml = et.parse(sumo_f)
         inputs = sumo_xml.find("input")
@@ -731,7 +728,7 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
         for k, v in opp_cfg:
             match = pattern.match(v)
             if match is not None:
-                file_name = match.group("val").strip('"')
+                file_name = match.group("val").replace('"', '').replace(")", "")
                 files.add(os.path.join(source_base, file_name))
 
         # 6.) check selected mobility simulator for additional files
