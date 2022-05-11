@@ -270,12 +270,12 @@ class Request(object):
         pool = multiprocessing.Pool(processes=njobs)
         self.request_item_list = pool.map(self._single_request, self.request_item_list)
 
-    def run(self, njobs: int = 1, retry_if_failed=True, number_retries=5):
+    def run(self, njobs: int = 1, retry_if_failed=True):
 
         retry = 0
-        while self.is_unfinished_sims_existing() and retry <= number_retries:
+        while self.is_unfinished_sims_existing() and retry <= self.retries:
             if retry > 0:
-                print(f"Try to re-start failed simulations (attempt {retry} out of {number_retries}).")
+                print(f"Try to re-start failed simulations (attempt {retry} out of {self.retries}).")
             try:
                 self.run_simulations(njobs)
             except IndexError:
@@ -378,10 +378,9 @@ class VariationBase(Request, ServerRequest):
         if self.env_man.env_path is not None:
             shutil.rmtree(self.env_man.env_path)
 
-    def run(self, njobs: int = 1, retry_if_failed=True, number_retries=5):
+    def run(self, njobs: int = 1, retry_if_failed=True):
         qoi_result_df, meta_info = super(VariationBase, self).run(njobs,
-                                                                  retry_if_failed=retry_if_failed,
-                                                                  number_retries=number_retries)
+                                                                  retry_if_failed=retry_if_failed)
 
         # add another level to distinguish the columns with the parameter lookup
         meta_info = self._add_meta_info_multiindex(meta_info)
