@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 from typing import Union
+from os.path import join
 
 import pandas as pd
 from omnetinireader.config_parser import OppConfigFileBase
@@ -146,6 +147,37 @@ def remove_folder(path):
     if os.path.exists(path):
         shutil.rmtree(path)
 
+
+def get_env_name(base_path, env_name):
+    """Get environment name. Provide user with new name if it already exists"
+
+    Args:
+        base_path (_type_): _description_
+        env_name (_type_): _description_
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if os.path.isabs(env_name):
+        env_name = os.path.split(env_name)[1]
+        if env_name == "":
+            raise ValueError(f"env_name cannot be empty: {env_name}")
+
+    _env_name = env_name
+
+    if os.path.exists(join(base_path, env_name)):
+        suffix=1
+        while os.path.exists(join(base_path, f"{env_name}_{suffix}")):
+            suffix += 1
+        
+        _new_env = f"{env_name}_{suffix}"
+
+        if user_query_yes_no( f"environment {join(base_path, env_name)} already exist. \n Use {join(base_path,_new_env )} instead?"):
+            _env_name = _new_env
+    return _env_name
 
 def user_query_yes_no(question: str, default=None) -> bool:
     """Ask a yes/no question via raw_input() and return their answer.
