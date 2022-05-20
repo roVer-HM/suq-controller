@@ -1127,7 +1127,6 @@ class CrownetRequest(Request):
         _model.write_context(os.path.join(dirname, "runContext.json"), dirname, r_item)
         if self.runscript_out is not None:
             with open(os.path.join(r_item.output_path, self.runscript_out), "w", encoding="utf-8") as fd:
-                print("with err")
                 return_code, required_time = _model.run(cwd=dirname, out=fd, err=fd)
         else:
             return_code, required_time = _model.run(cwd=dirname)
