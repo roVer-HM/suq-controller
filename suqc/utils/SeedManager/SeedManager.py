@@ -1,4 +1,6 @@
 from abc import ABC
+import string
+import time
 from typing import Dict, Any, List
 import random
 
@@ -26,3 +28,15 @@ class SeedManager(ABC):
 
     def apply_seed(self):
         random.seed(self.seed)
+    
+
+    @staticmethod
+    def get_new_random_object(seed=None):
+        if seed is None:
+            seed = round(time.time())
+        return random.Random(seed)
+    
+    @staticmethod
+    def rnd_suffix(seed=None, k=6):
+        rnd = SeedManager.get_new_random_object(seed)
+        return  ''.join(rnd.choices(string.ascii_lowercase + string.digits, k=6))
