@@ -2,6 +2,7 @@
 import abc
 import multiprocessing
 import os
+from typing import Protocol
 import warnings
 from distutils.dir_util import copy_tree
 
@@ -87,8 +88,11 @@ class AbstractScenarioCreation(object):
         run_id = args[1]
         parameter_variation = args[2]
 
+        base_scenario_file = self._env_man.scenario_provider.get_base_scenario(
+            parameter_id, run_id
+        )
         par_var_scenario = change_dict(
-            self._env_man.vadere_basis_scenario, changes=parameter_variation
+            base_scenario_file, changes=parameter_variation
         )
 
         if self._post_changes is not None:
@@ -189,7 +193,7 @@ class VadereScenarioCreation(AbstractScenarioCreation):
         return request_item_list
 
     def _sampling_check_selected_keys(self):
-        self._parameter_variation.check_vadere_keys(self._env_man.vadere_basis_scenario)
+        self._parameter_variation.check_vadere_keys(self._env_man.scenario_provider)
 
 
 class CoupledScenarioCreation(AbstractScenarioCreation):
@@ -242,7 +246,7 @@ class CoupledScenarioCreation(AbstractScenarioCreation):
 
     def _sampling_check_selected_keys(self):
 
-        self._parameter_variation.check_vadere_keys(self._env_man.vadere_basis_scenario)
+        self._parameter_variation.check_vadere_keys(self._env_man.scenario_provider)
         self._parameter_variation.check_omnet_keys(self._env_man.omnet_basis_ini)
 
 

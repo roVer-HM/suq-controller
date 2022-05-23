@@ -9,6 +9,7 @@ from sklearn.model_selection import ParameterGrid
 from suqc.utils.dict_utils import *
 import abc
 import numpy as np
+from suqc.utils.general import ScenarioProvider
 
 
 class ParameterVariationBase(metaclass=abc.ABCMeta):
@@ -177,19 +178,24 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
     def _add_df_points(self, points: pd.DataFrame):
         self._points = points
 
-    def check_vadere_keys(self, scenario: dict, simulator="vadere"):
+    def check_vadere_keys(self, scenario_f: ScenarioProvider, simulator="vadere"):
 
         keys = self._points.columns.get_level_values(-1)
         if self.is_multiple_simulators():
             keys = keys[self._points.columns.get_level_values(1) == simulator]
 
-        for k in keys:
-            try:  # check that the value is 'final' (i.e. not another sub-directory) and that the key is unique.
-                deep_dict_lookup(
-                    scenario, k, check_final_leaf=True, check_unique_key=True
-                )
-            except ValueError as e:
-                raise e  # re-raise Exception
+        if len(keys) == 0:
+            return True
+
+        for run in self._points.index:
+            scenario = scenario_f(*run)
+            for k in keys:
+                try:  # check that the value is 'final' (i.e. not another sub-directory) and that the key is unique.
+                    deep_dict_lookup(
+                        scenario, k, check_final_leaf=True, check_unique_key=True
+                    )
+                except ValueError as e:
+                    raise e  # re-raise Exception
         return True
 
     def check_omnet_keys(self, inifile, simulator="omnet"):
@@ -235,6 +241,13 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
     def is_multiple_simulators(self):
         return self._points.columns.nlevels == 3
 
+
+    def get_items(self, simulator, parameter):
+        try:
+            ret = self._points.loc[:, ("Parameter", simulator, parameter)]
+            return ret.to_dict()
+        except KeyError:
+            return {}
 
 class UserDefinedSampling(ParameterVariationBase):
     def __init__(self, points: List[dict]):

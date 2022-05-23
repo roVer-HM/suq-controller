@@ -15,6 +15,7 @@ import pandas as pd
 from suqc.configuration import SuqcConfig
 from omnetinireader.config_parser import OppConfigFileBase, OppConfigType, OppParser
 from suqc.utils.general import (
+    ScenarioProvider,
     get_current_suqc_state,
     str_timestamp,
     user_query_yes_no,
@@ -22,6 +23,7 @@ from suqc.utils.general import (
     removeEmptyFolders,
     check_simulator,
 )
+from suqc.utils.single_scenario_p import SingleScenarioProvider
 
 # configuration of the suq-controller
 DEFAULT_SUQ_CONFIG = {
@@ -30,10 +32,13 @@ DEFAULT_SUQ_CONFIG = {
 }
 
 
+ProviderFactor = Callable[[str], ScenarioProvider]
+
+
 class AbstractEnvironmentManager(object):
     VADERE_SCENARIO_FILE_TYPE = ".scenario"
 
-    def __init__(self, base_path, env_name: str):
+    def __init__(self, base_path, env_name: str, scenario_provider_class: ProviderFactor = SingleScenarioProvider):
 
         self.base_path, self.env_name = self.handle_path_and_env_input(
             base_path, env_name
@@ -56,30 +61,34 @@ class AbstractEnvironmentManager(object):
                 f"'EnvironmentManager.create_new_environment'"
             )
         self._vadere_scenario_basis = None
+        self.scenario_provider =  scenario_provider_class(self.env_path)
+
 
     @property
     def vadere_basis_scenario(self):
-        if self._vadere_scenario_basis is None:
-            path_basis_scenario = self.vadere_path_basis_scenario
+        return self.scenario_provider.get_base_scenario()
+        # if self._vadere_scenario_basis is None:
+        #     path_basis_scenario = self.vadere_path_basis_scenario
 
-            with open(path_basis_scenario, "r") as f:
-                basis_file = json.load(f)
-            self._vadere_scenario_basis = basis_file
+        #     with open(path_basis_scenario, "r") as f:
+        #         basis_file = json.load(f)
+        #     self._vadere_scenario_basis = basis_file
 
-        return self._vadere_scenario_basis
+        # return self._vadere_scenario_basis
 
     @property
     def vadere_path_basis_scenario(self):
-        sc_files = glob.glob(
-            os.path.join(self.env_path, f"*{self.VADERE_SCENARIO_FILE_TYPE}")
-        )
+        return self.scenario_provider.get_base_scenario_path()
+        # sc_files = glob.glob(
+        #     os.path.join(self.env_path, f"*{self.VADERE_SCENARIO_FILE_TYPE}")
+        # )
 
-        if len(sc_files) != 1:
-            raise RuntimeError(
-                f"None or too many '{self.VADERE_SCENARIO_FILE_TYPE}' files "
-                "found in environment."
-            )
-        return sc_files[0]
+        # if len(sc_files) != 1:
+        #     raise RuntimeError(
+        #         f"None or too many '{self.VADERE_SCENARIO_FILE_TYPE}' files "
+        #         "found in environment."
+        #     )
+        # return sc_files[0]
 
     @classmethod
     def create_variation_env_from_info_file(cls, path_info_file):
@@ -333,8 +342,8 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         }
     }
 
-    def __init__(self, base_path, env_name: str):
-        super().__init__(base_path, env_name)
+    def __init__(self, base_path, env_name: str, scenario_provider_class: ProviderFactor = SingleScenarioProvider):
+        super().__init__(base_path, env_name, scenario_provider_class)
         self._omnet_ini_basis = None
 
     @property
@@ -506,9 +515,9 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
 
         return "".join([numbered_scenario_name, self.VADERE_SCENARIO_FILE_TYPE])
 
-    def get_original_name(self, simulator="vadere"):
+    def get_original_name(self, simulator="vadere", par_id=-1, var_id=-1):
         if simulator == "vadere":
-            return os.path.basename(self.vadere_path_basis_scenario)
+            return os.path.basename(self.scenario_provider.get_base_scenario_path(par_id, var_id))
         elif simulator == "omnet":
             return os.path.basename(self._omnet_path_ini)
         else:
@@ -517,7 +526,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
     def scenario_variation_path(self, par_id, run_id, simulator="vadere"):
 
         subdir = self.simulators[simulator]["subdir"]
-        original_name_scenario = self.get_original_name(simulator)
+        original_name_scenario = self.get_original_name(simulator, par_id, run_id)
 
         sim_name = self.get_simulation_directory(par_id, run_id)
         sim_path = os.path.join(self.get_env_outputfolder_path(), sim_name)
@@ -558,11 +567,12 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
                  run_file="run_script.py",
                  mobility_sim=("sumo", "latest"),       # sumo, vadere or empty
                  communication_sim=("omnet", "latest"),
-                 handle_existing = "ask_user_replace"
+                 handle_existing = "ask_user_replace",
+                 scenario_provider_class: ProviderFactor = SingleScenarioProvider
         ):
         #  for user input only (todo refactor out of class...)
         _ = AbstractEnvironmentManager.create_new_environment(base_path, env_name, handle_existing)
-        super().__init__(base_path, env_name)
+        super().__init__(base_path, env_name, scenario_provider_class)
         self.output_path, self.output_folder = self.handle_path_and_env_input(base_path, env_name)
         self.run_prefix = run_prefix
         self._temp_folder = temp_folder
@@ -717,12 +727,27 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
             files.update(self._copy_sumo(source_base, mobility_cfg))
         else:
             files.update(self._copy_vadere(source_base, opp_cfg))
+            scenarios = set()
             # copy scenario file directly
             if scenario_files is not None and isinstance(scenario_files, list):
                 for s in scenario_files:
                     _fname = os.path.basename(s)
-                    _dest = os.path.join(self.env_path, _fname)
-                    shutil.copy(src=s, dst=_dest)
+                    _dst = os.path.join(self.env_path, _fname)
+                    scenarios.add((os.path.abspath(s), os.path.abspath(_dst)))
+            for _, path in self.scenario_provider.scenario_dict.items():
+                _name = os.path.split(path)[-1]
+                scenarios.add((
+                    os.path.abspath(os.path.join(source_base, "vadere/scenarios/", _name)),
+                    os.path.abspath(os.path.join(self.env_path, _name))
+                ))
+            if mobility_cfg != "":
+                scenarios.add((
+                    mobility_cfg, 
+                    os.path.abspath(os.path.join(self.env_path, os.path.split(mobility_cfg)[-1]))
+                ))
+            for _src, _dst in scenarios:
+                shutil.copy(src=_src, dst=_dst)
+
 
             f_name = os.path.basename(mobility_cfg)
             dest_path = os.path.join(self.env_path, f_name)

@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
 # TODO: """ << INCLUDE DOCSTRING (one-line or multi-line) >> """
-
+from __future__ import annotations
 import datetime
+import glob
+import json
 import multiprocessing
 import os
 import shutil
 import subprocess
 import sys
-from typing import Union
+from typing import Protocol, Union
 from os.path import join
 
 import pandas as pd
@@ -310,3 +312,18 @@ def check_simulator(cfg: OppConfigFileBase, allow_empty: bool = False):
 def get_all_scenario_files(cfg: OppConfigFileBase):
 
     return set([cfg.resolve_path(v) for k, v in cfg.items() if  k in ["vadereScenarioPath", "**.vadereScenarioPath"]])
+
+
+class ScenarioProvider():
+
+    def __init__(self, env_path: str) -> None:
+        self.env_path: str = env_path
+
+    def get_base_scenario_path(self, parameter_id: int =-1, run_id: int = -1) -> str:
+        """ return base scenario file path for given variation."""
+        pass
+
+    def get_base_scenario(self, parameter_id: int =-1, run_id: int = -1) -> dict:
+        """ return base scenario file content as json-dict for given variation."""
+        pass
+
