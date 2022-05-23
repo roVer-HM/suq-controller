@@ -698,7 +698,7 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
         )
         mobility_cfg, simulator = check_simulator(opp_cfg, allow_empty=True)
 
-        if self.mobility_sim[0] != simulator:
+        if self.mobility_sim[0] != simulator and len(self.scenario_provider.scenario_dict) == 0:
             raise RuntimeError(f"Config missmatch. The environment manger expected '{self.mobility_sim[0]}' "
                 f"as mobility simulator but '{simulator}' is configured in selected simulation.")
 
@@ -747,13 +747,6 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
                 ))
             for _src, _dst in scenarios:
                 shutil.copy(src=_src, dst=_dst)
-
-
-            f_name = os.path.basename(mobility_cfg)
-            dest_path = os.path.join(self.env_path, f_name)
-            shutil.copy(src=mobility_cfg, dst=dest_path)
-
-
 
         # 7.) copy files
         for f in files:

@@ -188,7 +188,7 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
             return True
 
         for run in self._points.index:
-            scenario = scenario_f(*run)
+            scenario = scenario_f.get_base_scenario(*run)
             for k in keys:
                 try:  # check that the value is 'final' (i.e. not another sub-directory) and that the key is unique.
                     deep_dict_lookup(
