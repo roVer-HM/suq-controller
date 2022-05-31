@@ -99,8 +99,8 @@ class OmnetSeedManager(SeedManager):
 
         """
         ret: List[Dict[str, Any]] = []
-        vadere_samples = random.sample(self.vadere_seed_range, self.repetition_count)
-        omnet_samples = random.sample(self.omnet_seed_range, self.repetition_count)
+        vadere_samples = self._rnd.sample(self.vadere_seed_range, self.repetition_count)
+        omnet_samples = self._rnd.sample(self.omnet_seed_range, self.repetition_count)
         for parameter_variation in self.parameter_variations:
             for rep in range(self.repetition_count):
                 copied_element = copy.deepcopy(parameter_variation)
