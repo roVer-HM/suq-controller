@@ -22,7 +22,7 @@ class OmnetSeedManager(SeedManager):
         rep_count: int
             repetition count determines how many seed different seed configuration are set per variation
         """
-        super().__init__(par_variations=par_variations, rep_count=rep_count, seed= 10)
+        super().__init__(par_variations=par_variations, rep_count=rep_count, seed= seed)
         self.omnet_seed_range = range(1, 255)
         self.vadere_seed_range = range(1, 100000)
         self.omnet_fixed = omnet_fixed
