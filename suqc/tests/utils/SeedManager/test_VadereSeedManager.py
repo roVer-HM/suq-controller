@@ -1,3 +1,4 @@
+import random
 import unittest
 from unittest import mock
 import copy
@@ -77,12 +78,14 @@ class TestVadereSeedManager(unittest.TestCase):
         t1_seed_manager = VadereSeedManager(par_variations=[self.empty_variation],
                                             vadere_fixed=True,
                                             rep_count=2)
+        t1_seed_manager._rnd = random # replace custom random object with global random generator for test
         results = t1_seed_manager.get_new_seed_variation()
         self.assertTrue(len(results) == 2)
 
         t2_seed_manager = VadereSeedManager(par_variations=[self.empty_variation, self.empty_variation],
                                             vadere_fixed=False,
                                             rep_count=2)
+        t2_seed_manager._rnd = random # replace custom random object with global random generator for test
         results = t2_seed_manager.get_new_seed_variation()
         self.assertTrue(len(results) == 4)
         self.assertEqual(results[0]["vadere"]["fixedSeed"], 1)

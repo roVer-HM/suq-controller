@@ -24,10 +24,8 @@ class SeedManager(ABC):
         self.repetition_count = rep_count
         if rep_count == 0:
             raise ValueError("rep_count of 0 is not supported")
-        self.apply_seed()
+        self._rnd = random.Random(self.seed)
 
-    def apply_seed(self):
-        random.seed(self.seed)
     
 
     @staticmethod

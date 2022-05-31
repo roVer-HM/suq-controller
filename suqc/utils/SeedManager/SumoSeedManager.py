@@ -70,7 +70,7 @@ class SumoSeedManager(SeedManager):
 
         """
         ret: List[Dict[str, Any]] = []
-        omnet_samples = random.sample(self.omnet_seed_range, self.repetition_count)
+        omnet_samples = self._rnd.sample(self.omnet_seed_range, self.repetition_count)
         for parameter_variation in self.parameter_variations:
             for rep in range(self.repetition_count):
                 copied_element = copy.deepcopy(parameter_variation)

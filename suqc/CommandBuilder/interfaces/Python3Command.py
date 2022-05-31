@@ -74,6 +74,10 @@ class Python3Command(Command, ABC):
     def write_context(self, ctx_path: str, cwd, r_item: Union[RequestItem, None] = None):
         ctx_dir, ctx = super().write_context(ctx_path, cwd=cwd, r_item=r_item)
         ctx["script"] = self._script
+        if self.seed_manager is not None:
+            ctx["seedManagerSeed"] = self.seed_manager.seed
+        else:
+            ctx["seedManagerSeed"] = None
         ctx_json = json.dumps(ctx, indent=2, sort_keys=False)
         os.makedirs(ctx_dir, exist_ok=True)
         with open(ctx_path, "w", encoding="utf-8") as fd:

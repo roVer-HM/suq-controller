@@ -1,3 +1,4 @@
+from __future__ import annotations
 import abc
 from typing import Tuple, Union, List
 
@@ -6,6 +7,8 @@ from suqc.requestitem import RequestItem
 from os.path import abspath, dirname
 import datetime
 
+from suqc.utils.SeedManager.SeedManager import SeedManager
+
 class Command(abc.ABC):
     _executable: str = None
     _arguments: CommandArguments = None
@@ -13,6 +16,7 @@ class Command(abc.ABC):
     def __init__(self):
         self._set_executable()
         self._arguments = CommandArguments()
+        self.seed_manager: SeedManager|None = None
 
     @abc.abstractmethod
     def __str__(self):
@@ -29,6 +33,10 @@ class Command(abc.ABC):
     @abc.abstractclassmethod
     def arg_list(self) -> List[str]:
         pass
+
+    def set_seed_manager(self, m: SeedManager) -> None:
+        self.seed_manager = m
+    
 
     def write_context(self, ctx_path: str, cwd: str, r_item: Union[RequestItem, None] = None):
         ctx = {}
