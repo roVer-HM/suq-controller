@@ -246,6 +246,8 @@ class CoupledScenarioCreation(AbstractScenarioCreation):
 
     def _sampling_check_selected_keys(self):
 
+        #self._env_man.scenario_provider.vadere_path_basis_scenario = self._env_man.vadere_path_basis_scenario
+
         self._parameter_variation.check_vadere_keys(self._env_man.scenario_provider)
         self._parameter_variation.check_omnet_keys(self._env_man.omnet_basis_ini)
 

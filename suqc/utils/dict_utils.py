@@ -88,10 +88,13 @@ def _split_subselection_key(selection):
     assert "==" in selection, "For now only equality selections supported"
     key_selection, val_selection = selection.split("==")
 
+    val_selection = val_selection.replace('"', "")
+    val_selection = val_selection.replace("'", "")
+
     try:
         val_selection = int(val_selection)
-    except KeyError:
-        raise KeyError("For now only equalities with integer is supported!")
+    except:
+        pass
 
     return key_selection, val_selection
 
