@@ -16,7 +16,13 @@ class CommandArguments(MutableMapping):
         del self.store[key]
 
     def set(self, key, value, override=True):
+
         if override or ( not override and key not in self.store):
+            if key in self.store:
+                old_value = self.get(key)
+                if old_value != value:
+                    print(f"Overwrite key {key}: Old value = {old_value}. New value = {value}.")
+
             self.store[key] = value
         
 
