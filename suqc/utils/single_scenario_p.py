@@ -29,7 +29,7 @@ class SingleScenarioProvider(ScenarioProvider):
     def get_base_scenario(self, parameter_id: int =-1, run_id: int = -1) -> dict:
         """ return ONE base scenario file content as json-dict. Will ignore given variation."""
         if self._vadere_scenario_basis is None:
-            path_basis_scenario = self.vadere_path_basis_scenario
+            path_basis_scenario = self.get_base_scenario_path()
 
             with open(path_basis_scenario, "r") as f:
                 basis_file = json.load(f)

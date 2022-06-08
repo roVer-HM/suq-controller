@@ -519,7 +519,7 @@ class CoupledEnvironmentManager(AbstractEnvironmentManager):
         if simulator == "vadere":
             return os.path.basename(self.scenario_provider.get_base_scenario_path(par_id, var_id))
         elif simulator == "omnet":
-            return os.path.basename(self._omnet_path_ini)
+            return os.path.basename(self.omnet_path_ini)
         else:
             return ""
 
