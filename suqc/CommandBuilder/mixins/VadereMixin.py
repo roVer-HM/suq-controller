@@ -1,9 +1,10 @@
 from abc import ABC
-
+import os
 
 class VadereMixin(ABC):
     def scenario_file(self, file: str, override = True):
-        self._arguments.set("--scenario-file", file, override)
+        key = "--scenario-file"
+        self._arguments.set(key, file, override)
         return self
 
     def create_vadere_container(self, override = True):
@@ -34,3 +35,9 @@ class VadereMixin(ABC):
     # def vadere_argument(self, key: str, value: str, override: bool = True):
     #     self._arguments.set(f"--vadere.{key}", value, override)
     #     return self
+
+    def get_scenario_file(self):
+        return self._arguments.get("--scenario-file")
+
+    def is_scenario_file_set(self):
+        return self.get_scenario_file() != None

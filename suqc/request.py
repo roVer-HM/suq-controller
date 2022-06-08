@@ -458,6 +458,13 @@ class CoupledDictVariation(VariationBase, ServerRequest):
     ):
 
         scenario_path, simulator = self._get_scenario_path(ini_path, config=config)
+        if model.is_scenario_file_set():
+            raise ValueError(f"Duplicate scenario specification. \n"
+                             f"Remove scenario file from model (={model}).\n"
+                             f"Scenario file must be specified in .ini file only.\n"
+                             f"Scenario file specified in .ini: {scenario_path}.\n"
+                             f"For specification see config={config} in {ini_path}.\n")
+
         if simulator != "vadere":
             raise RuntimeError("expected Vadere simulator")
 
@@ -549,6 +556,10 @@ class CoupledDictVariation(VariationBase, ServerRequest):
             # crate deep copy in case we run in multithreaded mode.
             _model: Command = deepcopy(self.model)
             _model.override_host_config(os.path.basename(dirname))
+
+            _scenario = os.path.basename(self.env_man.vadere_path_basis_scenario)
+            _model.scenario_file(_scenario, override=True)
+
             return_code, required_time = _model.run(cwd=dirname, file_name=start_file)
 
             print(f"Simulation {par_id} {run_id}: set return_code to {return_code} ")
