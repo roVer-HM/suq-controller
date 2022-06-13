@@ -26,7 +26,9 @@ class SeedManager(ABC):
             raise ValueError("rep_count of 0 is not supported")
         self._rnd = random.Random(self.seed)
 
-    
+    @property
+    def random(self) -> random.Random:
+        return self._rnd 
 
     @staticmethod
     def get_new_random_object(seed=None):
