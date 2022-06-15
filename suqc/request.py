@@ -1068,6 +1068,49 @@ class CrownetRequest(Request):
             model,
             qoi=None,
             retries=retries)
+        # todo create suqContext?
+        self._models = {}
+        self.write_context_files()
+    
+
+    def write_context_files(self):
+        for r_item in self.request_item_list:
+            par_id = r_item.parameter_id
+            run_id = r_item.run_id
+            _model: Command = deepcopy(self.model)
+            dirname = os.path.join(
+                self.env_man.get_env_outputfolder_path(),
+                self.env_man.get_simulation_directory(par_id, run_id),
+            )
+            # Setup command arguments (defaults and fix values)
+            _model.override_host_config(f"{os.path.basename(dirname)}{self.rnd_hostname_suffix}")
+            _model.result_dir(r_item.output_path)
+            _model.opp_argument("-f", os.path.basename(self.env_man.omnet_path_ini))  # todo..
+            _model.opp_argument("-c", self.env_man.ini_config)
+            _model.omnet_tag(self.env_man.communication_sim[1], override=False)
+            _model.reuse_policy("remove_stopped", override=False)
+            _model.cleanup_policy("keep_failed", override=False)
+
+            if self.env_man.uses_sumo_mobility:
+                _model.create_sumo_container()
+                _model.sumo_tag(self.env_man.mobility_sim[1], override=False)
+                _model.sumo_argument("bind", "0.0.0.0", override=False)
+                _model.sumo_argument("port", "9999", override=False)
+
+            if self.env_man.uses_vadere_mobility:
+                _model.create_vadere_container()
+                _model.vadere_tag(self.env_man.mobility_sim[1], override=False)
+                # todo hard coded to 0.0.0.0
+                # _model.vadere_argument("bind", "0.0.0.0", override=False)
+                _model.v_traci_port(9998, override=False)
+
+                _ini = self.env_man.omnet_ini_for_run(os.path.join(dirname, os.path.basename(self.env_man.omnet_path_ini)))
+                _scenario, _sim = check_simulator(_ini) 
+                _model.scenario_file(_scenario, override=False)
+
+            _model.set_script(self.env_man.run_file)
+            _model.write_context(os.path.join(dirname, "runContext.json"), dirname, r_item)
+            self._models[(par_id, run_id)] = _model
 
     def scenario_creation(self, njobs):
 
@@ -1081,8 +1124,6 @@ class CrownetRequest(Request):
         and executed by the run_script.py for each item but results are
         currently not aggregated by the CrownetSumoRequest
         """
-        # crate deep copy in case we run in multithreaded mode.
-        _model: Command = deepcopy(self.model)
 
         par_id = r_item.parameter_id
         run_id = r_item.run_id
@@ -1100,42 +1141,12 @@ class CrownetRequest(Request):
         else:
             required_files = []
 
-        # Setup command arguments (defaults and fix values)
-
-        _model.override_host_config(f"{os.path.basename(dirname)}{self.rnd_hostname_suffix}")
-        _model.result_dir(r_item.output_path)
-        _model.opp_argument("-f", os.path.basename(self.env_man.omnet_path_ini))  # todo..
-        _model.opp_argument("-c", self.env_man.ini_config)
-        _model.omnet_tag(self.env_man.communication_sim[1], override=False)
-        _model.reuse_policy("remove_stopped", override=False)
-        _model.cleanup_policy("keep_failed", override=False)
-
-        if self.env_man.uses_sumo_mobility:
-            _model.create_sumo_container()
-            _model.sumo_tag(self.env_man.mobility_sim[1], override=False)
-            _model.sumo_argument("bind", "0.0.0.0", override=False)
-            _model.sumo_argument("port", "9999", override=False)
-
-        if self.env_man.uses_vadere_mobility:
-            _model.create_vadere_container()
-            _model.vadere_tag(self.env_man.mobility_sim[1], override=False)
-            # todo hard coded to 0.0.0.0
-            # _model.vadere_argument("bind", "0.0.0.0", override=False)
-            _model.v_traci_port(9998, override=False)
-
-            _ini = self.env_man.omnet_ini_for_run(os.path.join(dirname, os.path.basename(self.env_man.omnet_path_ini)))
-            _scenario, _sim = check_simulator(_ini) 
-            _model.scenario_file(_scenario, override=False)
-
         output_on_error = None
-        # return_code, required_time, output_on_error = self.model.run_simulation(
-        #     dirname=os.path.dirname(r_item.scenario_path),
-        #     start_file=self.env_man.run_file,
-        #     args=args
-        # )
-        _model.set_script(self.env_man.run_file)
 
-        _model.write_context(os.path.join(dirname, "runContext.json"), dirname, r_item)
+        # access specific model for current par_id/run_id combination
+        # runContext.json already created. 
+        _model: Command = self._models[(par_id, run_id)]
+        
         if self.runscript_out is not None:
             with open(os.path.join(r_item.output_path, self.runscript_out), "w", encoding="utf-8") as fd:
                 return_code, required_time = _model.run(cwd=dirname, out=fd, err=fd)

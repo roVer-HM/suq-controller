@@ -185,7 +185,7 @@ class AbstractEnvironmentManager(object):
         output_folder_path = os.path.join(base_path, env_name)
         return output_folder_path
 
-    def scenario_variation_path(self, par_id, run_id):
+    def scenario_variation_path(self, par_id, run_id) -> str:
         return os.path.join(
             self.get_env_outputfolder_path(),
             self._scenario_variation_filename(par_id, run_id),

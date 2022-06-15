@@ -263,16 +263,14 @@ class CrownetCreation(AbstractScenarioCreation):
         # do not check keys here. CrownetCreation supports vadere, sumo and omnet(inet) mobility settings
         pass
 
-    def _create_omnet_scenario(self, args):
+    def _create_omnet_scenario(self, args) -> suqc.requestitem.RequestItem:
         ini_path = super()._create_omnet_scenario(args)
-        result_item = suqc.requestitem.RequestItem(
+        return suqc.requestitem.RequestItem(
             parameter_id=args[0],
             run_id=args[1],
             scenario_path=ini_path,
             base_path=self._env_man.base_path,
-            output_folder=self._env_man.get_variation_output_folder(args[0], args[1])
-        )
-        return result_item
+            output_folder=self._env_man.get_variation_output_folder(args[0], args[1]))
 
     def _sp_creation(self):
         # omnet specific
