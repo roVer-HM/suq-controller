@@ -87,14 +87,19 @@ class ChangeRandomNumber(PostScenarioChange):
     KEY_SEED = "fixedSeed"
     KEY_SIM_SEED = "simulationSeed"
 
-    def __init__(self, fixed=False, randint=False, par_and_run_id=False):
+    def __init__(self, fixed=False, randint=False, randint_seed=None, par_and_run_id=False):
         assert (
             fixed + randint + par_and_run_id == 1
         ), "Exactly one parameter has to be set to true"
+        assert (
+            (isinstance(randint_seed, int)) or (randint_seed == None)
+        ), "Parameter randint_seed must be of type int or None"
         self._isfixed = fixed
         self._fixed_randnr = None
 
         self._israndint = randint
+        self._random = np.random.RandomState(seed=randint_seed)
+
         self._is_id_based = par_and_run_id
 
         super(ChangeRandomNumber, self).__init__(name="random_number")
@@ -111,8 +116,8 @@ class ChangeRandomNumber(PostScenarioChange):
             ), "Fixed random number has to be set with method set_fixed_random_nr"
             rnr = self._fixed_randnr
         elif self._israndint:
-            # 4294967295 = max unsigned 32 bit integer
-            rnr = np.random.randint(0, 4294967295)
+            # lowest to highest signed int32 [-2147483648 to 2147483647]
+            rnr = self._random.randint(-2147483648, 2147483647)
         else:  # --> self._isparid
             rnr = int(parameter_id * 1e6 + run_id)  # the 1E6 is required to not have
 
