@@ -611,7 +611,7 @@ class DictVariation(VariationBase, ServerRequest):
             output_folder=None,
             remove_output=False,
             env_remote=None,
-    ):
+    ) -> None:
 
         self.scenario_path = scenario_path
         self.remove_output = remove_output
