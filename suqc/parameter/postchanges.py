@@ -5,6 +5,7 @@ import abc
 import numpy as np
 
 from suqc.utils.dict_utils import change_dict
+from typing import Union, List
 
 
 class PostScenarioChangesBase(object):
@@ -87,32 +88,45 @@ class ChangeRandomNumber(PostScenarioChange):
     KEY_SEED = "fixedSeed"
     KEY_SIM_SEED = "simulationSeed"
 
-    def __init__(self, fixed=False, randint=False, par_and_run_id=False):
+    def __init__(self, fixed=False, fixed_per_run=False, randint=False, par_and_run_id=False):
         assert (
-            fixed + randint + par_and_run_id == 1
+            fixed + fixed_per_run + randint + par_and_run_id == 1
         ), "Exactly one parameter has to be set to true"
         self._isfixed = fixed
+        self._isfixed_per_run = fixed_per_run
         self._fixed_randnr = None
 
         self._israndint = randint
+        self._random = None
+
         self._is_id_based = par_and_run_id
 
         super(ChangeRandomNumber, self).__init__(name="random_number")
 
-    def set_fixed_random_nr(self, random_number: int):
-        assert self._isfixed, "Modus has to be set to fixed"
-        self._fixed_randnr = random_number
+    def set_random_state(self, seed:int):
+        assert self._israndint, "Modus has to be set to randint"
+        self._random = np.random.RandomState(seed=seed)
+
+    def set_fixed_random_nr(self, random_number: Union[int, List[int]]):
+        if isinstance(random_number, int):
+            assert self._isfixed, "Modus has to be set to fixed"
+            self._fixed_randnr = [random_number]
+        elif isinstance(random_number, list):
+            assert self._isfixed_per_run, "Modus has to be set to fixed per run"
+            self._fixed_randnr = random_number
 
     def get_changes_dict(self, scenario, parameter_id, run_id, parameter_variation):
 
         if self._isfixed:
             assert (
-                self._fixed_randnr is not None
+                self._fixed_randnr[0] is not None
             ), "Fixed random number has to be set with method set_fixed_random_nr"
-            rnr = self._fixed_randnr
+            rnr = self._fixed_randnr[0]
+        elif self._isfixed_per_run:
+            rnr = self._fixed_randnr[run_id]
         elif self._israndint:
-            # 4294967295 = max unsigned 32 bit integer
-            rnr = np.random.randint(0, 4294967295)
+            # lowest to highest signed int32 [-2147483648 to 2147483647]
+            rnr = self._random.randint(-2147483648, 2147483647)
         else:  # --> self._isparid
             rnr = int(parameter_id * 1e6 + run_id)  # the 1E6 is required to not have
 
