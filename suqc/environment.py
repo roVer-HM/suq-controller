@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 import glob
 import json
 import os
@@ -675,7 +676,7 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
     def _copy_omnet(self, source_base: str, ini_file: OppConfigFileBase)-> Set[str]:
         return {}
 
-    def copy_data(self, base_ini_file: str, scenario_files=None, extraFiles=None):
+    def copy_data(self, base_ini_file: str, scenario_files=None, extraFiles: List[Tuple[str, str]]|List[Tuple[str]]|None=None):
         """
         Copy environment *only* for selected configuration.
         Workflow:
@@ -757,4 +758,15 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
                 dest_path = os.path.join(self.env_path, "additional_rover_files", rel_path)
                 os.makedirs(dest_path, exist_ok=True)
                 shutil.copy(src=f, dst=dest_path)
+
+        def to_env_base(src):
+            return os.path.join(self.env_path, "additional_rover_files", os.path.basename(src))
+
+        if extraFiles is not None:
+            for f in extraFiles:
+                f = f if issubclass(f.__class__, Tuple) else (f, )
+                src, dst = f if len(f) == 2 else (f[0], to_env_base(f[0]))
+                dst = os.path.join(self.env_path, "additional_rover_files", dst)
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copyfile(src, dst)
 
