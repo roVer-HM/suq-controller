@@ -270,7 +270,7 @@ class Request(object):
         pool = multiprocessing.Pool(processes=njobs)
         self.request_item_list = pool.map(self._single_request, self.request_item_list)
 
-    def run(self, njobs: int = 1, retry_if_failed=True):
+    def run(self, njobs: int = 1):
 
         retry = 0
         while self.is_unfinished_sims_existing() and retry <= self.retries:
@@ -365,7 +365,7 @@ class VariationBase(Request, ServerRequest):
         elif isinstance(qoi, VadereQuantityOfInterest):
             self.qoi = qoi
         else:
-            raise ValueError(f"Failed to set qoi. Check type(qoi)={type(qoi)}")
+            self.qoi = qoi
 
     def scenario_creation(self, njobs):
         scenario_creation = VadereScenarioCreation(
@@ -378,9 +378,8 @@ class VariationBase(Request, ServerRequest):
         if self.env_man.env_path is not None:
             shutil.rmtree(self.env_man.env_path)
 
-    def run(self, njobs: int = 1, retry_if_failed=True):
-        qoi_result_df, meta_info = super(VariationBase, self).run(njobs,
-                                                                  retry_if_failed=retry_if_failed)
+    def run(self, njobs: int = 1):
+        qoi_result_df, meta_info = super(VariationBase, self).run(njobs)
 
         # add another level to distinguish the columns with the parameter lookup
         meta_info = self._add_meta_info_multiindex(meta_info)
