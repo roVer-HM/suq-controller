@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 import abc
 import multiprocessing
 import os
-from typing import Protocol
+from typing import Callable, Protocol, Tuple, List
 import warnings
 from distutils.dir_util import copy_tree
 
@@ -15,12 +16,27 @@ from suqc.utils.dict_utils import change_dict, deep_dict_lookup
 from suqc.utils.general import create_folder, njobs_check_and_set, remove_folder
 from omnetinireader.config_parser import updateConfigFile
 
-def opp_creator(env_man, parameter_variation, njobs):
+    
+
+class ScenarioCreationCopyFunction(Protocol):
+    """Copy files to a specific  simulation (aka RequestItem). These functions are called after 
+    all runs are generated. Thus the scenario and or ini file already exist in the RequestItem location
+    and can be used in any way. 
+    """
+
+    def copy_files(self, env_man: AbstractEnvironmentManager, item:suqc.requestitem.RequestItem):
+        pass
+
+def opp_creator(env_man, parameter_variation, njobs, copy_f:List[ScenarioCreationCopyFunction]|None = None):
         scenario_creation = CrownetCreation(env_man, parameter_variation)
+        if copy_f is not None:
+            scenario_creation.file_copy_functions = copy_f
         return  scenario_creation.generate_scenarios(njobs)
 
-def coupled_creator(env_man, parameter_variation, njobs):
+def coupled_creator(env_man, parameter_variation, njobs, copy_f:List[ScenarioCreationCopyFunction]|None = None):
         scenario_creation = CoupledScenarioCreation(env_man, parameter_variation)
+        if copy_f is not None:
+            scenario_creation.file_copy_functions = copy_f
         return  scenario_creation.generate_scenarios(njobs)
 
 class AbstractScenarioCreation(object):
@@ -34,17 +50,18 @@ class AbstractScenarioCreation(object):
         self._parameter_variation = parameter_variation
         self._post_changes = post_change
         self._sampling_check_selected_keys()
+        self.file_copy_functions: List[ScenarioCreationCopyFunction] = []
 
     @abc.abstractmethod
     def _sampling_check_selected_keys(self):
         raise NotImplemented
 
     @abc.abstractmethod
-    def _sp_creation(self):
+    def _sp_creation(self) -> List[suqc.requestitem.RequestItem]:
         raise NotImplemented
 
     @abc.abstractmethod
-    def _mp_creation(self, njobs):
+    def _mp_creation(self, njobs) -> List[suqc.requestitem.RequestItem]:
         raise NotImplemented
 
     # public methods
@@ -70,6 +87,11 @@ class AbstractScenarioCreation(object):
             request_item_list = self._sp_creation()
         else:
             request_item_list = self._mp_creation(njobs)
+        
+        for item in request_item_list:
+            # copy additional files specific for each request item.
+            for copy_f in self.file_copy_functions:
+                copy_f.copy_files(self._env_man, item)
 
         return request_item_list
 
@@ -82,7 +104,8 @@ class AbstractScenarioCreation(object):
 
     def _create_vadere_scenario(
             self, args
-    ):  # TODO: how do multiple arguments work for pool.map functions? (see below)
+    ):  
+        # TODO: how do multiple arguments work for pool.map functions? (see below)
         """Set up a new scenario and return info of parameter id and location."""
         parameter_id = args[0]  # TODO: this would kind of reduce this ugly code
         run_id = args[1]
@@ -175,16 +198,16 @@ class VadereScenarioCreation(AbstractScenarioCreation):
     ):
         super().__init__(env_man, parameter_variation, post_change)
 
-    def _sp_creation(self):
+    def _sp_creation(self) -> List[suqc.requestitem.RequestItem]:
         """Single process loop to create all requested scenarios."""
-        request_item_list = list()
+        request_item_list = []
         for par_id, run_id, par_change in self._parameter_variation.par_iter():
             request_item_list.append(
                 self._create_vadere_scenario([par_id, run_id, par_change])
             )
         return request_item_list
 
-    def _mp_creation(self, njobs):
+    def _mp_creation(self, njobs) -> List[suqc.requestitem.RequestItem]:
         """Multi process function to create all requested scenarios."""
         pool = multiprocessing.Pool(processes=njobs)
         request_item_list = pool.map(

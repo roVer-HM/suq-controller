@@ -202,10 +202,10 @@ class AbstractEnvironmentManager(object):
             json.dump(content, outfile, indent=4)
         return scenario_path
 
-    def get_env_outputfolder_path(self):
+    def get_env_outputfolder_path(self) -> str:
         raise NotImplemented
 
-    def get_variation_output_folder(self, parameter_id, run_id):
+    def get_variation_output_folder(self, parameter_id, run_id) -> str:
         scenario_filename = self._scenario_variation_filename(
             parameter_id=parameter_id, run_id=run_id
         )
@@ -759,14 +759,13 @@ class CrownetEnvironmentManager(CoupledEnvironmentManager):
                 os.makedirs(dest_path, exist_ok=True)
                 shutil.copy(src=f, dst=dest_path)
 
-        def to_env_base(src):
-            return os.path.join(self.env_path, "additional_rover_files", os.path.basename(src))
-
         if extraFiles is not None:
             for f in extraFiles:
-                f = f if issubclass(f.__class__, Tuple) else (f, )
-                src, dst = f if len(f) == 2 else (f[0], to_env_base(f[0]))
-                dst = os.path.join(self.env_path, "additional_rover_files", dst)
+                src, dst = f if issubclass(f.__class__, Tuple) else (f, "")
+                if dst == "":
+                    dst =  os.path.join(self.env_path, "additional_rover_files", dst)
+                else:
+                    dst = os.path.join(self.env_path, dst)
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copyfile(src, dst)
 
