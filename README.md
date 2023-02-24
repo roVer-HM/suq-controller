@@ -54,7 +54,7 @@ To update the suq-controller with the current master run the following git comma
 git subtree pull --prefix Tools/SUQController git@gitlab.lrz.de:vadere/suq-controller.git master --squash
 ```
 
-#### Using SUQC and Vadere 
+#### Using SUQC 
 A few hints for your Vadere `.scenario` files:
 
 1.  ScenarioChecker  
