@@ -222,7 +222,8 @@ class ParameterVariationBase(metaclass=abc.ABCMeta):
         # assign values to empty dicts (nested)
         for parameter_key, subdict in df.to_dict().items():
             for sample, value in subdict.items():
-                if not (isinstance(value, np.float) and np.isnan(value)):
+                # changed np.float to float (`np.float` was a deprecated alias for the builtin `float` deprecated in NumPy 1.20;)
+                if not (isinstance(value, float) and np.isnan(value)):
                     parameter_change[sample][parameter_key] = value
 
         for (par_id, run_id), row in parameter_change.items():

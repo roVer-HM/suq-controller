@@ -8,7 +8,6 @@ import zipfile
 import numpy as np
 import pandas as pd
 
-from fabric import Connection
 from suqc.configuration import SuqcConfig
 from suqc.utils.general import create_folder, str_timestamp
 
@@ -64,6 +63,8 @@ class ServerConnection(object):
         return server_cfg
 
     def _connect_server(self):
+        #TODO test the fabric dependency and move it to the global imports
+        from fabric import Connection
 
         server_cfg = self.read_server_config()
 
