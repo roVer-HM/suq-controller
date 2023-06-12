@@ -37,6 +37,9 @@ class Python3Command(Command, ABC):
         return self
 
     def arg_list(self) -> List[str]:
+        if self._arguments.get("--qoi") == None:
+            print("Warning: no --qoi defined. Skip postprocessing in the run_script.py. Make sure all files are provided.")
+
         return [self._sub_command, *list(self._arguments)]
 
     def run(self, cwd: str, file_name: Union[str, None] = None, out = subprocess.DEVNULL, err=subprocess.DEVNULL,) -> Tuple[int, float]:
@@ -47,6 +50,7 @@ class Python3Command(Command, ABC):
         # print(f"{t}\t Call {str(self)}")
 
         run_command: List[str] = [self._executable, self._script, *self.arg_list()]
+
         try:
             return_code: int = subprocess.check_call(
                 run_command,
