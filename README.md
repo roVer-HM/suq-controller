@@ -1,12 +1,13 @@
 # What is the suq-controller?
 
-The suq-controller is a Python package for the open source microscopic pedestrian simulator Vadere. The sampling is automated and can be parallelized. All results are returned in a convenient format ([pandas DataFrame](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html)). 
+The suq-controller is a Python package for to run simulation studies in crownet. The sampling is automated and can be parallelized. All results are returned in a convenient format ([pandas DataFrame](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html)). 
 
 The main motivation is to provide a tool to build Surrogate (S) or Uncertainty Quantification (UQ) models. 
 
 
+
 ### Work in progress
-Note, that the project is a work in progress. Features are only implemented when required and we welcome contributions (feedback, code, documentation, tests, ...). Please interact through issues.  
+Note, that the project is a work in progress. Features are only implemented when required and we welcome contributions (feedback, code, documentation, tests, ...). Please interact through issues.
 
 # Install
 
@@ -53,7 +54,7 @@ To update the suq-controller with the current master run the following git comma
 git subtree pull --prefix Tools/SUQController git@gitlab.lrz.de:vadere/suq-controller.git master --squash
 ```
 
-#### Using SUQC and Vadere 
+#### Using SUQC 
 A few hints for your Vadere `.scenario` files:
 
 1.  ScenarioChecker  
