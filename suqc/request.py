@@ -351,6 +351,7 @@ class VariationBase(Request, ServerRequest):
                 "to not keep any output (remove_output=False)."
             )
 
+
         self.set_qoi(qoi)
         request_item_list = self.scenario_creation(njobs)
 
@@ -1089,6 +1090,7 @@ class CrownetRequest(Request):
             _model.omnet_tag(self.env_man.communication_sim[1], override=False)
             _model.reuse_policy("remove_stopped", override=False)
             _model.cleanup_policy("keep_failed", override=False)
+
 
             if self.env_man.uses_sumo_mobility:
                 _model.create_sumo_container()

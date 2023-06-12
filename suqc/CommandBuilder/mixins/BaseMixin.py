@@ -3,7 +3,7 @@ from typing import List
 
 
 class BaseMixin(ABC):
-    def qoi(self, files: List[str], override = True):
+    def qoi(self, files: List[str] = None, override = True):
         self._arguments.set("--qoi", files, override)
         return self
 
