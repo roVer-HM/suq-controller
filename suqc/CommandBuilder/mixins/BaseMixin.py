@@ -39,3 +39,7 @@ class BaseMixin(ABC):
     def verbose(self):
         self._arguments["--verbose"] = None
         return self
+    
+    def network_name(self, network_name: str, override = True):
+        self._arguments.set("--network_name", network_name, override)
+        return self
